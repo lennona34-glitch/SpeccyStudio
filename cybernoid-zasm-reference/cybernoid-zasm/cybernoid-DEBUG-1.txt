@@ -1,0 +1,460 @@
+			LD BC,$029D				; $FC00
+			LD HL,$FC13				; $FC03
+			LD DE,$FC14				; $FC06
+			LD A,(DE)				; $FC09
+			XOR (HL)				; $FC0A
+			LD (HL),A				; $FC0B
+			INC HL				; $FC0C
+			INC DE				; $FC0D
+			DEC BC				; $FC0E
+			LD A,B				; $FC0F
+			OR C				; $FC10
+			JR NZ,$FC09				; $FC11
+			JP $FE3A				; $FC13
+			LD C,B				; $FC16
+			LD C,B				; $FC17
+			LD C,B				; $FC18
+			LD C,B				; $FC19
+			NOP				; $FC1A
+			NOP				; $FC1B
+			NOP				; $FC1C
+			NOP				; $FC1D
+			NOP				; $FC1E
+			NOP				; $FC1F
+			NOP				; $FC20
+			NOP				; $FC21
+			NOP				; $FC22
+			NOP				; $FC23
+			NOP				; $FC24
+			NOP				; $FC25
+			NOP				; $FC26
+			NOP				; $FC27
+			NOP				; $FC28
+			NOP				; $FC29
+			NOP				; $FC2A
+			NOP				; $FC2B
+			NOP				; $FC2C
+			NOP				; $FC2D
+			NOP				; $FC2E
+			NOP				; $FC2F
+			NOP				; $FC30
+			NOP				; $FC31
+			CP $C6				; $FC32
+			CP D				; $FC34
+			CP D				; $FC35
+			CP D				; $FC36
+			CP D				; $FC37
+			ADD A,FE				; $FC38
+			CP $EE				; $FC3A
+			ADC A,EE				; $FC3C
+			XOR $EE				; $FC3E
+			ADD A,D				; $FC40
+			CP $FE				; $FC41
+			ADD A,BA				; $FC43
+			OR $EE				; $FC45
+			SBC A,82				; $FC47
+			CP $FE				; $FC49
+			ADD A,D				; $FC4B
+			OR $E6				; $FC4C
+			JP M,$C6BA				; $FC4E
+			CP $FE				; $FC51
+			OR $E6				; $FC53
+			SUB $B6				; $FC55
+			ADD A,D				; $FC57
+			OR $FE				; $FC58
+			CP $82				; $FC5A
+			CP (HL)				; $FC5C
+			ADD A,(HL)				; $FC5D
+			JP M,$C6BA				; $FC5E
+			CP $FE				; $FC61
+			AND $DE				; $FC63
+			ADD A,(HL)				; $FC65
+			CP D				; $FC66
+			CP D				; $FC67
+			ADD A,FE				; $FC68
+			CP $82				; $FC6A
+			JP M,$F6F6				; $FC6C
+			XOR $EE				; $FC6F
+			CP $FE				; $FC71
+			ADD A,BA				; $FC73
+			ADD A,BA				; $FC75
+			CP D				; $FC77
+			ADD A,FE				; $FC78
+			CP $C6				; $FC7A
+			CP D				; $FC7C
+			CP D				; $FC7D
+			JP NZ,$C6FA				; $FC7E
+			CP $FE				; $FC81
+			ADD A,BA				; $FC83
+			CP D				; $FC85
+			CP D				; $FC86
+			CP D				; $FC87
+			ADD A,FE				; $FC88
+			INC D				; $FC8A
+			EX AF,AF'				; $FC8B
+			DEC D				; $FC8C
+			DI				; $FC8D
+			EXX				; $FC8E
+			LD C,$00				; $FC8F
+			EXX				; $FC91
+			LD A,$0A				; $FC92
+			OUT ($FE),A				; $FC94
+			IN A,($FE)				; $FC96
+			RRA				; $FC98
+			AND $20				; $FC99
+			OR $00				; $FC9B
+			LD C,A				; $FC9D
+			CP A				; $FC9E
+			RET NZ				; $FC9F
+			CALL $FD20				; $FCA0
+			JR NC,$FC9F				; $FCA3
+			LD HL,$0415				; $FCA5
+			DJNZ $FCA8				; $FCA8
+			DEC HL				; $FCAA
+			LD A,H				; $FCAB
+			OR L				; $FCAC
+			JR NZ,$FCA8				; $FCAD
+			CALL $FD1C				; $FCAF
+			JR NC,$FC9F				; $FCB2
+			LD B,$9C				; $FCB4
+			CALL $FD1C				; $FCB6
+			JR NC,$FC9F				; $FCB9
+			LD A,$C6				; $FCBB
+			CP B				; $FCBD
+			JR NC,$FCA0				; $FCBE
+			INC H				; $FCC0
+			JR NZ,$FCB4				; $FCC1
+			LD B,$C9				; $FCC3
+			CALL $FD20				; $FCC5
+			JR NC,$FC9F				; $FCC8
+			LD A,B				; $FCCA
+			CP $D4				; $FCCB
+			JR NC,$FCC3				; $FCCD
+			CALL $FD20				; $FCCF
+			RET NC				; $FCD2
+			EXX				; $FCD3
+			LD A,($FC1A)				; $FCD4
+			LD C,A				; $FCD7
+			LD ($FC1F),A				; $FCD8
+			EXX				; $FCDB
+			LD H,$00				; $FCDC
+			LD B,$B0				; $FCDE
+			JR $FD01				; $FCE0
+			EX AF,AF'				; $FCE2
+			JR NZ,$FCEC				; $FCE3
+			JR NC,$FCF6				; $FCE5
+			LD (IX+$00),L				; $FCE7
+			JR $FCFB				; $FCEA
+			RL C				; $FCEC
+			XOR L				; $FCEE
+			RET NZ				; $FCEF
+			LD A,C				; $FCF0
+			RRA				; $FCF1
+			LD C,A				; $FCF2
+			INC DE				; $FCF3
+			JR $FCFD				; $FCF4
+			LD A,(IX+$00)				; $FCF6
+			XOR L				; $FCF9
+			RET NZ				; $FCFA
+			INC IX				; $FCFB
+			DEC DE				; $FCFD
+			EX AF,AF'				; $FCFE
+			LD B,$B2				; $FCFF
+			LD L,$01				; $FD01
+			CALL $FD1C				; $FD03
+			RET NC				; $FD06
+			LD A,$CB				; $FD07
+			CP B				; $FD09
+			RL L				; $FD0A
+			LD B,$B0				; $FD0C
+			JP NC,$FD03				; $FD0E
+			LD A,H				; $FD11
+			XOR L				; $FD12
+			LD H,A				; $FD13
+			LD A,D				; $FD14
+			OR E				; $FD15
+			JR NZ,$FCE2				; $FD16
+			LD A,H				; $FD18
+			CP $01				; $FD19
+			RET				; $FD1B
+			CALL $FD20				; $FD1C
+			RET NC				; $FD1F
+			JP $FD3B				; $FD20
+			INC B				; $FD23
+			RET Z				; $FD24
+			LD A,$7F				; $FD25
+			IN A,($FE)				; $FD27
+			RRA				; $FD29
+			RET NC				; $FD2A
+			XOR C				; $FD2B
+			AND $20				; $FD2C
+			JR Z,$FD23				; $FD2E
+			LD A,C				; $FD30
+			CPL				; $FD31
+			LD C,A				; $FD32
+			LD A,$00				; $FD33
+			LD A,$08				; $FD35
+			OUT ($FE),A				; $FD37
+			SCF				; $FD39
+			RET				; $FD3A
+			EXX				; $FD3B
+			LD A,C				; $FD3C
+			OR A				; $FD3D
+			JR Z,$FD80				; $FD3E
+			LD HL,$FC1F				; $FD40
+			DEC (HL)				; $FD43
+			LD A,(HL)				; $FD44
+			JR Z,$FDA2				; $FD45
+			CP $05				; $FD47
+			JR NC,$FD8D				; $FD49
+			LD HL,$FC1B				; $FD4B
+			INC (HL)				; $FD4E
+			INC L				; $FD4F
+			INC L				; $FD50
+			DEC (HL)				; $FD51
+			LD HL,($FC1B)				; $FD52
+			LD A,(HL)				; $FD55
+			ADD A,32				; $FD56
+			LD E,A				; $FD58
+			LD D,$FC				; $FD59
+			LD HL,($FC1D)				; $FD5B
+			LD A,(DE)				; $FD5E
+			LD (HL),A				; $FD5F
+			INC E				; $FD60
+			INC H				; $FD61
+			LD A,(DE)				; $FD62
+			LD (HL),A				; $FD63
+			INC E				; $FD64
+			INC H				; $FD65
+			LD A,(DE)				; $FD66
+			LD (HL),A				; $FD67
+			INC E				; $FD68
+			INC H				; $FD69
+			LD A,(DE)				; $FD6A
+			LD (HL),A				; $FD6B
+			INC E				; $FD6C
+			INC H				; $FD6D
+			LD A,(DE)				; $FD6E
+			LD (HL),A				; $FD6F
+			INC E				; $FD70
+			INC H				; $FD71
+			LD A,(DE)				; $FD72
+			LD (HL),A				; $FD73
+			INC E				; $FD74
+			INC H				; $FD75
+			LD A,(DE)				; $FD76
+			LD (HL),A				; $FD77
+			INC E				; $FD78
+			INC H				; $FD79
+			LD A,(DE)				; $FD7A
+			LD (HL),A				; $FD7B
+			EXX				; $FD7C
+			JP $FD23				; $FD7D
+			LD B,$17				; $FD80
+			DJNZ $FD82				; $FD82
+			LD A,$00				; $FD84
+			NEG				; $FD86
+			AND A				; $FD88
+			EXX				; $FD89
+			JP $FD23				; $FD8A
+			LD A,$47				; $FD8D
+			LD ($5AE1),A				; $FD8F
+			LD ($5AE2),A				; $FD92
+			LD ($5AE3),A				; $FD95
+			LD ($5AE4),A				; $FD98
+			INC HL				; $FD9B
+			INC HL				; $FD9C
+			LD B,$0D				; $FD9D
+			JP $FD82				; $FD9F
+			LD B,$4F				; $FDA2
+			LD DE,($FC16)				; $FDA4
+			LD HL,($FC18)				; $FDA8
+			DEC E				; $FDAB
+			JP P,$FDB9				; $FDAC
+			LD E,B				; $FDAF
+			DEC D				; $FDB0
+			LD B,$05				; $FDB1
+			DJNZ $FDB3				; $FDB3
+			LD A,(HL)				; $FDB5
+			JP $FDEC				; $FDB6
+			LD A,D				; $FDB9
+			AND $07				; $FDBA
+			JP Z,$FDD1				; $FDBC
+			DEC D				; $FDBF
+			JP P,$FDD3				; $FDC0
+			LD D,B				; $FDC3
+			DEC L				; $FDC4
+			LD A,($8000)				; $FDC5
+			LD A,($8000)				; $FDC8
+			LD A,($8000)				; $FDCB
+			JP $FDEC				; $FDCE
+			LD A,(HL)				; $FDD1
+			LD A,(HL)				; $FDD2
+			LD A,L				; $FDD3
+			AND $07				; $FDD4
+			JP Z,$FDE4				; $FDD6
+			DEC L				; $FDD9
+			JP P,$FDE6				; $FDDA
+			LD L,B				; $FDDD
+			DEC H				; $FDDE
+			NEG				; $FDDF
+			JP $FDEC				; $FDE1
+			LD A,(HL)				; $FDE4
+			LD A,(HL)				; $FDE5
+			LD A,H				; $FDE6
+			AND $07				; $FDE7
+			JR Z,$FDEC				; $FDE9
+			DEC H				; $FDEB
+			LD ($FC16),DE				; $FDEC
+			LD ($FC18),HL				; $FDF0
+			LD HL,$FC15				; $FDF3
+			LD ($FC1B),HL				; $FDF6
+			LD HL,$50E5				; $FDF9
+			LD ($FC1D),HL				; $FDFC
+			LD A,$40				; $FDFF
+			LD ($FC1F),A				; $FE01
+			NEG				; $FE04
+			NEG				; $FE06
+			NEG				; $FE08
+			AND A				; $FE0A
+			EXX				; $FE0B
+			JP $FD23				; $FE0C
+			LD HL,($FC2C)				; $FE0F
+			LD B,$05				; $FE12
+			SRL H				; $FE14
+			RR L				; $FE16
+			DJNZ $FE14				; $FE18
+			LD DE,$FC19				; $FE1A
+			LD A,$FF				; $FE1D
+			LD BC,$03E8				; $FE1F
+			INC A				; $FE22
+			OR A				; $FE23
+			SBC HL,BC				; $FE24
+			JR NC,$FE22				; $FE26
+			ADD HL,BC				; $FE28
+			ADD A,A				; $FE29
+			ADD A,A				; $FE2A
+			ADD A,A				; $FE2B
+			LD (DE),A				; $FE2C
+			LD C,L				; $FE2D
+			LD B,H				; $FE2E
+			ADD HL,HL				; $FE2F
+			ADD HL,HL				; $FE30
+			ADD HL,BC				; $FE31
+			ADD HL,HL				; $FE32
+			DEC DE				; $FE33
+			LD A,E				; $FE34
+			CP $15				; $FE35
+			JR NZ,$FE1D				; $FE37
+			RET				; $FE39
+			DI				; $FE3A
+			LD HL,$5800				; $FE3B
+			LD DE,$5801				; $FE3E
+			LD BC,$02FF				; $FE41
+			LD (HL),00				; $FE44
+			LDIR				; $FE46
+			CALL $FE7E				; $FE48
+			CALL $8001				; $FE4B
+			CALL $FE7E				; $FE4E
+			LD HL,$FE5F				; $FE51
+			LD DE,$5B00				; $FE54
+			LD BC,$001F				; $FE57
+			LDIR				; $FE5A
+			JP $5B00				; $FE5C
+			LD HL,$FBFF				; $FE5F
+			LD DE,$FFFF				; $FE62
+			LD BC,$9AFC				; $FE65
+			LDDR				; $FE68
+			LD HL,$6104				; $FE6A
+			LD DE,$6105				; $FE6D
+			LD (HL),00				; $FE70
+			LD BC,$03FF				; $FE72
+			LDIR				; $FE75
+			LD SP,$61A8				; $FE77
+			EI				; $FE7A
+			JP $6504				; $FE7B
+			XOR A				; $FE7E
+			LD ($FC1A),A				; $FE7F
+			LD IX,$FC21				; $FE82
+			LD DE,$0011				; $FE86
+			XOR A				; $FE89
+			SCF				; $FE8A
+			CALL $FC8A				; $FE8B
+			JR NC,$FE7E				; $FE8E
+			LD A,($FC21)				; $FE90
+			CP $2A				; $FE93
+			JR NZ,$FE7E				; $FE95
+			CALL $FE0F				; $FE97
+			LD A,$01				; $FE9A
+			LD ($FC1A),A				; $FE9C
+			LD IX,($FC2E)				; $FE9F
+			LD DE,($FC2C)				; $FEA3
+			LD A,$FF				; $FEA7
+			SCF				; $FEA9
+			CALL $FC8A				; $FEAA
+			JR NC,$FE7E				; $FEAD
+			RET				; $FEAF
+			NOP				; $FEB0
+			NOP				; $FEB1
+			NOP				; $FEB2
+			NOP				; $FEB3
+			NOP				; $FEB4
+			NOP				; $FEB5
+			NOP				; $FEB6
+			NOP				; $FEB7
+			NOP				; $FEB8
+			NOP				; $FEB9
+			NOP				; $FEBA
+			NOP				; $FEBB
+			NOP				; $FEBC
+			NOP				; $FEBD
+			NOP				; $FEBE
+			NOP				; $FEBF
+			NOP				; $FEC0
+			NOP				; $FEC1
+			NOP				; $FEC2
+			NOP				; $FEC3
+			NOP				; $FEC4
+			NOP				; $FEC5
+			NOP				; $FEC6
+			NOP				; $FEC7
+			NOP				; $FEC8
+			NOP				; $FEC9
+			NOP				; $FECA
+			NOP				; $FECB
+			NOP				; $FECC
+			NOP				; $FECD
+			NOP				; $FECE
+			NOP				; $FECF
+			NOP				; $FED0
+			NOP				; $FED1
+			NOP				; $FED2
+			NOP				; $FED3
+			NOP				; $FED4
+			SUB C				; $FED5
+			DEC B				; $FED6
+			CP B				; $FED7
+			DEC B				; $FED8
+			RST $20				; $FED9
+			CP $C3				; $FEDA
+			DEC B				; $FEDC
+			LD (BC),A				; $FEDD
+			DEC C				; $FEDE
+			LD (HL),H				; $FEDF
+			LD (BC),A				; $FEE0
+			BIT 3,H				; $FEE1
+			RET				; $FEE3
+			LD (BC),A				; $FEE4
+			JP HL				; $FEE5
+			LD BC,$FFF2				; $FEE6
+			RST $18				; $FEE9
+			CP $E4				; $FEEA
+			JR NZ,$FF37				; $FEEC
+			LD A,($5C74)				; $FEEE
+			CP $03				; $FEF1
+			JP Z,$1C8A				; $FEF3
+			RST $20				; $FEF6
+			CALL $28B2				; $FEF7
+			SET 7,C				; $FEFA
+			JR NC,$FF09				; $FEFC
+			LD HL,NN				; $FEFE

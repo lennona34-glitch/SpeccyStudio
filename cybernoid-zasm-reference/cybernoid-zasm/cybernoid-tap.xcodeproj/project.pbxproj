@@ -1,0 +1,204 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXFileReference section */
+		3E2B463119F0B50D00B4ECEE /* cybernoid-tap.zasm */ = {isa = PBXFileReference; explicitFileType = sourcecode.asm; fileEncoding = 4; path = "cybernoid-tap.zasm"; sourceTree = "<group>"; };
+		3E2B463219F0B50D00B4ECEE /* cybernoid-DEBUG-4.txt */ = {isa = PBXFileReference; explicitFileType = sourcecode.asm; fileEncoding = 4; path = "cybernoid-DEBUG-4.txt"; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.asm.ppc; };
+		3E2B463319F0B50D00B4ECEE /* cybernoid-BASIC-1-orig.txt */ = {isa = PBXFileReference; explicitFileType = sourcecode.pascal; fileEncoding = 4; path = "cybernoid-BASIC-1-orig.txt"; sourceTree = "<group>"; };
+		3E2B463419F0B50D00B4ECEE /* cybernoid-DEBUG-2.txt */ = {isa = PBXFileReference; explicitFileType = sourcecode.asm; fileEncoding = 4; path = "cybernoid-DEBUG-2.txt"; sourceTree = "<group>"; };
+		3E843E2D1A36A81200F8EEA5 /* cybernoid-DUMP-5.txt */ = {isa = PBXFileReference; explicitFileType = sourcecode.asm; fileEncoding = 4; path = "cybernoid-DUMP-5.txt"; sourceTree = "<group>"; };
+		3E843E2E1A36A81700F8EEA5 /* cybernoid-DEBUG-5.txt */ = {isa = PBXFileReference; explicitFileType = sourcecode.asm; fileEncoding = 4; path = "cybernoid-DEBUG-5.txt"; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.asm.ppc; };
+		3EB0616D19F0B5A100B6E366 /* zasm-zxspectrum-cybernoid-tap-build.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = "zasm-zxspectrum-cybernoid-tap-build.sh"; sourceTree = "<group>"; };
+		3ED319D91A100E0600DEF60D /* cybernoid-DEBUG-3.txt */ = {isa = PBXFileReference; explicitFileType = sourcecode.asm; fileEncoding = 4; path = "cybernoid-DEBUG-3.txt"; sourceTree = "<group>"; };
+		3ED319DA1A100E1400DEF60D /* cybernoid-DEBUG-1.txt */ = {isa = PBXFileReference; explicitFileType = sourcecode.asm; fileEncoding = 4; path = "cybernoid-DEBUG-1.txt"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		3E105DED19F0B47C000638B4 = {
+			isa = PBXGroup;
+			children = (
+				3E2B463119F0B50D00B4ECEE /* cybernoid-tap.zasm */,
+				3E843E2E1A36A81700F8EEA5 /* cybernoid-DEBUG-5.txt */,
+				3E843E2D1A36A81200F8EEA5 /* cybernoid-DUMP-5.txt */,
+				3E2B463219F0B50D00B4ECEE /* cybernoid-DEBUG-4.txt */,
+				3ED319D91A100E0600DEF60D /* cybernoid-DEBUG-3.txt */,
+				3E2B463419F0B50D00B4ECEE /* cybernoid-DEBUG-2.txt */,
+				3ED319DA1A100E1400DEF60D /* cybernoid-DEBUG-1.txt */,
+				3E2B463319F0B50D00B4ECEE /* cybernoid-BASIC-1-orig.txt */,
+				3EB0616D19F0B5A100B6E366 /* zasm-zxspectrum-cybernoid-tap-build.sh */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXLegacyTarget section */
+		3E105DF219F0B47C000638B4 /* cybernoid-tap-zxspectrum */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = "zasm-zxspectrum-$(PROJECT_NAME)-build.sh ";
+			buildConfigurationList = 3E105DF519F0B47C000638B4 /* Build configuration list for PBXLegacyTarget "cybernoid-tap-zxspectrum" */;
+			buildPhases = (
+			);
+			buildToolPath = /bin/bash;
+			buildWorkingDirectory = "$(SRCROOT)";
+			dependencies = (
+			);
+			name = "cybernoid-tap-zxspectrum";
+			passBuildSettingsInEnvironment = 1;
+			productName = "cybernoid-tap";
+		};
+/* End PBXLegacyTarget section */
+
+/* Begin PBXProject section */
+		3E105DEE19F0B47C000638B4 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0610;
+				ORGANIZATIONNAME = "Bolli World HQ";
+				TargetAttributes = {
+					3E105DF219F0B47C000638B4 = {
+						CreatedOnToolsVersion = 6.1;
+					};
+				};
+			};
+			buildConfigurationList = 3E105DF119F0B47C000638B4 /* Build configuration list for PBXProject "cybernoid-tap" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 3E105DED19F0B47C000638B4;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				3E105DF219F0B47C000638B4 /* cybernoid-tap-zxspectrum */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin XCBuildConfiguration section */
+		3E105DF319F0B47C000638B4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		3E105DF419F0B47C000638B4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		3E105DF619F0B47C000638B4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEBUGGING_SYMBOLS = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		3E105DF719F0B47C000638B4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		3E105DF119F0B47C000638B4 /* Build configuration list for PBXProject "cybernoid-tap" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3E105DF319F0B47C000638B4 /* Debug */,
+				3E105DF419F0B47C000638B4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		3E105DF519F0B47C000638B4 /* Build configuration list for PBXLegacyTarget "cybernoid-tap-zxspectrum" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3E105DF619F0B47C000638B4 /* Debug */,
+				3E105DF719F0B47C000638B4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 3E105DEE19F0B47C000638B4 /* Project object */;
+}

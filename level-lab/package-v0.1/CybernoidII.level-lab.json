@@ -1,0 +1,96 @@
+{
+  "format": "speccy-studio-level-lab-profile",
+  "formatVersion": 1,
+  "profileId": "cybernoid-ii-1988-hewson-128k-tap",
+  "title": "Cybernoid II",
+  "platform": "ZX Spectrum 128K / +2",
+  "recognition": {
+    "fileSize": 48033,
+    "sha256": "BF416648617F2EC3FBC9DE99DB38C679D9777A9EB993864D53F2B1BC92A2DE92",
+    "requiredMatch": true
+  },
+  "tape": {
+    "blockCount": 6,
+    "allChecksumsVerified": true,
+    "blocks": [
+      { "index": 0, "tapOffset": "0x0000", "kind": "header", "name": "CYBERNIOD", "length": 19 },
+      { "index": 1, "tapOffset": "0x0015", "kind": "basic-data", "length": 674 },
+      { "index": 2, "tapOffset": "0x02B9", "kind": "header", "name": "cyber", "length": 19 },
+      { "index": 3, "tapOffset": "0x02CE", "kind": "machine-loader", "loadAddress": "0x61A8", "dataLength": 200, "length": 202 },
+      { "index": 4, "tapOffset": "0x039A", "kind": "loading-screen", "dataLength": 6912, "length": 6914 },
+      { "index": 5, "tapOffset": "0x1E9E", "kind": "main-image", "loadAddress": "0x6300", "endAddressInclusive": "0xFFFE", "dataLength": 40191, "length": 40193 }
+    ],
+    "mainImageDataOffset": "0x1EA1",
+    "mainImageChecksumOffset": "0xBBA0",
+    "checksum": "xor-all-payload-bytes-equals-zero"
+  },
+  "runtime": {
+    "machine": "128K Spectrum",
+    "menuProgramCounter": "0xFDFD",
+    "interruptRoutine": "0x6E50",
+    "pagedBankAtC000": 0,
+    "port7ffd": "0x10",
+    "usedBanksAtMenu": [5, 2, 0],
+    "unusedBanksAtMenu": [1, 3, 4, 6, 7]
+  },
+  "graphics": {
+    "status": "verified-by-runtime-read-trace-and-round-trip-probe",
+    "screenWriteRoutines": ["0x648C", "0x64AC", "0x6A55", "0xA309", "0xA310", "0xA317", "0xA31E", "0xA3C4", "0xA3C9", "0xA3D7", "0xA3DC", "0xA425", "0xA429"],
+    "runtimeSourceRegions": [
+      { "start": "0xDD2B", "endInclusive": "0xDDAA", "length": 128, "role": "masked-sprite-pattern-source", "traceReadsFeedingScreen": 21376, "confidence": "verified" },
+      { "start": "0xE3EB", "endInclusive": "0xE42A", "length": 64, "role": "sprite-pattern-source", "traceReadsFeedingScreen": 1536, "confidence": "verified" },
+      { "start": "0xEBF7", "endInclusive": "0xEC06", "length": 16, "role": "sprite-pattern-source", "traceReadsFeedingScreen": 1340, "confidence": "verified" },
+      { "start": "0xD00B", "endInclusive": "0xD056", "length": 76, "role": "room-render-source", "traceReadsFeedingScreen": 811, "confidence": "verified" },
+      { "start": "0x7DD7", "endInclusive": "0x7E9A", "length": 196, "role": "hud-font-and-render-source", "confidence": "strong" },
+      { "start": "0xBFDB", "endInclusive": "0xBFFA", "length": 32, "role": "sprite-fragments", "confidence": "strong" }
+    ],
+    "largerCandidateBanks": [
+      { "start": "0x9AB8", "length": 808, "role": "graphics-bank", "confidence": "strong" },
+      { "start": "0xBF32", "length": 264, "role": "hud-and-sprite-bank", "confidence": "strong" },
+      { "start": "0xC04A", "length": 1344, "role": "graphics-bank", "confidence": "strong" },
+      { "start": "0xC708", "length": 768, "role": "graphics-bank", "confidence": "strong" },
+      { "start": "0xED93", "length": 704, "role": "graphics-bank", "confidence": "strong" }
+    ],
+    "encoding": {
+      "description": "Mixed-width masked sprite and pattern records; not a flat 8x8 tile array.",
+      "editorPolicy": "Use profile-specific record decoders and preserve masks/record sizes. Do not apply generic tile rewriting."
+    }
+  },
+  "music": {
+    "chip": "AY-3-8912",
+    "engineStart": "0xF400",
+    "registerFlushRoutine": "0xF46C",
+    "registerShadow": { "start": "0xF67F", "length": 14 },
+    "streamPointerBase": "0xF700",
+    "streamDataEndApproximate": "0xFDDF",
+    "ports": { "registerSelect": "0xFFFD", "dataWrite": "0xBFFD" },
+    "confidence": "verified-by-disassembly",
+    "editorPolicy": "Keep the native three-channel AY interpreter and timing. +2 playback should emulate AY writes rather than synthesize guessed notes."
+  },
+  "levelLab": {
+    "roomOneCaptured": true,
+    "roomOneScreen": "cybernoid2-first-room.png",
+    "roomGeometryEncoding": { "status": "under-investigation" },
+    "collisionEncoding": { "status": "under-investigation" },
+    "safeEditingNow": ["loading-screen", "verified-graphics-records", "AY-playback", "prompt-to-native-graphics-with-size-lock"],
+    "unsafeUntilDecoded": ["room-topology", "collision-map", "enemy-spawn-logic", "new-room-insertion"]
+  },
+  "roundTripProof": {
+    "kind": "one-byte-graphics-probe",
+    "memoryAddress": "0xDD2B",
+    "tapOffset": "0x98CC",
+    "before": "0x03",
+    "after": "0xFF",
+    "originalTapeChecksum": "0x67",
+    "patchedTapeChecksum": "0x9B",
+    "patchFile": "CybernoidII-Graphics-Proof.ips",
+    "result": "Patched TAP loaded to room one and produced a localized sprite-layer pixel change.",
+    "disposableProbeSha256": "D1220B7CB35AECB4D3957E9973BFE9571B987CFE2788CAD047984825CE545B2D"
+  },
+  "safety": {
+    "neverOverwriteOriginal": true,
+    "requireRecognitionHashBeforePatch": true,
+    "saveAsOnly": true,
+    "recomputeTapChecksum": true
+  }
+}

@@ -1,0 +1,124 @@
+{
+  "operations": 1000000,
+  "final_pc": 16303,
+  "final_room_index": 0,
+  "data_reads_by_page": [
+    {
+      "page": 246,
+      "address": 62976,
+      "count": 35
+    },
+    {
+      "page": 110,
+      "address": 28160,
+      "count": 1
+    },
+    {
+      "page": 249,
+      "address": 63744,
+      "count": 1
+    }
+  ],
+  "top_data_addresses": [
+    {
+      "address": 63104,
+      "count": 3
+    },
+    {
+      "address": 63105,
+      "count": 3
+    },
+    {
+      "address": 63090,
+      "count": 2
+    },
+    {
+      "address": 63091,
+      "count": 2
+    },
+    {
+      "address": 63092,
+      "count": 2
+    },
+    {
+      "address": 63093,
+      "count": 2
+    },
+    {
+      "address": 63094,
+      "count": 2
+    },
+    {
+      "address": 63095,
+      "count": 2
+    },
+    {
+      "address": 63106,
+      "count": 2
+    },
+    {
+      "address": 63096,
+      "count": 2
+    },
+    {
+      "address": 63097,
+      "count": 2
+    },
+    {
+      "address": 28278,
+      "count": 1
+    },
+    {
+      "address": 63136,
+      "count": 1
+    },
+    {
+      "address": 63171,
+      "count": 1
+    },
+    {
+      "address": 63206,
+      "count": 1
+    },
+    {
+      "address": 63111,
+      "count": 1
+    },
+    {
+      "address": 63110,
+      "count": 1
+    },
+    {
+      "address": 63833,
+      "count": 1
+    },
+    {
+      "address": 63103,
+      "count": 1
+    },
+    {
+      "address": 63102,
+      "count": 1
+    },
+    {
+      "address": 63101,
+      "count": 1
+    },
+    {
+      "address": 63100,
+      "count": 1
+    },
+    {
+      "address": 63099,
+      "count": 1
+    },
+    {
+      "address": 63098,
+      "count": 1
+    }
+  ],
+  "screen_write_routines": [],
+  "likely_screen_source_addresses": [],
+  "collision_write_routines": [],
+  "likely_collision_source_addresses": []
+}

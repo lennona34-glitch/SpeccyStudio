@@ -1,0 +1,3511 @@
+			NOP				; $8000
+			JR $800B				; $8001
+			NOP				; $8003
+			SBC A,L				; $8004
+			NOP				; $8005
+			LD A,($480D)				; $8006
+			DJNZ $800B				; $8009
+			DI				; $800B
+			PUSH IX				; $800C
+			PUSH IY				; $800E
+			PUSH HL				; $8010
+			PUSH DE				; $8011
+			PUSH BC				; $8012
+			PUSH AF				; $8013
+			LD HL,$E9E1				; $8014
+			LD ($4000),HL				; $8017
+			CALL $4000				; $801A
+			LD DE,$FFE4				; $801D
+			ADD HL,DE				; $8020
+			PUSH HL				; $8021
+			POP IX				; $8022
+			PUSH HL				; $8024
+			LD A,(IX+$09)				; $8025
+			OUT ($FE),A				; $8028
+			LD HL,$4000				; $802A
+			LD DE,$4001				; $802D
+			LD BC,$1AFF				; $8030
+			LD (HL),00				; $8033
+			LDIR				; $8035
+			POP DE				; $8037
+			LD L,(IX+$03)				; $8038
+			LD H,(IX+$04)				; $803B
+			ADD HL,DE				; $803E
+			PUSH HL				; $803F
+			POP IY				; $8040
+			LD L,(IX+$05)				; $8042
+			LD H,(IX+$06)				; $8045
+			ADD HL,DE				; $8048
+			PUSH HL				; $8049
+			LD L,(IX+$07)				; $804A
+			LD H,(IX+$08)				; $804D
+			ADD HL,DE				; $8050
+			EX DE,HL				; $8051
+			POP HL				; $8052
+			LD IX,$4000				; $8053
+			SCF				; $8057
+			EX AF,AF'				; $8058
+			LD B,$6C				; $8059
+			LD C,$01				; $805B
+			LD A,(DE)				; $805D
+			AND C				; $805E
+			LD A,$00				; $805F
+			JR Z,$8065				; $8061
+			LD A,(HL)				; $8063
+			INC HL				; $8064
+			PUSH BC				; $8065
+			LD C,A				; $8066
+			LD B,$01				; $8067
+			EX AF,AF'				; $8069
+			JR C,$8070				; $806A
+			LD A,C				; $806C
+			AND B				; $806D
+			JR NZ,$807A				; $806E
+			LD A,(IY+$00)				; $8070
+			LD (IX+$00),A				; $8073
+			INC IY				; $8076
+			JR $8084				; $8078
+			DEC IX				; $807A
+			LD A,(IX+$00)				; $807C
+			INC IX				; $807F
+			LD (IX+$00),A				; $8081
+			INC IX				; $8084
+			XOR A				; $8086
+			EX AF,AF'				; $8087
+			SLA B				; $8088
+			JR NC,$8069				; $808A
+			POP BC				; $808C
+			SLA C				; $808D
+			JR NC,$805D				; $808F
+			INC DE				; $8091
+			DJNZ $805B				; $8092
+			POP AF				; $8094
+			POP BC				; $8095
+			POP DE				; $8096
+			POP HL				; $8097
+			POP IY				; $8098
+			POP IX				; $809A
+			EI				; $809C
+			RET				; $809D
+			NOP				; $809E
+			INC BC				; $809F
+			RST $38				; $80A0
+			RET PO				; $80A1
+			NOP				; $80A2
+			LD B,$00				; $80A3
+			INC BC				; $80A5
+			CP $FF				; $80A6
+			RET P				; $80A8
+			NOP				; $80A9
+			LD A,A				; $80AA
+			RET NZ				; $80AB
+			NOP				; $80AC
+			DAA				; $80AD
+			ADD A,B				; $80AE
+			NOP				; $80AF
+			RLCA				; $80B0
+			RST $38				; $80B1
+			CALL M,$F10F				; $80B2
+			RST $38				; $80B5
+			RET M				; $80B6
+			LD A,A				; $80B7
+			RST $38				; $80B8
+			RRCA				; $80B9
+			RST $38				; $80BA
+			RRA				; $80BB
+			RST $38				; $80BC
+			CP $3F				; $80BD
+			RST $38				; $80BF
+			CALL M,$8E7F				; $80C0
+			LD A,A				; $80C3
+			NOP				; $80C4
+			RLCA				; $80C5
+			NOP				; $80C6
+			LD HL,($00A0)				; $80C7
+			LD B,$00				; $80CA
+			LD BC,$8FF7				; $80CC
+			NOP				; $80CF
+			RRCA				; $80D0
+			RLCA				; $80D1
+			ADC A,A				; $80D2
+			POP BC				; $80D3
+			DI				; $80D4
+			LD E,$61				; $80D5
+			RET PO				; $80D7
+			RLCA				; $80D8
+			RET NZ				; $80D9
+			RET P				; $80DA
+			RRCA				; $80DB
+			ADD A,C				; $80DC
+			RET PO				; $80DD
+			INC A				; $80DE
+			NOP				; $80DF
+			RLCA				; $80E0
+			RST $28				; $80E1
+			RST $30				; $80E2
+			RET M				; $80E3
+			LD A,A				; $80E4
+			RST $38				; $80E5
+			RET P				; $80E6
+			LD BC,$E1FF				; $80E7
+			CP $01				; $80EA
+			RST $38				; $80EC
+			CALL M,$8F7F				; $80ED
+			RST $38				; $80F0
+			NOP				; $80F1
+			XOR D				; $80F2
+			AND B				; $80F3
+			NOP				; $80F4
+			RLCA				; $80F5
+			RET P				; $80F6
+			LD SP,$F0FB				; $80F7
+			CCF				; $80FA
+			LD L,L				; $80FB
+			SBC A,A				; $80FC
+			ADC A,H				; $80FD
+			LD L,L				; $80FE
+			IN A,($01)				; $80FF
+			XOR L				; $8101
+			EI				; $8102
+			RLCA				; $8103
+			OR $DD				; $8104
+			RET M				; $8106
+			NOP				; $8107
+			ADC A,D				; $8108
+			AND B				; $8109
+			NOP				; $810A
+			LD A,(BC)				; $810B
+			AND B				; $810C
+			NOP				; $810D
+			INC (HL)				; $810E
+			LD H,H				; $810F
+			EX AF,AF'				; $8110
+			XOR D				; $8111
+			LD A,(HL)				; $8112
+			LD HL,($FEA9)				; $8113
+			RET NZ				; $8116
+			NOP				; $8117
+			LD A,(BC)				; $8118
+			XOR E				; $8119
+			RET PE				; $811A
+			NOP				; $811B
+			EX AF,AF'				; $811C
+			NOP				; $811D
+			LD BC,$C0FF				; $811E
+			NOP				; $8121
+			ADD HL,BC				; $8122
+			ADD A,B				; $8123
+			NOP				; $8124
+			LD BC,$E0FF				; $8125
+			NOP				; $8128
+			LD A,A				; $8129
+			ADD A,B				; $812A
+			NOP				; $812B
+			DJNZ $817E				; $812C
+			NOP				; $812E
+			INC BC				; $812F
+			CALL M,$0F00				; $8130
+			DI				; $8133
+			CALL M,$F00F				; $8134
+			RST $38				; $8137
+			NOP				; $8138
+			RRA				; $8139
+			RET NZ				; $813A
+			CP $3F				; $813B
+			JP $7FFC				; $813D
+			ADD A,A				; $8140
+			RET M				; $8141
+			RST $38				; $8142
+			RRA				; $8143
+			LD A,A				; $8144
+			NOP				; $8145
+			LD B,$80				; $8146
+			DEC D				; $8148
+			LD D,B				; $8149
+			NOP				; $814A
+			INC BC				; $814B
+			CALL M,$F70F				; $814C
+			RST $38				; $814F
+			RET P				; $8150
+			RST $38				; $8151
+			RRA				; $8152
+			RST $38				; $8153
+			ADD A,B				; $8154
+			CCF				; $8155
+			JP $7FFC				; $8156
+			ADD A,A				; $8159
+			RET M				; $815A
+			RST $38				; $815B
+			RRA				; $815C
+			RET PO				; $815D
+			RST $38				; $815E
+			NOP				; $815F
+			RLCA				; $8160
+			NOP				; $8161
+			RST $20				; $8162
+			NOP				; $8163
+			JR NC,$8166				; $8164
+			LD H,B				; $8166
+			NOP				; $8167
+			INC BC				; $8168
+			RST $28				; $8169
+			RST $30				; $816A
+			RET P				; $816B
+			RST $38				; $816C
+			RET PO				; $816D
+			NOP				; $816E
+			RST $38				; $816F
+			JP $00FC				; $8170
+			RST $38				; $8173
+			RET M				; $8174
+			RST $38				; $8175
+			RRA				; $8176
+			RST $38				; $8177
+			NOP				; $8178
+			LD D,L				; $8179
+			LD D,B				; $817A
+			NOP				; $817B
+			INC BC				; $817C
+			RET P				; $817D
+			LD SP,$009B				; $817E
+			JR NC,$81EF				; $8181
+			EXX				; $8183
+			ADC A,H				; $8184
+			LD L,H				; $8185
+			EXX				; $8186
+			ADD A,C				; $8187
+			ADC A,L				; $8188
+			EI				; $8189
+			LD B,$36				; $818A
+			CALL $0080				; $818C
+			LD D,L				; $818F
+			LD D,B				; $8190
+			NOP				; $8191
+			LD C,H				; $8192
+			ADD A,H				; $8193
+			CALL NZ,$0354				; $8194
+			RET PO				; $8197
+			NOP				; $8198
+			LD D,C				; $8199
+			LD D,B				; $819A
+			NOP				; $819B
+			DJNZ $8139				; $819C
+			LD H,C				; $819E
+			LD D,L				; $819F
+			LD A,A				; $81A0
+			PUSH BC				; $81A1
+			LD D,H				; $81A2
+			CP $E0				; $81A3
+			NOP				; $81A5
+			DEC D				; $81A6
+			LD D,E				; $81A7
+			XOR B				; $81A8
+			NOP				; $81A9
+			LD ($FF00),HL				; $81AA
+			ADD A,B				; $81AD
+			CCF				; $81AE
+			RST $38				; $81AF
+			RET NZ				; $81B0
+			NOP				; $81B1
+			DEC BC				; $81B2
+			ADD A,B				; $81B3
+			NOP				; $81B4
+			RST $38				; $81B5
+			RET NZ				; $81B6
+			NOP				; $81B7
+			LD A,A				; $81B8
+			NOP				; $81B9
+			LD HL,($00A0)				; $81BA
+			LD B,B				; $81BD
+			LD BC,$00FE				; $81BE
+			RRCA				; $81C1
+			RST $30				; $81C2
+			RET M				; $81C3
+			RRA				; $81C4
+			POP HL				; $81C5
+			CP $00				; $81C6
+			CCF				; $81C8
+			ADD A,C				; $81C9
+			CALL M,$877F				; $81CA
+			RET M				; $81CD
+			RST $38				; $81CE
+			RRCA				; $81CF
+			POP AF				; $81D0
+			CP $3F				; $81D1
+			RST $38				; $81D3
+			NOP				; $81D4
+			RLCA				; $81D5
+			INC (HL)				; $81D6
+			LD HL,($00A0)				; $81D7
+			LD BC,$0FFE				; $81DA
+			RET P				; $81DD
+			RRA				; $81DE
+			POP HL				; $81DF
+			CP $00				; $81E0
+			CCF				; $81E2
+			RST $38				; $81E3
+			RET NZ				; $81E4
+			LD A,A				; $81E5
+			ADD A,A				; $81E6
+			RET M				; $81E7
+			RST $38				; $81E8
+			RRCA				; $81E9
+			POP AF				; $81EA
+			CP $3F				; $81EB
+			RET NZ				; $81ED
+			LD A,A				; $81EE
+			NOP				; $81EF
+			LD B,$81				; $81F0
+			ADC A,H				; $81F2
+			NOP				; $81F3
+			JR NC,$81F6				; $81F4
+			RET NC				; $81F6
+			NOP				; $81F7
+			LD BC,$F7EF				; $81F8
+			POP HL				; $81FB
+			RST $38				; $81FC
+			RET NZ				; $81FD
+			NOP				; $81FE
+			LD A,A				; $81FF
+			ADD A,E				; $8200
+			RET M				; $8201
+			NOP				; $8202
+			LD A,A				; $8203
+			POP AF				; $8204
+			CP $3F				; $8205
+			RST $38				; $8207
+			NOP				; $8208
+			ADC A,D				; $8209
+			AND B				; $820A
+			NOP				; $820B
+			LD BC,$31F0				; $820C
+			SBC A,E				; $820F
+			RET P				; $8210
+			JR NC,$8282				; $8211
+			EXX				; $8213
+			ADC A,H				; $8214
+			LD L,H				; $8215
+			RST $18				; $8216
+			ADD A,C				; $8217
+			ADC A,L				; $8218
+			SBC A,E				; $8219
+			OR $36				; $821A
+			CALL $00F8				; $821C
+			ADC A,D				; $821F
+			AND B				; $8220
+			NOP				; $8221
+			SUB B				; $8222
+			DEC DE				; $8223
+			LD HL,($8FAA)				; $8224
+			RET M				; $8227
+			NOP				; $8228
+			XOR D				; $8229
+			AND B				; $822A
+			NOP				; $822B
+			LD B,C				; $822C
+			LD H,H				; $822D
+			LD (BC),A				; $822E
+			XOR D				; $822F
+			LD A,A				; $8230
+			RET M				; $8231
+			XOR D				; $8232
+			LD A,H				; $8233
+			RET P				; $8234
+			NOP				; $8235
+			LD A,(BC)				; $8236
+			XOR D				; $8237
+			XOR B				; $8238
+			NOP				; $8239
+			EX AF,AF'				; $823A
+			NOP				; $823B
+			LD A,A				; $823C
+			RET NZ				; $823D
+			RRA				; $823E
+			RST $38				; $823F
+			ADD A,B				; $8240
+			NOP				; $8241
+			RRCA				; $8242
+			NOP				; $8243
+			RST $38				; $8244
+			LD A,A				; $8245
+			RST $38				; $8246
+			ADC A,A				; $8247
+			RST $38				; $8248
+			ADD A,B				; $8249
+			INC BC				; $824A
+			RST $38				; $824B
+			RET M				; $824C
+			LD A,A				; $824D
+			RET P				; $824E
+			NOP				; $824F
+			RST $38				; $8250
+			RET PO				; $8251
+			LD BC,$C0FF				; $8252
+			CCF				; $8255
+			CALL M,$007F				; $8256
+			DEC D				; $8259
+			LD D,B				; $825A
+			NOP				; $825B
+			AND B				; $825C
+			NOP				; $825D
+			RST $38				; $825E
+			NOP				; $825F
+			RRCA				; $8260
+			RST $30				; $8261
+			RET P				; $8262
+			CCF				; $8263
+			JP $00FC				; $8264
+			LD A,A				; $8267
+			INC BC				; $8268
+			RET M				; $8269
+			RST $38				; $826A
+			RRCA				; $826B
+			POP AF				; $826C
+			CP $1F				; $826D
+			EX (SP),HL				; $826F
+			CALL M,$FF7F				; $8270
+			NOP				; $8273
+			LD B,$B4				; $8274
+			DEC D				; $8276
+			LD D,B				; $8277
+			NOP				; $8278
+			RST $38				; $8279
+			RST $28				; $827A
+			RET P				; $827B
+			CCF				; $827C
+			JP $00FC				; $827D
+			LD A,A				; $8280
+			CP A				; $8281
+			RET PO				; $8282
+			RST $38				; $8283
+			RRCA				; $8284
+			POP AF				; $8285
+			CP $1F				; $8286
+			EX (SP),HL				; $8288
+			CALL M,$807F				; $8289
+			LD A,A				; $828C
+			NOP				; $828D
+			RLCA				; $828E
+			DEC E				; $828F
+			ADC A,73				; $8290
+			LD SP,$C380				; $8292
+			INC E				; $8295
+			AND $00				; $8296
+			RRCA				; $8298
+			RET P				; $8299
+			NOP				; $829A
+			LD D,L				; $829B
+			LD D,B				; $829C
+			NOP				; $829D
+			RET P				; $829E
+			LD SP,$F09B				; $829F
+			JR NC,$8313				; $82A2
+			EXX				; $82A4
+			ADC A,H				; $82A5
+			LD L,H				; $82A6
+			RST $18				; $82A7
+			ADD A,C				; $82A8
+			ADC A,L				; $82A9
+			SBC A,E				; $82AA
+			OR $36				; $82AB
+			CALL $00F8				; $82AD
+			LD D,L				; $82B0
+			LD D,B				; $82B1
+			NOP				; $82B2
+			LD BC,$6408				; $82B3
+			CALL NC,$5355				; $82B6
+			CALL M,$5100				; $82B9
+			LD D,B				; $82BC
+			NOP				; $82BD
+			JR NZ,$825B				; $82BE
+			DEC B				; $82C0
+			LD D,L				; $82C1
+			LD A,A				; $82C2
+			CP $55				; $82C3
+			INC SP				; $82C5
+			RET P				; $82C6
+			NOP				; $82C7
+			DEC D				; $82C8
+			LD D,D				; $82C9
+			XOR B				; $82CA
+			NOP				; $82CB
+			CCF				; $82CC
+			RET PO				; $82CD
+			RRCA				; $82CE
+			RST $38				; $82CF
+			NOP				; $82D0
+			DEC D				; $82D1
+			LD B,B				; $82D2
+			NOP				; $82D3
+			LD A,A				; $82D4
+			RST $38				; $82D5
+			CP A				; $82D6
+			RST $38				; $82D7
+			RRA				; $82D8
+			RST $38				; $82D9
+			RET NZ				; $82DA
+			RLCA				; $82DB
+			RST $38				; $82DC
+			RET P				; $82DD
+			RST $38				; $82DE
+			RET M				; $82DF
+			LD BC,$F0FF				; $82E0
+			INC BC				; $82E3
+			RST $38				; $82E4
+			RET PO				; $82E5
+			RRA				; $82E6
+			RET M				; $82E7
+			LD A,A				; $82E8
+			NOP				; $82E9
+			LD HL,($00A0)				; $82EA
+			LD B,B				; $82ED
+			NOP				; $82EE
+			LD A,A				; $82EF
+			ADD A,B				; $82F0
+			RRCA				; $82F1
+			RST $30				; $82F2
+			RST $38				; $82F3
+			ADD A,A				; $82F4
+			RST $38				; $82F5
+			RET M				; $82F6
+			RST $38				; $82F7
+			POP AF				; $82F8
+			CP $1F				; $82F9
+			EX (SP),HL				; $82FB
+			CALL M,$C73F				; $82FC
+			RET M				; $82FF
+			RST $38				; $8300
+			NOP				; $8301
+			LD B,$B4				; $8302
+			LD HL,($00A0)				; $8304
+			LD A,A				; $8307
+			RST $28				; $8308
+			RET P				; $8309
+			LD A,A				; $830A
+			ADD A,A				; $830B
+			RET M				; $830C
+			NOP				; $830D
+			RST $38				; $830E
+			RRA				; $830F
+			POP AF				; $8310
+			CP $1F				; $8311
+			EX (SP),HL				; $8313
+			CALL M,$C73F				; $8314
+			RET M				; $8317
+			RST $38				; $8318
+			NOP				; $8319
+			LD A,A				; $831A
+			NOP				; $831B
+			RLCA				; $831C
+			DEC (HL)				; $831D
+			ADC A,H				; $831E
+			RST $10				; $831F
+			OR E				; $8320
+			RET NZ				; $8321
+			RST 0				; $8322
+			OR C				; $8323
+			ADC A,L				; $8324
+			NOP				; $8325
+			LD A,A				; $8326
+			RET P				; $8327
+			NOP				; $8328
+			ADC A,D				; $8329
+			AND B				; $832A
+			NOP				; $832B
+			LD (HL),B				; $832C
+			NOP				; $832D
+			ADC A,D				; $832E
+			AND B				; $832F
+			NOP				; $8330
+			LD B,$A0				; $8331
+			SBC A,C				; $8333
+			LD HL,($A8AA)				; $8334
+			LD A,H				; $8337
+			NOP				; $8338
+			DJNZ $833B				; $8339
+			XOR D				; $833B
+			XOR B				; $833C
+			NOP				; $833D
+			EX AF,AF'				; $833E
+			NOP				; $833F
+			INC BC				; $8340
+			LD H,B				; $8341
+			LD HL,($7FAA)				; $8342
+			RST $38				; $8345
+			XOR D				; $8346
+			ADC A,A				; $8347
+			RET M				; $8348
+			NOP				; $8349
+			LD HL,($A8AB)				; $834A
+			NOP				; $834D
+			RRA				; $834E
+			RET P				; $834F
+			RRA				; $8350
+			CP $00				; $8351
+			DEC D				; $8353
+			LD B,B				; $8354
+			NOP				; $8355
+			CCF				; $8356
+			RST $38				; $8357
+			SBC A,A				; $8358
+			CP $3F				; $8359
+			RST $38				; $835B
+			RET PO				; $835C
+			RRCA				; $835D
+			RST $38				; $835E
+			POP HL				; $835F
+			RST $38				; $8360
+			CALL M,$FF03				; $8361
+			RET M				; $8364
+			RLCA				; $8365
+			RST $38				; $8366
+			RET P				; $8367
+			RRCA				; $8368
+			RET P				; $8369
+			LD A,A				; $836A
+			NOP				; $836B
+			DEC D				; $836C
+			LD D,B				; $836D
+			NOP				; $836E
+			CCF				; $836F
+			RET NZ				; $8370
+			RRCA				; $8371
+			RST $30				; $8372
+			RST $38				; $8373
+			RRCA				; $8374
+			RST $38				; $8375
+			POP AF				; $8376
+			RST $38				; $8377
+			EX (SP),HL				; $8378
+			CALL M,$C73F				; $8379
+			RET M				; $837C
+			LD A,A				; $837D
+			ADC A,A				; $837E
+			POP AF				; $837F
+			RST $38				; $8380
+			NOP				; $8381
+			RLCA				; $8382
+			INC E				; $8383
+			DEC D				; $8384
+			LD D,B				; $8385
+			NOP				; $8386
+			CCF				; $8387
+			RST $28				; $8388
+			RST $30				; $8389
+			RST $38				; $838A
+			RRCA				; $838B
+			RST $38				; $838C
+			CP $0F				; $838D
+			RST $38				; $838F
+			CALL M,$C73F				; $8390
+			RST $38				; $8393
+			ADC A,A				; $8394
+			POP AF				; $8395
+			RST $38				; $8396
+			NOP				; $8397
+			LD B,$B5				; $8398
+			ADC A,H				; $839A
+			SUB $33				; $839B
+			ADD A,B				; $839D
+			SUB $31				; $839E
+			ADC A,L				; $83A0
+			NOP				; $83A1
+			CCF				; $83A2
+			RET P				; $83A3
+			defb FD				; $83A4
+			SBC A,E				; $83A5
+			RET P				; $83A6
+			CCF				; $83A7
+			LD L,A				; $83A8
+			EXX				; $83A9
+			CP A				; $83AA
+			LD L,H				; $83AB
+			RST $18				; $83AC
+			ADD A,C				; $83AD
+			ADC A,L				; $83AE
+			EI				; $83AF
+			OR $36				; $83B0
+			CALL $00F8				; $83B2
+			LD D,L				; $83B5
+			LD D,B				; $83B6
+			NOP				; $83B7
+			JR NC,$83BA				; $83B8
+			LD D,C				; $83BA
+			LD D,B				; $83BB
+			NOP				; $83BC
+			ADD HL,BC				; $83BD
+			LD B,E				; $83BE
+			LD H,H				; $83BF
+			SUB L				; $83C0
+			DEC D				; $83C1
+			LD D,L				; $83C2
+			INC E				; $83C3
+			NOP				; $83C4
+			JR Z,$83C7				; $83C5
+			LD BC,$5051				; $83C7
+			NOP				; $83CA
+			LD ($6400),HL				; $83CB
+			ADC A,B				; $83CE
+			LD D,L				; $83CF
+			RRA				; $83D0
+			RST $38				; $83D1
+			PUSH BC				; $83D2
+			LD D,A				; $83D3
+			CALL M,$1500				; $83D4
+			LD D,B				; $83D7
+			RET PE				; $83D8
+			NOP				; $83D9
+			RRCA				; $83DA
+			RET M				; $83DB
+			CCF				; $83DC
+			CALL M,$0C00				; $83DD
+			AND B				; $83E0
+			NOP				; $83E1
+			RRA				; $83E2
+			RST $38				; $83E3
+			RRCA				; $83E4
+			CALL M,$FF7F				; $83E5
+			RET P				; $83E8
+			RRA				; $83E9
+			RST $38				; $83EA
+			JP $FEFF				; $83EB
+			RLCA				; $83EE
+			RST $38				; $83EF
+			CALL M,$FF0F				; $83F0
+			RET M				; $83F3
+			RRA				; $83F4
+			RET PO				; $83F5
+			LD A,A				; $83F6
+			NOP				; $83F7
+			LD HL,($00A0)				; $83F8
+			RRA				; $83FB
+			RET PO				; $83FC
+			RRCA				; $83FD
+			RST $30				; $83FE
+			RST $38				; $83FF
+			CP $1F				; $8400
+			RST $38				; $8402
+			EX (SP),HL				; $8403
+			RST $38				; $8404
+			RST 0				; $8405
+			RET M				; $8406
+			LD A,A				; $8407
+			ADC A,A				; $8408
+			RET P				; $8409
+			RST $38				; $840A
+			RRA				; $840B
+			EX (SP),HL				; $840C
+			RST $38				; $840D
+			NOP				; $840E
+			INC B				; $840F
+			LD HL,($00A0)				; $8410
+			RRA				; $8413
+			RST $28				; $8414
+			RST $30				; $8415
+			CP $1F				; $8416
+			RST $38				; $8418
+			CALL M,$FF07				; $8419
+			RET M				; $841C
+			LD A,A				; $841D
+			ADD A,A				; $841E
+			RST $38				; $841F
+			RRA				; $8420
+			EX (SP),HL				; $8421
+			RST $38				; $8422
+			NOP				; $8423
+			LD B,$9D				; $8424
+			ADC A,H				; $8426
+			LD (HL),E				; $8427
+			CP C				; $8428
+			RET NZ				; $8429
+			LD H,E				; $842A
+			SBC A,H				; $842B
+			AND $00				; $842C
+			RRA				; $842E
+			RET P				; $842F
+			defb FD				; $8430
+			SBC A,E				; $8431
+			RET P				; $8432
+			CCF				; $8433
+			LD L,A				; $8434
+			EXX				; $8435
+			CP A				; $8436
+			LD L,(HL)				; $8437
+			RST $18				; $8438
+			ADD A,C				; $8439
+			defb DD				; $843A
+			EI				; $843B
+			OR $36				; $843C
+			defb ED,F8				; $843E
+			NOP				; $8440
+			ADC A,D				; $8441
+			AND B				; $8442
+			NOP				; $8443
+			DJNZ $8445				; $8444
+			RET M				; $8446
+			NOP				; $8447
+			ADD A,D				; $8448
+			AND B				; $8449
+			NOP				; $844A
+			LD D,$04				; $844B
+			SBC A,C				; $844D
+			LD HL,($AA42)				; $844E
+			AND E				; $8451
+			CALL M,$1000				; $8452
+			NOP				; $8455
+			LD (BC),A				; $8456
+			XOR B				; $8457
+			AND B				; $8458
+			NOP				; $8459
+			EX AF,AF'				; $845A
+			NOP				; $845B
+			LD C,E				; $845C
+			LD B,B				; $845D
+			XOR D				; $845E
+			LD L,A				; $845F
+			RST $38				; $8460
+			JP P,$FEA9				; $8461
+			NOP				; $8464
+			LD HL,($30AA)				; $8465
+			NOP				; $8468
+			RLCA				; $8469
+			CALL M,$F87F				; $846A
+			NOP				; $846D
+			LD A,A				; $846E
+			RET PO				; $846F
+			NOP				; $8470
+			JR $8453				; $8471
+			NOP				; $8473
+			RRCA				; $8474
+			RST $38				; $8475
+			CP $0F				; $8476
+			RET M				; $8478
+			RST $38				; $8479
+			RET M				; $847A
+			CCF				; $847B
+			RST $38				; $847C
+			ADD A,A				; $847D
+			RST $38				; $847E
+			RRCA				; $847F
+			RST $38				; $8480
+			CP $1F				; $8481
+			RST $38				; $8483
+			CALL M,$C43F				; $8484
+			LD A,A				; $8487
+			NOP				; $8488
+			DEC D				; $8489
+			LD D,B				; $848A
+			NOP				; $848B
+			LD BC,$0EF0				; $848C
+			NOP				; $848F
+			LD (HL),B				; $8490
+			RET NZ				; $8491
+			JR NC,$848C				; $8492
+			NOP				; $8494
+			LD A,$0C				; $8495
+			LD BC,$1F80				; $8497
+			JR $849D				; $849A
+			LD C,$30				; $849C
+			LD B,$1B				; $849E
+			JP $3800				; $84A0
+			DEC D				; $84A3
+			LD D,B				; $84A4
+			NOP				; $84A5
+			RRCA				; $84A6
+			RST $28				; $84A7
+			RST $30				; $84A8
+			CALL M,$FF3F				; $84A9
+			RET M				; $84AC
+			INC BC				; $84AD
+			RST $38				; $84AE
+			RET P				; $84AF
+			RST $38				; $84B0
+			INC BC				; $84B1
+			RST $38				; $84B2
+			CP $3F				; $84B3
+			RST 0				; $84B5
+			RST $38				; $84B6
+			NOP				; $84B7
+			RRCA				; $84B8
+			RET P				; $84B9
+			LD SP,$00FB				; $84BA
+			JR NC,$852B				; $84BD
+			RRA				; $84BF
+			ADC A,H				; $84C0
+			LD L,A				; $84C1
+			RET C				; $84C2
+			LD BC,$9BFD				; $84C3
+			RLCA				; $84C6
+			OR $FD				; $84C7
+			ADD A,B				; $84C9
+			NOP				; $84CA
+			LD D,L				; $84CB
+			LD D,B				; $84CC
+			NOP				; $84CD
+			LD BC,$0050				; $84CE
+			JR Z,$84EE				; $84D1
+			LD H,H				; $84D3
+			LD D,L				; $84D4
+			LD A,C				; $84D5
+			LD D,L				; $84D6
+			LD D,E				; $84D7
+			CP $00				; $84D8
+			DEC B				; $84DA
+			LD D,E				; $84DB
+			JR $84DE				; $84DC
+			LD E,L				; $84DE
+			NOP				; $84DF
+			INC H				; $84E0
+			DEC B				; $84E1
+			LD D,L				; $84E2
+			INC SP				; $84E3
+			RST $38				; $84E4
+			POP AF				; $84E5
+			LD D,H				; $84E6
+			LD A,A				; $84E7
+			NOP				; $84E8
+			DEC D				; $84E9
+			LD D,L				; $84EA
+			LD B,B				; $84EB
+			NOP				; $84EC
+			RLCA				; $84ED
+			EX AF,AF'				; $84EE
+			XOR D				; $84EF
+			LD L,L				; $84F0
+			RST $38				; $84F1
+			RET P				; $84F2
+			XOR D				; $84F3
+			SBC A,A				; $84F4
+			NOP				; $84F5
+			EX AF,AF'				; $84F6
+			LD HL,($A0A2)				; $84F7
+			NOP				; $84FA
+			AND B				; $84FB
+			LD A,B				; $84FC
+			ADC A,D				; $84FD
+			XOR D				; $84FE
+			LD BC,$80A0				; $84FF
+			NOP				; $8502
+			LD (BC),A				; $8503
+			XOR D				; $8504
+			NOP				; $8505
+			LD (BC),A				; $8506
+			XOR D				; $8507
+			ADC A,D				; $8508
+			AND B				; $8509
+			NOP				; $850A
+			LD (BC),A				; $850B
+			ADD A,B				; $850C
+			SCF				; $850D
+			LD H,B				; $850E
+			LD L,D				; $850F
+			CCF				; $8510
+			RET NZ				; $8511
+			NOP				; $8512
+			LD (BC),A				; $8513
+			JP Z,$2A00				; $8514
+			XOR D				; $8517
+			XOR B				; $8518
+			CALL PO,$E0AA				; $8519
+			NOP				; $851C
+			LD BC,$3200				; $851D
+			ADD A,B				; $8520
+			ADC A,L				; $8521
+			LD BC,$ABFC				; $8522
+			RET NZ				; $8525
+			NOP				; $8526
+			CP (HL)				; $8527
+			ADC A,D				; $8528
+			XOR D				; $8529
+			AND B				; $852A
+			LD L,H				; $852B
+			NOP				; $852C
+			INC A				; $852D
+			ADD A,B				; $852E
+			LD H,$00				; $852F
+			LD A,H				; $8531
+			LD A,(BC)				; $8532
+			ADD A,B				; $8533
+			DJNZ $8536				; $8534
+			XOR A				; $8536
+			DEC HL				; $8537
+			AND D				; $8538
+			XOR D				; $8539
+			ADD A,B				; $853A
+			NOP				; $853B
+			LD E,(HL)				; $853C
+			ADD A,B				; $853D
+			ADD HL,DE				; $853E
+			NOP				; $853F
+			LD HL,($2B00)				; $8540
+			JP Z,$E29A				; $8543
+			NOP				; $8546
+			INC C				; $8547
+			AND B				; $8548
+			LD A,(BC)				; $8549
+			ADD A,B				; $854A
+			NOP				; $854B
+			LD (BC),A				; $854C
+			AND B				; $854D
+			NOP				; $854E
+			DEC A				; $854F
+			JP P,$A871				; $8550
+			NOP				; $8553
+			LD (BC),A				; $8554
+			XOR B				; $8555
+			LD DE,$0080				; $8556
+			LD HL,($1700)				; $8559
+			LD C,D				; $855C
+			AND A				; $855D
+			CALL C,$09A8				; $855E
+			RET PO				; $8561
+			NOP				; $8562
+			EX AF,AF'				; $8563
+			NOP				; $8564
+			DJNZ $854B				; $8565
+			LD D,L				; $8567
+			LD A,($E07F)				; $8568
+			DEC D				; $856B
+			LD B,C				; $856C
+			ADD A,B				; $856D
+			NOP				; $856E
+			INC D				; $856F
+			LD D,L				; $8570
+			LD B,B				; $8571
+			NOP				; $8572
+			LD BC,$1E40				; $8573
+			LD B,L				; $8576
+			LD D,H				; $8577
+			LD (BC),A				; $8578
+			ADD A,E				; $8579
+			NOP				; $857A
+			LD BC,$0055				; $857B
+			DEC B				; $857E
+			LD D,L				; $857F
+			DEC D				; $8580
+			LD B,B				; $8581
+			NOP				; $8582
+			JR NZ,$8585				; $8583
+			LD BC,$9D40				; $8585
+			ADD A,C				; $8588
+			AND L				; $8589
+			CCF				; $858A
+			RET PO				; $858B
+			NOP				; $858C
+			LD H,L				; $858D
+			NOP				; $858E
+			LD D,L				; $858F
+			LD D,H				; $8590
+			DEC L				; $8591
+			LD C,D				; $8592
+			AND B				; $8593
+			NOP				; $8594
+			DEC H				; $8595
+			LD B,B				; $8596
+			LD E,H				; $8597
+			INC BC				; $8598
+			CALL M,$8055				; $8599
+			NOP				; $859C
+			LD E,(HL)				; $859D
+			LD B,L				; $859E
+			LD D,L				; $859F
+			LD D,B				; $85A0
+			LD L,H				; $85A1
+			NOP				; $85A2
+			LD HL,$0040				; $85A3
+			JR C,$85AD				; $85A6
+			LD B,B				; $85A8
+			NOP				; $85A9
+			LD C,A				; $85AA
+			SUB L				; $85AB
+			LD D,C				; $85AC
+			LD D,L				; $85AD
+			NOP				; $85AE
+			LD A,(HL)				; $85AF
+			LD B,B				; $85B0
+			NOP				; $85B1
+			LD D,H				; $85B2
+			NOP				; $85B3
+			INC DE				; $85B4
+			CALL NC,$D45C				; $85B5
+			NOP				; $85B8
+			DEC C				; $85B9
+			LD D,B				; $85BA
+			NOP				; $85BB
+			LD (BC),A				; $85BC
+			LD BC,$0050				; $85BD
+			CALL C,$76F5				; $85C0
+			SUB H				; $85C3
+			NOP				; $85C4
+			LD BC,$0050				; $85C5
+			DEC D				; $85C8
+			NOP				; $85C9
+			SCF				; $85CA
+			SUB L				; $85CB
+			LD D,E				; $85CC
+			LD D,IXH*				; $85CD
+			DEC D				; $85CF
+			RET P				; $85D0
+			NOP				; $85D1
+			LD HL,($AA78)				; $85D2
+			defb ED,9F				; $85D5
+			RET PO				; $85D7
+			LD A,(BC)				; $85D8
+			XOR D				; $85D9
+			NOP				; $85DA
+			JR Z,$8587				; $85DB
+			AND B				; $85DD
+			NOP				; $85DE
+			AND B				; $85DF
+			RLCA				; $85E0
+			ADC A,D				; $85E1
+			XOR B				; $85E2
+			LD A,(BC)				; $85E3
+			INC B				; $85E4
+			NOP				; $85E5
+			XOR D				; $85E6
+			ADD A,B				; $85E7
+			NOP				; $85E8
+			LD (BC),A				; $85E9
+			XOR D				; $85EA
+			LD C,D				; $85EB
+			AND B				; $85EC
+			NOP				; $85ED
+			LD A,(BC)				; $85EE
+			ADD A,B				; $85EF
+			LD D,A				; $85F0
+			LD (BC),A				; $85F1
+			JP PO,$E09F				; $85F2
+			NOP				; $85F5
+			LD (HL),D				; $85F6
+			ADD A,B				; $85F7
+			XOR D				; $85F8
+			XOR B				; $85F9
+			LD C,$AF				; $85FA
+			RET PO				; $85FC
+			NOP				; $85FD
+			LD A,(BC)				; $85FE
+			ADD A,B				; $85FF
+			DJNZ $8609				; $8600
+			CP $29				; $8602
+			NOP				; $8604
+			SBC A,(HL)				; $8605
+			AND D				; $8606
+			XOR D				; $8607
+			AND B				; $8608
+			LD A,B				; $8609
+			NOP				; $860A
+			LD E,$80				; $860B
+			LD D,D				; $860D
+			NOP				; $860E
+			JR NZ,$8613				; $860F
+			AND B				; $8611
+			NOP				; $8612
+			XOR A				; $8613
+			XOR C				; $8614
+			LD H,$AA				; $8615
+			ADD A,B				; $8617
+			NOP				; $8618
+			LD A,(HL)				; $8619
+			AND B				; $861A
+			ADD HL,HL				; $861B
+			NOP				; $861C
+			EX AF,AF'				; $861D
+			LD HL,($2B00)				; $861E
+			JP PE,$409D				; $8621
+			NOP				; $8624
+			INC B				; $8625
+			AND B				; $8626
+			INC D				; $8627
+			ADD A,B				; $8628
+			NOP				; $8629
+			LD (BC),A				; $862A
+			AND B				; $862B
+			NOP				; $862C
+			JP C,$F772				; $862D
+			JR Z,$8633				; $8630
+			NOP				; $8632
+			LD (BC),A				; $8633
+			XOR B				; $8634
+			LD DE,$0020				; $8635
+			LD HL,($0080)				; $8638
+			LD A,E				; $863B
+			LD HL,($BAAD)				; $863C
+			XOR B				; $863F
+			ADD HL,BC				; $8640
+			RET P				; $8641
+			NOP				; $8642
+			EX AF,AF'				; $8643
+			NOP				; $8644
+			LD B,L				; $8645
+			LD E,$55				; $8646
+			LD D,H				; $8648
+			CP B				; $8649
+			LD L,A				; $864A
+			RET NZ				; $864B
+			DEC B				; $864C
+			LD D,L				; $864D
+			LD B,B				; $864E
+			NOP				; $864F
+			LD D,H				; $8650
+			LD D,L				; $8651
+			LD B,L				; $8652
+			LD B,B				; $8653
+			NOP				; $8654
+			LD BC,$4D40				; $8655
+			PUSH HL				; $8658
+			LD D,H				; $8659
+			JR Z,$8664				; $865A
+			NOP				; $865C
+			LD D,L				; $865D
+			LD B,B				; $865E
+			NOP				; $865F
+			DEC B				; $8660
+			LD D,L				; $8661
+			LD D,B				; $8662
+			NOP				; $8663
+			JR NZ,$8666				; $8664
+			DEC D				; $8666
+			LD B,B				; $8667
+			SBC A,H				; $8668
+			DEC BC				; $8669
+			ADD A,L				; $866A
+			LD E,A				; $866B
+			RET P				; $866C
+			NOP				; $866D
+			LD A,C				; $866E
+			LD B,C				; $866F
+			LD D,L				; $8670
+			LD D,B				; $8671
+			LD C,$40				; $8672
+			NOP				; $8674
+			DEC B				; $8675
+			LD B,B				; $8676
+			DEC BC				; $8677
+			CP $14				; $8678
+			NOP				; $867A
+			LD E,(HL)				; $867B
+			LD D,C				; $867C
+			DEC D				; $867D
+			LD D,L				; $867E
+			LD B,B				; $867F
+			LD (HL),B				; $8680
+			NOP				; $8681
+			LD A,(HL)				; $8682
+			LD B,B				; $8683
+			NOP				; $8684
+			LD BC,$0050				; $8685
+			LD D,A				; $8688
+			SUB L				; $8689
+			LD C,A				; $868A
+			LD D,L				; $868B
+			NOP				; $868C
+			LD A,$40				; $868D
+			NOP				; $868F
+			DEC D				; $8690
+			NOP				; $8691
+			DJNZ $8694				; $8692
+			INC DE				; $8694
+			CALL PO,$945D				; $8695
+			NOP				; $8698
+			EX AF,AF'				; $8699
+			NOP				; $869A
+			LD BC,$0050				; $869B
+			LD BC,$0050				; $869E
+			LD BC,$64E9				; $86A1
+			RST $30				; $86A4
+			LD D,H				; $86A5
+			LD BC,$0080				; $86A6
+			LD BC,$0054				; $86A9
+			DEC D				; $86AC
+			LD B,B				; $86AD
+			NOP				; $86AE
+			LD A,D				; $86AF
+			LD D,L				; $86B0
+			LD C,(HL)				; $86B1
+			CP D				; $86B2
+			LD D,B				; $86B3
+			DEC D				; $86B4
+			RET P				; $86B5
+			NOP				; $86B6
+			JR Z,$8660				; $86B7
+			LD HL,($EEAA)				; $86B9
+			INC SP				; $86BC
+			RET NZ				; $86BD
+			LD (BC),A				; $86BE
+			XOR D				; $86BF
+			AND B				; $86C0
+			NOP				; $86C1
+			JR Z,$866E				; $86C2
+			AND B				; $86C4
+			NOP				; $86C5
+			ADD A,B				; $86C6
+			SUB A				; $86C7
+			LD (HL),D				; $86C8
+			XOR B				; $86C9
+			AND B				; $86CA
+			JR NC,$86CD				; $86CB
+			LD HL,($00A0)				; $86CD
+			LD A,(BC)				; $86D0
+			XOR D				; $86D1
+			LD C,B				; $86D2
+			XOR H				; $86D3
+			NOP				; $86D4
+			ADD A,B				; $86D5
+			NOP				; $86D6
+			LD BC,$0074				; $86D7
+			LD ($1080),A				; $86DA
+			LD C,$02				; $86DD
+			XOR A				; $86DF
+			RET M				; $86E0
+			NOP				; $86E1
+			CP H				; $86E2
+			AND D				; $86E3
+			XOR D				; $86E4
+			XOR B				; $86E5
+			LD A,(DE)				; $86E6
+			AND B				; $86E7
+			NOP				; $86E8
+			LD A,(BC)				; $86E9
+			ADD A,B				; $86EA
+			LD A,E				; $86EB
+			RST $38				; $86EC
+			LD HL,($9F00)				; $86ED
+			INC H				; $86F0
+			ADC A,D				; $86F1
+			XOR D				; $86F2
+			AND B				; $86F3
+			JR NZ,$86F6				; $86F4
+			LD A,(HL)				; $86F6
+			ADD A,B				; $86F7
+			LD C,B				; $86F8
+			ADD A,B				; $86F9
+			LD (BC),A				; $86FA
+			AND B				; $86FB
+			NOP				; $86FC
+			AND A				; $86FD
+			XOR C				; $86FE
+			CPL				; $86FF
+			LD A,(BC)				; $8700
+			NOP				; $8701
+			LD A,$A0				; $8702
+			INC H				; $8704
+			LD B,B				; $8705
+			NOP				; $8706
+			LD A,(BC)				; $8707
+			ADD A,B				; $8708
+			NOP				; $8709
+			DEC BC				; $870A
+			JP PE,$C89D				; $870B
+			NOP				; $870E
+			INC D				; $870F
+			NOP				; $8710
+			LD (BC),A				; $8711
+			AND B				; $8712
+			LD A,(BC)				; $8713
+			ADD A,B				; $8714
+			NOP				; $8715
+			XOR B				; $8716
+			NOP				; $8717
+			INC BC				; $8718
+			JP P,$6FA9				; $8719
+			JR Z,$871F				; $871C
+			RET NZ				; $871E
+			NOP				; $871F
+			EX AF,AF'				; $8720
+			NOP				; $8721
+			LD (BC),A				; $8722
+			XOR B				; $8723
+			LD (BC),A				; $8724
+			JR NZ,$8727				; $8725
+			INC B				; $8727
+			LD A,(BC)				; $8728
+			ADD A,B				; $8729
+			NOP				; $872A
+			CP H				; $872B
+			XOR D				; $872C
+			SBC A,A				; $872D
+			LD A,($29A8)				; $872E
+			RET P				; $8731
+			NOP				; $8732
+			LD D,(HL)				; $8733
+			LD D,C				; $8734
+			SUB L				; $8735
+			LD D,H				; $8736
+			CP B				; $8737
+			DEC C				; $8738
+			RET NZ				; $8739
+			NOP				; $873A
+			LD D,L				; $873B
+			LD D,B				; $873C
+			NOP				; $873D
+			LD D,L				; $873E
+			LD B,B				; $873F
+			NOP				; $8740
+			LD BC,$0D40				; $8741
+			SBC A,C				; $8744
+			LD D,B				; $8745
+			ADD A,B				; $8746
+			RET NZ				; $8747
+			NOP				; $8748
+			INC D				; $8749
+			LD D,B				; $874A
+			NOP				; $874B
+			DEC D				; $874C
+			LD D,L				; $874D
+			LD D,H				; $874E
+			POP DE				; $874F
+			LD C,(HL)				; $8750
+			NOP				; $8751
+			LD BC,$0040				; $8752
+			JR NZ,$8757				; $8755
+			DEC D				; $8757
+			LD B,B				; $8758
+			LD E,B				; $8759
+			LD DE,$FC4F				; $875A
+			NOP				; $875D
+			INC A				; $875E
+			LD D,C				; $875F
+			LD D,L				; $8760
+			LD D,B				; $8761
+			LD A,(DE)				; $8762
+			LD B,B				; $8763
+			NOP				; $8764
+			DEC B				; $8765
+			LD B,B				; $8766
+			LD BC,$FFA1				; $8767
+			DEC D				; $876A
+			NOP				; $876B
+			LD E,A				; $876C
+			LD D,D				; $876D
+			LD B,L				; $876E
+			LD D,L				; $876F
+			LD B,B				; $8770
+			JR NZ,$8773				; $8771
+			LD A,(HL)				; $8773
+			LD B,B				; $8774
+			NOP				; $8775
+			LD BC,$0050				; $8776
+			LD D,A				; $8779
+			CALL NC,$654F				; $877A
+			NOP				; $877D
+			DEC E				; $877E
+			LD B,B				; $877F
+			NOP				; $8780
+			DEC D				; $8781
+			NOP				; $8782
+			DEC D				; $8783
+			PUSH HL				; $8784
+			DEC A				; $8785
+			SUB B				; $8786
+			NOP				; $8787
+			EX AF,AF'				; $8788
+			NOP				; $8789
+			LD BC,$0050				; $878A
+			LD D,H				; $878D
+			NOP				; $878E
+			LD B,B				; $878F
+			LD BC,$55F5				; $8790
+			XOR A				; $8793
+			LD D,H				; $8794
+			DEC B				; $8795
+			RET NZ				; $8796
+			NOP				; $8797
+			LD BC,$0054				; $8798
+			DEC B				; $879B
+			LD B,B				; $879C
+			LD BC,$55DD				; $879D
+			LD E,A				; $87A0
+			LD D,(HL)				; $87A1
+			LD D,B				; $87A2
+			DEC D				; $87A3
+			RET M				; $87A4
+			NOP				; $87A5
+			AND A				; $87A6
+			ADC A,D				; $87A7
+			LD HL,($E0AA)				; $87A8
+			LD D,$00				; $87AB
+			LD HL,($00A8)				; $87AD
+			XOR D				; $87B0
+			ADC A,D				; $87B1
+			AND B				; $87B2
+			NOP				; $87B3
+			LD (BC),A				; $87B4
+			ADD A,B				; $87B5
+			LD D,A				; $87B6
+			LD H,B				; $87B7
+			XOR D				; $87B8
+			INC BC				; $87B9
+			NOP				; $87BA
+			LD A,(BC)				; $87BB
+			JR Z,$87BE				; $87BC
+			LD HL,($A8AA)				; $87BE
+			XOR E				; $87C1
+			ADD A,B				; $87C2
+			NOP				; $87C3
+			ADD A,B				; $87C4
+			NOP				; $87C5
+			LD BC,$1200				; $87C6
+			ADD A,B				; $87C9
+			ADD A,C				; $87CA
+			LD (HL),B				; $87CB
+			JR C,$8775				; $87CC
+			RET M				; $87CE
+			NOP				; $87CF
+			CP L				; $87D0
+			JR Z,$877D				; $87D1
+			AND B				; $87D3
+			LD A,($00A0)				; $87D4
+			LD A,(DE)				; $87D7
+			ADD A,B				; $87D8
+			LD B,(HL)				; $87D9
+			RET NZ				; $87DA
+			RST $38				; $87DB
+			LD A,(BC)				; $87DC
+			ADD A,B				; $87DD
+			NOP				; $87DE
+			XOR A				; $87DF
+			DEC HL				; $87E0
+			LD ($80AA),HL				; $87E1
+			NOP				; $87E4
+			LD A,B				; $87E5
+			ADD A,B				; $87E6
+			JR Z,$8769				; $87E7
+			NOP				; $87E9
+			XOR B				; $87EA
+			LD BC,$A700				; $87EB
+			JP Z,$EA2E				; $87EE
+			NOP				; $87F1
+			INC E				; $87F2
+			AND B				; $87F3
+			INC D				; $87F4
+			LD B,B				; $87F5
+			NOP				; $87F6
+			LD A,(BC)				; $87F7
+			ADD A,B				; $87F8
+			NOP				; $87F9
+			ADD HL,DE				; $87FA
+			RET PE				; $87FB
+			SBC A,E				; $87FC
+			XOR B				; $87FD
+			NOP				; $87FE
+			LD (BC),A				; $87FF
+			XOR B				; $8800
+			LD (BC),A				; $8801
+			ADD A,B				; $8802
+			NOP				; $8803
+			XOR D				; $8804
+			NOP				; $8805
+			LD B,$EA				; $8806
+			XOR E				; $8808
+			ADD A,A8				; $8809
+			LD BC,$00E0				; $880B
+			EX AF,AF'				; $880E
+			NOP				; $880F
+			LD (BC),A				; $8810
+			XOR B				; $8811
+			NOP				; $8812
+			AND B				; $8813
+			NOP				; $8814
+			LD (BC),A				; $8815
+			AND B				; $8816
+			INC BC				; $8817
+			JP C,$8EAA				; $8818
+			RST $20				; $881B
+			JR Z,$8848				; $881C
+			RET M				; $881E
+			NOP				; $881F
+			LD D,C				; $8820
+			PUSH HL				; $8821
+			LD D,L				; $8822
+			LD D,H				; $8823
+			ADD A,B				; $8824
+			LD A,C				; $8825
+			ADD A,B				; $8826
+			NOP				; $8827
+			DEC D				; $8828
+			LD D,H				; $8829
+			NOP				; $882A
+			LD BC,$1555				; $882B
+			LD B,B				; $882E
+			NOP				; $882F
+			LD BC,$9D40				; $8830
+			RET C				; $8833
+			DEC D				; $8834
+			RRCA				; $8835
+			ADD A,B				; $8836
+			NOP				; $8837
+			INC B				; $8838
+			SUB H				; $8839
+			NOP				; $883A
+			LD D,L				; $883B
+			LD D,H				; $883C
+			AND L				; $883D
+			LD C,E				; $883E
+			RET PO				; $883F
+			NOP				; $8840
+			JR NZ,$8843				; $8841
+			LD (BC),A				; $8843
+			ADD A,B				; $8844
+			DEC H				; $8845
+			LD B,B				; $8846
+			INC BC				; $8847
+			RET NZ				; $8848
+			LD SP,HL				; $8849
+			LD D,A				; $884A
+			RET P				; $884B
+			NOP				; $884C
+			LD A,$15				; $884D
+			LD D,L				; $884F
+			LD D,B				; $8850
+			LD L,$00				; $8851
+			ADD HL,DE				; $8853
+			LD B,B				; $8854
+			ADC A,E				; $8855
+			NOP				; $8856
+			CP $05				; $8857
+			NOP				; $8859
+			LD C,A				; $885A
+			LD D,E				; $885B
+			SUB L				; $885C
+			LD D,L				; $885D
+			LD B,B				; $885E
+			NOP				; $885F
+			LD H,$40				; $8860
+			NOP				; $8862
+			LD D,H				; $8863
+			NOP				; $8864
+			LD D,A				; $8865
+			CALL NC,$E446				; $8866
+			NOP				; $8869
+			DEC E				; $886A
+			LD D,B				; $886B
+			NOP				; $886C
+			DEC B				; $886D
+			LD B,B				; $886E
+			LD BC,$3900				; $886F
+			POP AF				; $8872
+			DEC HL				; $8873
+			SUB B				; $8874
+			NOP				; $8875
+			LD BC,$0050				; $8876
+			LD D,H				; $8879
+			NOP				; $887A
+			LD C,$D5				; $887B
+			LD D,E				; $887D
+			JP C,$0554				; $887E
+			RET PO				; $8881
+			NOP				; $8882
+			LD E,L				; $8883
+			NOP				; $8884
+			LD BC,$0054				; $8885
+			DEC B				; $8888
+			LD D,B				; $8889
+			DEC B				; $888A
+			PUSH HL				; $888B
+			LD D,L				; $888C
+			LD D,(HL)				; $888D
+			EX (SP),HL				; $888E
+			LD D,B				; $888F
+			LD D,H				; $8890
+			RET M				; $8891
+			NOP				; $8892
+			XOR D				; $8893
+			INC B				; $8894
+			LD B,B				; $8895
+			NOP				; $8896
+			LD (BC),A				; $8897
+			XOR B				; $8898
+			LD C,$EA				; $8899
+			XOR D				; $889B
+			ADC A,C				; $889C
+			EX DE,HL				; $889D
+			JR NZ,$884A				; $889E
+			RET M				; $88A0
+			NOP				; $88A1
+			DEC C				; $88A2
+			LD HL,($00A0)				; $88A3
+			LD HL,($1001)				; $88A6
+			JR NZ,$88D5				; $88A9
+			NOP				; $88AB
+			LD C,$2A				; $88AC
+			XOR D				; $88AE
+			AND D				; $88AF
+			AND (HL)				; $88B0
+			ADD A,L				; $88B1
+			XOR D				; $88B2
+			ADD A,B				; $88B3
+			NOP				; $88B4
+			INC B				; $88B5
+			XOR D				; $88B6
+			NOP				; $88B7
+			LD A,(BC)				; $88B8
+			AND B				; $88B9
+			LD D,H				; $88BA
+			NOP				; $88BB
+			LD HL,($A9AA)				; $88BC
+			JP PO,$9BAA				; $88BF
+			JP NC,$E07F				; $88C2
+			NOP				; $88C5
+			CPL				; $88C6
+			CP B				; $88C7
+			NOP				; $88C8
+			XOR D				; $88C9
+			AND B				; $88CA
+			LD (BC),A				; $88CB
+			XOR D				; $88CC
+			XOR B				; $88CD
+			XOR D				; $88CE
+			EX AF,AF'				; $88CF
+			SUB B				; $88D0
+			LD HL,($FF8F)				; $88D1
+			EX AF,AF'				; $88D4
+			XOR D				; $88D5
+			XOR C				; $88D6
+			RST $38				; $88D7
+			JP Z,$A0AA				; $88D8
+			NOP				; $88DB
+			JR NZ,$88DE				; $88DC
+			ADD HL,HL				; $88DE
+			CALL C,$A0AA				; $88DF
+			LD A,L				; $88E2
+			RET P				; $88E3
+			LD (BC),A				; $88E4
+			CCF				; $88E5
+			LD HL,($AA32)				; $88E6
+			LD A,A				; $88E9
+			CALL M,$00A8				; $88EA
+			LD (BC),A				; $88ED
+			XOR D				; $88EE
+			AND E				; $88EF
+			NOP				; $88F0
+			LD A,(BC)				; $88F1
+			XOR D				; $88F2
+			LD A,(BC)				; $88F3
+			XOR D				; $88F4
+			LD L,D				; $88F5
+			CP D				; $88F6
+			AND E				; $88F7
+			RST $38				; $88F8
+			DAA				; $88F9
+			JP P,$002A				; $88FA
+			CCF				; $88FD
+			ADC A,D				; $88FE
+			ADD A,B				; $88FF
+			NOP				; $8900
+			LD A,(BC)				; $8901
+			XOR B				; $8902
+			LD A,(BC)				; $8903
+			SBC A,A				; $8904
+			ADD A,D				; $8905
+			XOR A				; $8906
+			JP Z,$3FA8				; $8907
+			CP $3F				; $890A
+			CP $3F				; $890C
+			CP $3F				; $890E
+			CP $3F				; $8910
+			CP $3F				; $8912
+			CP $00				; $8914
+			CCF				; $8916
+			JP Z,$00AA				; $8917
+			LD H,E				; $891A
+			EX (SP),HL				; $891B
+			LD H,E				; $891C
+			RST $38				; $891D
+			LD H,(HL)				; $891E
+			INC SP				; $891F
+			LD A,A				; $8920
+			EX (SP),HL				; $8921
+			LD H,E				; $8922
+			EX (SP),HL				; $8923
+			LD H,E				; $8924
+			ADD A,E				; $8925
+			LD BC,$0080				; $8926
+			LD BC,$0054				; $8929
+			LD A,H				; $892C
+			LD BC,$0E50				; $892D
+			PUSH DE				; $8930
+			LD D,L				; $8931
+			LD B,L				; $8932
+			OUT ($50),A				; $8933
+			LD D,H				; $8935
+			RET M				; $8936
+			NOP				; $8937
+			RLCA				; $8938
+			LD D,L				; $8939
+			LD D,B				; $893A
+			NOP				; $893B
+			LD D,L				; $893C
+			NOP				; $893D
+			JR NC,$8984				; $893E
+			NOP				; $8940
+			LD C,$15				; $8941
+			LD D,L				; $8943
+			DEC C				; $8944
+			PUSH DE				; $8945
+			LD B,B				; $8946
+			NOP				; $8947
+			LD (BC),A				; $8948
+			LD D,L				; $8949
+			LD B,B				; $894A
+			NOP				; $894B
+			DEC B				; $894C
+			LD B,B				; $894D
+			NOP				; $894E
+			INC BC				; $894F
+			ADD A,L				; $8950
+			LD D,L				; $8951
+			LD D,H				; $8952
+			POP HL				; $8953
+			LD D,L				; $8954
+			DEC A				; $8955
+			PUSH DE				; $8956
+			LD A,A				; $8957
+			RET NZ				; $8958
+			NOP				; $8959
+			LD HL,($00A0)				; $895A
+			DEC D				; $895D
+			LD D,L				; $895E
+			LD D,B				; $895F
+			LD D,L				; $8960
+			LD D,H				; $8961
+			LD D,L				; $8962
+			LD B,B				; $8963
+			NOP				; $8964
+			DEC D				; $8965
+			LD D,C				; $8966
+			RST $38				; $8967
+			PUSH HL				; $8968
+			LD D,L				; $8969
+			LD D,E				; $896A
+			RST $38				; $896B
+			SUB L				; $896C
+			LD B,L				; $896D
+			LD B,B				; $896E
+			NOP				; $896F
+			LD D,B				; $8970
+			NOP				; $8971
+			INC DE				; $8972
+			LD L,A				; $8973
+			DEC D				; $8974
+			LD D,L				; $8975
+			LD C,A				; $8976
+			DEC E				; $8977
+			RST $30				; $8978
+			defb DD				; $8979
+			LD C,A				; $897A
+			CALL NZ,$F954				; $897B
+			LD D,L				; $897E
+			LD A,A				; $897F
+			LD SP,HL				; $8980
+			LD D,B				; $8981
+			NOP				; $8982
+			LD D,L				; $8983
+			LD D,H				; $8984
+			NOP				; $8985
+			LD BC,$4555				; $8986
+			LD D,L				; $8989
+			DEC (HL)				; $898A
+			LD E,L				; $898B
+			RRA				; $898C
+			RST $38				; $898D
+			LD D,A				; $898E
+			LD SP,HL				; $898F
+			LD D,H				; $8990
+			NOP				; $8991
+			JR $8999				; $8992
+			LD B,B				; $8994
+			NOP				; $8995
+			DEC D				; $8996
+			LD D,H				; $8997
+			NOP				; $8998
+			LD D,L				; $8999
+			LD E,A				; $899A
+			SUB L				; $899B
+			LD D,D				; $899C
+			LD A,A				; $899D
+			RST $38				; $899E
+			LD A,A				; $899F
+			RST $38				; $89A0
+			LD A,A				; $89A1
+			RST $38				; $89A2
+			LD A,A				; $89A3
+			RST $38				; $89A4
+			LD A,A				; $89A5
+			RST $38				; $89A6
+			LD A,A				; $89A7
+			RST $38				; $89A8
+			NOP				; $89A9
+			RRA				; $89AA
+			PUSH DE				; $89AB
+			LD D,L				; $89AC
+			LD B,B				; $89AD
+			NOP				; $89AE
+			LD H,E				; $89AF
+			EX (SP),HL				; $89B0
+			LD H,E				; $89B1
+			RST $38				; $89B2
+			LD H,(HL)				; $89B3
+			INC SP				; $89B4
+			LD A,A				; $89B5
+			EX (SP),HL				; $89B6
+			LD H,E				; $89B7
+			EX (SP),HL				; $89B8
+			LD H,E				; $89B9
+			JP $E01F				; $89BA
+			NOP				; $89BD
+			LD BC,$AA00				; $89BE
+			INC B				; $89C1
+			LD C,B				; $89C2
+			NOP				; $89C3
+			LD BC,$E083				; $89C4
+			XOR B				; $89C7
+			CPL				; $89C8
+			LD HL,($CBAA)				; $89C9
+			JR NZ,$8978				; $89CC
+			RET M				; $89CE
+			NOP				; $89CF
+			LD B,$AA				; $89D0
+			NOP				; $89D2
+			LD HL,($1281)				; $89D3
+			INC E				; $89D6
+			LD C,B				; $89D7
+			NOP				; $89D8
+			RRCA				; $89D9
+			LD A,(BC)				; $89DA
+			XOR D				; $89DB
+			AND D				; $89DC
+			XOR L				; $89DD
+			DEC C				; $89DE
+			JP PO,$0080				; $89DF
+			LD BC,$A0AA				; $89E2
+			NOP				; $89E5
+			XOR D				; $89E6
+			AND B				; $89E7
+			LD B,L				; $89E8
+			POP BC				; $89E9
+			RET M				; $89EA
+			XOR D				; $89EB
+			RET PO				; $89EC
+			XOR D				; $89ED
+			LD A,H				; $89EE
+			LD A,(BC)				; $89EF
+			LD A,A				; $89F0
+			RET NZ				; $89F1
+			NOP				; $89F2
+			LD L,D				; $89F3
+			AND B				; $89F4
+			NOP				; $89F5
+			LD A,(BC)				; $89F6
+			XOR B				; $89F7
+			XOR D				; $89F8
+			LD HL,($00A1)				; $89F9
+			LD (BC),A				; $89FC
+			XOR D				; $89FD
+			CCF				; $89FE
+			JP PE,$A72A				; $89FF
+			RST $38				; $8A02
+			XOR D				; $8A03
+			ADC A,D				; $8A04
+			AND B				; $8A05
+			NOP				; $8A06
+			JR NZ,$8A09				; $8A07
+			LD C,$B6				; $8A09
+			AND B				; $8A0B
+			LD HL,($AFAA)				; $8A0C
+			AND B				; $8A0F
+			RST $30				; $8A10
+			CALL C,$C2A3				; $8A11
+			AND E				; $8A14
+			CALL M,$00AA				; $8A15
+			LD (BC),A				; $8A18
+			AND B				; $8A19
+			NOP				; $8A1A
+			LD HL,($00AA)				; $8A1B
+			LD A,(BC)				; $8A1E
+			AND D				; $8A1F
+			XOR D				; $8A20
+			SBC A,D				; $8A21
+			XOR H				; $8A22
+			CP A				; $8A23
+			CP $7E				; $8A24
+			DAA				; $8A26
+			CALL M,$00AA				; $8A27
+			LD A,(BC)				; $8A2A
+			ADD A,B				; $8A2B
+			NOP				; $8A2C
+			XOR D				; $8A2D
+			ADD A,B				; $8A2E
+			RLCA				; $8A2F
+			XOR D				; $8A30
+			SBC A,A				; $8A31
+			XOR D				; $8A32
+			ADC A,E				; $8A33
+			LD H,E				; $8A34
+			EX (SP),HL				; $8A35
+			LD H,B				; $8A36
+			INC BC				; $8A37
+			LD H,(HL)				; $8A38
+			INC SP				; $8A39
+			LD H,B				; $8A3A
+			INC BC				; $8A3B
+			LD H,B				; $8A3C
+			INC BC				; $8A3D
+			LD H,E				; $8A3E
+			EX (SP),HL				; $8A3F
+			NOP				; $8A40
+			RRA				; $8A41
+			JP PE,$A8AA				; $8A42
+			NOP				; $8A45
+			LD H,E				; $8A46
+			EX (SP),HL				; $8A47
+			LD H,E				; $8A48
+			RST $38				; $8A49
+			LD H,(HL)				; $8A4A
+			INC SP				; $8A4B
+			LD H,E				; $8A4C
+			EX (SP),HL				; $8A4D
+			LD H,E				; $8A4E
+			EX (SP),HL				; $8A4F
+			LD H,E				; $8A50
+			EX (SP),HL				; $8A51
+			LD L,H				; $8A52
+			LD D,B				; $8A53
+			NOP				; $8A54
+			LD (BC),A				; $8A55
+			ADD A,B				; $8A56
+			NOP				; $8A57
+			LD D,H				; $8A58
+			NOP				; $8A59
+			LD B,$24				; $8A5A
+			LD DE,$7754				; $8A5C
+			DEC D				; $8A5F
+			LD D,L				; $8A60
+			LD B,L				; $8A61
+			DEC D				; $8A62
+			ADD A,B				; $8A63
+			LD D,L				; $8A64
+			LD A,B				; $8A65
+			NOP				; $8A66
+			LD BC,$0055				; $8A67
+			DEC D				; $8A6A
+			NOP				; $8A6B
+			RRA				; $8A6C
+			ADD A,B				; $8A6D
+			INC BC				; $8A6E
+			RST $38				; $8A6F
+			DEC B				; $8A70
+			LD D,L				; $8A71
+			LD A,(DE)				; $8A72
+			DEC E				; $8A73
+			RET M				; $8A74
+			NOP				; $8A75
+			LD B,L				; $8A76
+			LD D,L				; $8A77
+			LD D,B				; $8A78
+			NOP				; $8A79
+			DEC D				; $8A7A
+			LD B,L				; $8A7B
+			LD D,B				; $8A7C
+			NOP				; $8A7D
+			LD BC,$15FF				; $8A7E
+			LD D,H				; $8A81
+			RET NZ				; $8A82
+			LD D,L				; $8A83
+			LD D,H				; $8A84
+			defb FD				; $8A85
+			CALL NZ,$803F				; $8A86
+			NOP				; $8A89
+			DEC B				; $8A8A
+			LD D,H				; $8A8B
+			LD D,L				; $8A8C
+			DEC D				; $8A8D
+			LD D,H				; $8A8E
+			NOP				; $8A8F
+			ADD HL,BC				; $8A90
+			LD D,L				; $8A91
+			LD C,A				; $8A92
+			PUSH AF				; $8A93
+			LD D,L				; $8A94
+			LD D,E				; $8A95
+			RST $38				; $8A96
+			LD D,L				; $8A97
+			DEC D				; $8A98
+			LD B,B				; $8A99
+			NOP				; $8A9A
+			LD BC,$55DC				; $8A9B
+			LD BC,$4355				; $8A9E
+			CP (HL)				; $8AA1
+			INC BC				; $8AA2
+			SBC A,00				; $8AA3
+			DEC D				; $8AA5
+			LD D,E				; $8AA6
+			CALL M,$5055				; $8AA7
+			NOP				; $8AAA
+			DEC D				; $8AAB
+			LD D,L				; $8AAC
+			NOP				; $8AAD
+			LD BC,$5551				; $8AAE
+			LD C,H				; $8AB1
+			LD C,(HL)				; $8AB2
+			LD A,A				; $8AB3
+			RET M				; $8AB4
+			CALL M,$FD57				; $8AB5
+			LD D,H				; $8AB8
+			NOP				; $8AB9
+			DEC B				; $8ABA
+			NOP				; $8ABB
+			DEC D				; $8ABC
+			LD D,L				; $8ABD
+			LD D,B				; $8ABE
+			LD D,L				; $8ABF
+			CCF				; $8AC0
+			LD D,H				; $8AC1
+			LD H,E				; $8AC2
+			EX (SP),HL				; $8AC3
+			LD H,B				; $8AC4
+			INC BC				; $8AC5
+			LD H,(HL)				; $8AC6
+			INC SP				; $8AC7
+			LD H,B				; $8AC8
+			INC BC				; $8AC9
+			LD H,B				; $8ACA
+			INC BC				; $8ACB
+			LD H,C				; $8ACC
+			EX (SP),HL				; $8ACD
+			NOP				; $8ACE
+			RRCA				; $8ACF
+			PUSH HL				; $8AD0
+			LD D,L				; $8AD1
+			LD B,B				; $8AD2
+			NOP				; $8AD3
+			LD H,E				; $8AD4
+			EX (SP),HL				; $8AD5
+			LD H,E				; $8AD6
+			RST $38				; $8AD7
+			LD H,(HL)				; $8AD8
+			INC SP				; $8AD9
+			LD H,E				; $8ADA
+			EX (SP),HL				; $8ADB
+			LD H,E				; $8ADC
+			EX (SP),HL				; $8ADD
+			LD H,E				; $8ADE
+			EX (SP),HL				; $8ADF
+			DEC DE				; $8AE0
+			LD C,B				; $8AE1
+			NOP				; $8AE2
+			LD BC,$AA00				; $8AE3
+			NOP				; $8AE6
+			XOR B				; $8AE7
+			NOP				; $8AE8
+			EX AF,AF'				; $8AE9
+			AND B				; $8AEA
+			LD E,B				; $8AEB
+			XOR D				; $8AEC
+			OR $AA				; $8AED
+			XOR C				; $8AEF
+			AND B				; $8AF0
+			XOR D				; $8AF1
+			LD (HL),B				; $8AF2
+			NOP				; $8AF3
+			LD BC,$80AA				; $8AF4
+			NOP				; $8AF7
+			LD HL,($2280)				; $8AF8
+			INC BC				; $8AFB
+			RET M				; $8AFC
+			RRA				; $8AFD
+			CP $0A				; $8AFE
+			XOR D				; $8B00
+			AND B				; $8B01
+			LD A,($FE9E)				; $8B02
+			NOP				; $8B05
+			LD ($A8AA),A				; $8B06
+			NOP				; $8B09
+			XOR D				; $8B0A
+			AND D				; $8B0B
+			AND B				; $8B0C
+			LD BC,$7F40				; $8B0D
+			JP PO,$40AA				; $8B10
+			XOR D				; $8B13
+			ADC A,C				; $8B14
+			JP M,$BF48				; $8B15
+			NOP				; $8B18
+			LD (BC),A				; $8B19
+			XOR D				; $8B1A
+			LD HL,($82AA)				; $8B1B
+			XOR D				; $8B1E
+			AND B				; $8B1F
+			LD C,$2A				; $8B20
+			AND C				; $8B22
+			JP P,$AB2A				; $8B23
+			CP $00				; $8B26
+			LD HL,($0080)				; $8B28
+			CP B				; $8B2B
+			XOR D				; $8B2C
+			XOR B				; $8B2D
+			LD HL,($A4AA)				; $8B2E
+			LD A,$F8				; $8B31
+			NOP				; $8B33
+			LD HL,($ABAA)				; $8B34
+			CP $2A				; $8B37
+			XOR D				; $8B39
+			AND B				; $8B3A
+			NOP				; $8B3B
+			LD H,D				; $8B3C
+			XOR D				; $8B3D
+			AND B				; $8B3E
+			NOP				; $8B3F
+			JR Z,$8B6C				; $8B40
+			AND A				; $8B42
+			DAA				; $8B43
+			LD A,A				; $8B44
+			POP BC				; $8B45
+			RET M				; $8B46
+			AND A				; $8B47
+			CP $A8				; $8B48
+			NOP				; $8B4A
+			LD (BC),A				; $8B4B
+			XOR D				; $8B4C
+			LD HL,($7EAA)				; $8B4D
+			LD (BC),A				; $8B50
+			XOR D				; $8B51
+			LD H,E				; $8B52
+			EX (SP),HL				; $8B53
+			LD H,E				; $8B54
+			RST $38				; $8B55
+			LD H,(HL)				; $8B56
+			INC SP				; $8B57
+			LD H,E				; $8B58
+			EX (SP),HL				; $8B59
+			LD H,E				; $8B5A
+			EX (SP),HL				; $8B5B
+			LD H,B				; $8B5C
+			EX (SP),HL				; $8B5D
+			NOP				; $8B5E
+			RLCA				; $8B5F
+			JP P,$80AA				; $8B60
+			NOP				; $8B63
+			LD H,E				; $8B64
+			EX (SP),HL				; $8B65
+			LD H,B				; $8B66
+			INC BC				; $8B67
+			LD H,B				; $8B68
+			INC BC				; $8B69
+			LD H,B				; $8B6A
+			INC BC				; $8B6B
+			LD H,B				; $8B6C
+			INC BC				; $8B6D
+			LD H,E				; $8B6E
+			EX (SP),HL				; $8B6F
+			INC A				; $8B70
+			CALL NC,$5500				; $8B71
+			NOP				; $8B74
+			LD (DE),A				; $8B75
+			RRA				; $8B76
+			JR C,$8BCE				; $8B77
+			LD A,C				; $8B79
+			LD D,L				; $8B7A
+			LD B,L				; $8B7B
+			DEC D				; $8B7C
+			LD B,C				; $8B7D
+			LD D,L				; $8B7E
+			JR NC,$8B81				; $8B7F
+			LD D,L				; $8B81
+			LD D,B				; $8B82
+			NOP				; $8B83
+			DEC D				; $8B84
+			LD B,B				; $8B85
+			NOP				; $8B86
+			INC B				; $8B87
+			CCF				; $8B88
+			ADD A,B				; $8B89
+			LD (BC),A				; $8B8A
+			DEC B				; $8B8B
+			LD D,L				; $8B8C
+			LD D,E				; $8B8D
+			PUSH DE				; $8B8E
+			LD A,$FC				; $8B8F
+			NOP				; $8B91
+			ADD HL,BC				; $8B92
+			LD D,L				; $8B93
+			NOP				; $8B94
+			LD D,L				; $8B95
+			LD D,C				; $8B96
+			LD D,B				; $8B97
+			NOP				; $8B98
+			RRCA				; $8B99
+			CALL M,$0155				; $8B9A
+			LD D,L				; $8B9D
+			DEC H				; $8B9E
+			PUSH AF				; $8B9F
+			DEC D				; $8BA0
+			LD B,B				; $8BA1
+			NOP				; $8BA2
+			LD D,L				; $8BA3
+			LD E,B				; $8BA4
+			LD D,L				; $8BA5
+			LD D,A				; $8BA6
+			SUB L				; $8BA7
+			LD D,H				; $8BA8
+			ADD HL,SP				; $8BA9
+			DEC D				; $8BAA
+			LD D,C				; $8BAB
+			RST $38				; $8BAC
+			CP $55				; $8BAD
+			NOP				; $8BAF
+			INC D				; $8BB0
+			LD D,L				; $8BB1
+			LD D,H				; $8BB2
+			LD B,C				; $8BB3
+			LD D,L				; $8BB4
+			LD D,C				; $8BB5
+			LD B,B				; $8BB6
+			EI				; $8BB7
+			RST $28				; $8BB8
+			LD D,L				; $8BB9
+			LD B,L				; $8BBA
+			RST $38				; $8BBB
+			LD D,L				; $8BBC
+			LD B,B				; $8BBD
+			NOP				; $8BBE
+			LD SP,HL				; $8BBF
+			LD D,L				; $8BC0
+			LD D,B				; $8BC1
+			NOP				; $8BC2
+			LD D,H				; $8BC3
+			DEC D				; $8BC4
+			LD D,C				; $8BC5
+			JP Z,$153F				; $8BC6
+			POP AF				; $8BC9
+			LD D,A				; $8BCA
+			RST $38				; $8BCB
+			LD D,B				; $8BCC
+			NOP				; $8BCD
+			LD D,L				; $8BCE
+			DEC D				; $8BCF
+			LD D,L				; $8BD0
+			LD BC,$6355				; $8BD1
+			EX (SP),HL				; $8BD4
+			LD H,E				; $8BD5
+			RST $38				; $8BD6
+			LD H,(HL)				; $8BD7
+			INC SP				; $8BD8
+			LD H,E				; $8BD9
+			RST $38				; $8BDA
+			LD H,E				; $8BDB
+			EX (SP),HL				; $8BDC
+			LD H,B				; $8BDD
+			LD H,E				; $8BDE
+			NOP				; $8BDF
+			LD BC,$55F5				; $8BE0
+			LD D,H				; $8BE3
+			NOP				; $8BE4
+			LD H,E				; $8BE5
+			EX (SP),HL				; $8BE6
+			LD H,B				; $8BE7
+			INC BC				; $8BE8
+			LD H,B				; $8BE9
+			INC BC				; $8BEA
+			LD H,B				; $8BEB
+			INC BC				; $8BEC
+			LD H,B				; $8BED
+			INC BC				; $8BEE
+			LD H,E				; $8BEF
+			EX (SP),HL				; $8BF0
+			LD D,$AA				; $8BF1
+			ADD A,B				; $8BF3
+			NOP				; $8BF4
+			XOR D				; $8BF5
+			NOP				; $8BF6
+			JR Z,$8BF9				; $8BF7
+			DJNZ $8BDB				; $8BF9
+			CALL M,$7A2A				; $8BFB
+			XOR D				; $8BFE
+			AND D				; $8BFF
+			XOR E				; $8C00
+			LD B,C				; $8C01
+			LD HL,($00B0)				; $8C02
+			LD ($A8AA),HL				; $8C05
+			NOP				; $8C08
+			LD HL,($0280)				; $8C09
+			ADD A,C				; $8C0C
+			RST $38				; $8C0D
+			RET M				; $8C0E
+			LD (BC),A				; $8C0F
+			XOR D				; $8C10
+			XOR E				; $8C11
+			CALL NC,$78BF				; $8C12
+			NOP				; $8C15
+			LD A,A				; $8C16
+			RET M				; $8C17
+			LD B,$AA				; $8C18
+			XOR B				; $8C1A
+			NOP				; $8C1B
+			LD HL,($A8AA)				; $8C1C
+			LD A,(BC)				; $8C1F
+			ADD A,B				; $8C20
+			INC HL				; $8C21
+			RST $38				; $8C22
+			ADD A,D				; $8C23
+			ADD A,B				; $8C24
+			XOR D				; $8C25
+			LD L,E				; $8C26
+			JP P,$A8AA				; $8C27
+			NOP				; $8C2A
+			LD HL,($AA22)				; $8C2B
+			SBC A,A				; $8C2E
+			LD (BC),A				; $8C2F
+			XOR D				; $8C30
+			AND E				; $8C31
+			JP PO,$82AA				; $8C32
+			XOR D				; $8C35
+			XOR C				; $8C36
+			RST $38				; $8C37
+			CP $AA				; $8C38
+			NOP				; $8C3A
+			EX AF,AF'				; $8C3B
+			LD HL,($BEAA)				; $8C3C
+			LD A,(BC)				; $8C3F
+			XOR D				; $8C40
+			XOR B				; $8C41
+			XOR D				; $8C42
+			LD BC,$6AEF				; $8C43
+			XOR D				; $8C46
+			DEC E				; $8C47
+			RST $38				; $8C48
+			JR Z,$8C75				; $8C49
+			ADC A,D				; $8C4B
+			ADD A,B				; $8C4C
+			NOP				; $8C4D
+			LD BC,$2AFE				; $8C4E
+			AND B				; $8C51
+			NOP				; $8C52
+			LD HL,($AA82)				; $8C53
+			POP AF				; $8C56
+			CALL C,$F2AB				; $8C57
+			AND A				; $8C5A
+			RST $38				; $8C5B
+			JR NZ,$8C5E				; $8C5C
+			LD A,$68				; $8C5E
+			NOP				; $8C60
+			LD A,(BC)				; $8C61
+			AND D				; $8C62
+			AND B				; $8C63
+			XOR D				; $8C64
+			LD H,B				; $8C65
+			INC BC				; $8C66
+			LD H,B				; $8C67
+			INC BC				; $8C68
+			LD H,(HL)				; $8C69
+			INC SP				; $8C6A
+			LD H,B				; $8C6B
+			INC BC				; $8C6C
+			LD H,E				; $8C6D
+			EX (SP),HL				; $8C6E
+			LD H,D				; $8C6F
+			INC HL				; $8C70
+			NOP				; $8C71
+			JP P,$A0AA				; $8C72
+			NOP				; $8C75
+			LD A,A				; $8C76
+			RST $38				; $8C77
+			LD A,A				; $8C78
+			RST $38				; $8C79
+			LD A,A				; $8C7A
+			RST $38				; $8C7B
+			LD A,A				; $8C7C
+			RST $38				; $8C7D
+			LD A,A				; $8C7E
+			RST $38				; $8C7F
+			LD A,A				; $8C80
+			RST $38				; $8C81
+			ADD HL,BC				; $8C82
+			SUB L				; $8C83
+			LD B,B				; $8C84
+			NOP				; $8C85
+			LD D,L				; $8C86
+			NOP				; $8C87
+			LD B,B				; $8C88
+			ADD HL,HL				; $8C89
+			NOP				; $8C8A
+			INC E				; $8C8B
+			LD D,L				; $8C8C
+			DEC (HL)				; $8C8D
+			LD D,L				; $8C8E
+			LD (DE),A				; $8C8F
+			ADD A,L				; $8C90
+			SUB L				; $8C91
+			LD B,B				; $8C92
+			NOP				; $8C93
+			ADD HL,DE				; $8C94
+			LD D,L				; $8C95
+			LD D,H				; $8C96
+			NOP				; $8C97
+			DEC D				; $8C98
+			LD B,B				; $8C99
+			NOP				; $8C9A
+			LD BC,$0054				; $8C9B
+			INC BC				; $8C9E
+			LD BC,$4B55				; $8C9F
+			RET				; $8CA2
+			LD A,A				; $8CA3
+			NOP				; $8CA4
+			JR NZ,$8CAF				; $8CA5
+			LD BC,$5155				; $8CA7
+			LD D,L				; $8CAA
+			LD B,B				; $8CAB
+			DEC B				; $8CAC
+			LD D,L				; $8CAD
+			LD D,C				; $8CAE
+			LD D,H				; $8CAF
+			NOP				; $8CB0
+			INC D				; $8CB1
+			LD A,A				; $8CB2
+			RET M				; $8CB3
+			LD D,L				; $8CB4
+			LD D,H				; $8CB5
+			RST $30				; $8CB6
+			PUSH HL				; $8CB7
+			LD D,L				; $8CB8
+			LD D,B				; $8CB9
+			NOP				; $8CBA
+			INC D				; $8CBB
+			POP AF				; $8CBC
+			LD D,L				; $8CBD
+			LD C,A				; $8CBE
+			LD A,H				; $8CBF
+			DEC B				; $8CC0
+			LD D,B				; $8CC1
+			CALL M,$0555				; $8CC2
+			LD D,H				; $8CC5
+			RST $38				; $8CC6
+			LD D,IYH*				; $8CC7
+			NOP				; $8CC9
+			DEC B				; $8CCA
+			LD D,L				; $8CCB
+			LD C,A				; $8CCC
+			LD BC,$5455				; $8CCD
+			DEC D				; $8CD0
+			LD D,H				; $8CD1
+			NOP				; $8CD2
+			LD (HL),L				; $8CD3
+			LD D,H				; $8CD4
+			RST $38				; $8CD5
+			INC DE				; $8CD6
+			PUSH BC				; $8CD7
+			DEC D				; $8CD8
+			NOP				; $8CD9
+			RST $38				; $8CDA
+			SUB L				; $8CDB
+			LD B,B				; $8CDC
+			NOP				; $8CDD
+			DEC D				; $8CDE
+			LD B,C				; $8CDF
+			LD D,L				; $8CE0
+			LD A,A				; $8CE1
+			JP HL				; $8CE2
+			LD D,A				; $8CE3
+			PUSH HL				; $8CE4
+			LD D,A				; $8CE5
+			NOP				; $8CE6
+			CCF				; $8CE7
+			SUB L				; $8CE8
+			LD D,L				; $8CE9
+			LD D,B				; $8CEA
+			NOP				; $8CEB
+			DEC D				; $8CEC
+			LD D,L				; $8CED
+			LD D,H				; $8CEE
+			LD H,B				; $8CEF
+			INC BC				; $8CF0
+			LD H,B				; $8CF1
+			INC BC				; $8CF2
+			LD H,(HL)				; $8CF3
+			INC SP				; $8CF4
+			LD H,B				; $8CF5
+			INC BC				; $8CF6
+			LD H,E				; $8CF7
+			EX (SP),HL				; $8CF8
+			LD H,E				; $8CF9
+			INC BC				; $8CFA
+			NOP				; $8CFB
+			DEC (HL)				; $8CFC
+			LD D,L				; $8CFD
+			NOP				; $8CFE
+			CCF				; $8CFF
+			CP $3F				; $8D00
+			CP $3F				; $8D02
+			CP $3F				; $8D04
+			CP $3F				; $8D06
+			CP $3F				; $8D08
+			CP $47				; $8D0A
+			LD B,(HL)				; $8D0C
+			LD B,A				; $8D0D
+			LD B,(HL)				; $8D0E
+			LD B,A				; $8D0F
+			LD B,(HL)				; $8D10
+			LD B,H				; $8D11
+			LD B,(HL)				; $8D12
+			LD B,A				; $8D13
+			LD B,(HL)				; $8D14
+			LD B,L				; $8D15
+			LD B,(HL)				; $8D16
+			LD B,L				; $8D17
+			LD B,(HL)				; $8D18
+			LD B,L				; $8D19
+			LD B,(HL)				; $8D1A
+			LD B,L				; $8D1B
+			LD B,(HL)				; $8D1C
+			LD B,L				; $8D1D
+			LD B,(HL)				; $8D1E
+			LD B,L				; $8D1F
+			LD B,(HL)				; $8D20
+			LD B,L				; $8D21
+			LD B,(HL)				; $8D22
+			LD B,L				; $8D23
+			LD B,(HL)				; $8D24
+			LD B,L				; $8D25
+			LD B,(HL)				; $8D26
+			LD B,L				; $8D27
+			LD B,(HL)				; $8D28
+			LD B,L				; $8D29
+			LD B,(HL)				; $8D2A
+			LD B,L				; $8D2B
+			LD B,(HL)				; $8D2C
+			LD B,L				; $8D2D
+			LD B,(HL)				; $8D2E
+			LD B,L				; $8D2F
+			LD B,(HL)				; $8D30
+			LD B,L				; $8D31
+			LD B,(HL)				; $8D32
+			LD B,L				; $8D33
+			LD B,(HL)				; $8D34
+			LD B,L				; $8D35
+			LD B,(HL)				; $8D36
+			LD B,L				; $8D37
+			LD B,A				; $8D38
+			LD B,L				; $8D39
+			LD B,A				; $8D3A
+			RET PO				; $8D3B
+			RST $38				; $8D3C
+			RST $38				; $8D3D
+			LD SP,HL				; $8D3E
+			ADD A,E				; $8D3F
+			RST $38				; $8D40
+			RRA				; $8D41
+			POP AF				; $8D42
+			LD B,B				; $8D43
+			DJNZ $8D36				; $8D44
+			LD BC,$FF80				; $8D46
+			INC BC				; $8D49
+			LD BC,$F1B0				; $8D4A
+			RLCA				; $8D4D
+			RET NZ				; $8D4E
+			POP AF				; $8D4F
+			RST $38				; $8D50
+			RST $38				; $8D51
+			RST $38				; $8D52
+			POP AF				; $8D53
+			RST $38				; $8D54
+			INC BC				; $8D55
+			RET P				; $8D56
+			JR NC,$8D3A				; $8D57
+			RST $38				; $8D59
+			RST $38				; $8D5A
+			POP AF				; $8D5B
+			SUB E				; $8D5C
+			RST $38				; $8D5D
+			RRA				; $8D5E
+			POP AF				; $8D5F
+			RET P				; $8D60
+			LD BC,$8001				; $8D61
+			ADD A,E				; $8D64
+			LD BC,$F1B0				; $8D65
+			RLCA				; $8D68
+			RET NZ				; $8D69
+			POP AF				; $8D6A
+			RST $38				; $8D6B
+			RLCA				; $8D6C
+			CALL M,$FFF1				; $8D6D
+			INC BC				; $8D70
+			RET P				; $8D71
+			JR NC,$8D77				; $8D72
+			RST $38				; $8D74
+			RST $38				; $8D75
+			POP AF				; $8D76
+			SUB A				; $8D77
+			RST $38				; $8D78
+			SBC A,A				; $8D79
+			LD (HL),C				; $8D7A
+			RET P				; $8D7B
+			LD BC,$8380				; $8D7C
+			LD BC,$F1B0				; $8D7F
+			RLCA				; $8D82
+			RET NZ				; $8D83
+			POP AF				; $8D84
+			RST $38				; $8D85
+			RLCA				; $8D86
+			CALL M,$FFF1				; $8D87
+			INC BC				; $8D8A
+			RET P				; $8D8B
+			JR NC,$8D91				; $8D8C
+			RST $38				; $8D8E
+			RST $38				; $8D8F
+			LD SP,HL				; $8D90
+			LD B,$80				; $8D91
+			LD (HL),C				; $8D93
+			RET P				; $8D94
+			INC BC				; $8D95
+			ADD A,FF				; $8D96
+			RST $38				; $8D98
+			POP AF				; $8D99
+			RRCA				; $8D9A
+			RET NZ				; $8D9B
+			POP AF				; $8D9C
+			RST $38				; $8D9D
+			INC BC				; $8D9E
+			CALL M,$FFF1				; $8D9F
+			INC BC				; $8DA2
+			RET P				; $8DA3
+			RET P				; $8DA4
+			ADD A,E				; $8DA5
+			RST $38				; $8DA6
+			RST $38				; $8DA7
+			POP AF				; $8DA8
+			INC B				; $8DA9
+			ADD A,B				; $8DAA
+			LD (HL),C				; $8DAB
+			LD B,B				; $8DAC
+			EX AF,AF'				; $8DAD
+			JR NZ,$8DA0				; $8DAE
+			INC BC				; $8DB0
+			ADD A,FF				; $8DB1
+			RST $38				; $8DB3
+			POP AF				; $8DB4
+			RST 8				; $8DB5
+			RST $38				; $8DB6
+			RST $38				; $8DB7
+			POP AF				; $8DB8
+			RST $38				; $8DB9
+			INC BC				; $8DBA
+			SBC A,H				; $8DBB
+			LD SP,$03FF				; $8DBC
+			RET P				; $8DBF
+			RET P				; $8DC0
+			ADD A,E				; $8DC1
+			RST $38				; $8DC2
+			RST $38				; $8DC3
+			POP AF				; $8DC4
+			INC B				; $8DC5
+			ADD A,B				; $8DC6
+			POP AF				; $8DC7
+			LD B,C				; $8DC8
+			EX AF,AF'				; $8DC9
+			JR NZ,$8DBC				; $8DCA
+			INC BC				; $8DCC
+			LD BC,$0631				; $8DCD
+			RET NZ				; $8DD0
+			POP AF				; $8DD1
+			RST 8				; $8DD2
+			RST $38				; $8DD3
+			RST $38				; $8DD4
+			POP AF				; $8DD5
+			RST $38				; $8DD6
+			INC BC				; $8DD7
+			SBC A,H				; $8DD8
+			JR NC,$8DDA				; $8DD9
+			INC HL				; $8DDB
+			RET P				; $8DDC
+			RET P				; $8DDD
+			ADD A,E				; $8DDE
+			RST $38				; $8DDF
+			RST $38				; $8DE0
+			POP AF				; $8DE1
+			INC B				; $8DE2
+			ADD A,B				; $8DE3
+			POP AF				; $8DE4
+			LD BC,$A008				; $8DE5
+			RET P				; $8DE8
+			INC BC				; $8DE9
+			LD BC,$0631				; $8DEA
+			RET NZ				; $8DED
+			POP AF				; $8DEE
+			RST 8				; $8DEF
+			RST $38				; $8DF0
+			RST 8				; $8DF1
+			POP AF				; $8DF2
+			RST $38				; $8DF3
+			INC BC				; $8DF4
+			SBC A,B				; $8DF5
+			JR NC,$8DF7				; $8DF6
+			INC HL				; $8DF8
+			RET P				; $8DF9
+			RET P				; $8DFA
+			ADD A,E				; $8DFB
+			RST $38				; $8DFC
+			RRA				; $8DFD
+			POP AF				; $8DFE
+			LD B,B				; $8DFF
+			DJNZ $8D82				; $8E00
+			POP AF				; $8E02
+			LD BC,$F080				; $8E03
+			INC BC				; $8E06
+			LD BC,$FFB0				; $8E07
+			RLCA				; $8E0A
+			RET NZ				; $8E0B
+			POP AF				; $8E0C
+			RST $38				; $8E0D
+			RST $38				; $8E0E
+			RST $38				; $8E0F
+			POP AF				; $8E10
+			RST $38				; $8E11
+			INC BC				; $8E12
+			RET M				; $8E13
+			JR NC,$8E15				; $8E14
+			INC HL				; $8E16
+			RET P				; $8E17
+			RET P				; $8E18
+			RST $38				; $8E19
+			INC HL				; $8E1A
+			LD (HL),B				; $8E1B
+			RET P				; $8E1C
+			RST $38				; $8E1D
+			INC BC				; $8E1E
+			JR NZ,$8E12				; $8E1F
+			RST $38				; $8E21
+			LD BC,$E006				; $8E22
+			LD A,A				; $8E25
+			ADC A,(HL)				; $8E26
+			RET M				; $8E27
+			RST $38				; $8E28
+			LD BC,$FC0C				; $8E29
+			RST $38				; $8E2C
+			LD H,C				; $8E2D
+			LD C,$FE				; $8E2E
+			RST $38				; $8E30
+			LD B,C				; $8E31
+			INC C				; $8E32
+			CP $FF				; $8E33
+			POP BC				; $8E35
+			INC B				; $8E36
+			SBC A,B				; $8E37
+			RST $38				; $8E38
+			INC HL				; $8E39
+			LD H,B				; $8E3A
+			JP P,$01FF				; $8E3B
+			LD ($F3F1),HL				; $8E3E
+			LD BC,$E08E				; $8E41
+			RST $38				; $8E44
+			LD BC,$F88E				; $8E45
+			RST $38				; $8E48
+			LD DE,$FE0E				; $8E49
+			RST $38				; $8E4C
+			LD (HL),C				; $8E4D
+			LD C,$FE				; $8E4E
+			RST $38				; $8E50
+			LD SP,$FE0C				; $8E51
+			RST $38				; $8E54
+			POP AF				; $8E55
+			INC B				; $8E56
+			RET M				; $8E57
+			RST $38				; $8E58
+			INC HL				; $8E59
+			LD (HL),B				; $8E5A
+			JP P,$03FF				; $8E5B
+			LD B,$F1				; $8E5E
+			RST $38				; $8E60
+			LD BC,$E08E				; $8E61
+			RST $38				; $8E64
+			LD BC,$F88F				; $8E65
+			RST $38				; $8E68
+			LD BC,$FC0E				; $8E69
+			RST $38				; $8E6C
+			LD HL,$FE0E				; $8E6D
+			RST $38				; $8E70
+			LD B,C				; $8E71
+			INC C				; $8E72
+			CALL M,$C1FF				; $8E73
+			SBC A,B				; $8E76
+			RST $38				; $8E77
+			INC BC				; $8E78
+			LD H,B				; $8E79
+			RET P				; $8E7A
+			RST $38				; $8E7B
+			LD BC,$F306				; $8E7C
+			DI				; $8E7F
+			LD BC,$F08E				; $8E80
+			RST $38				; $8E83
+			ADD HL,BC				; $8E84
+			RRCA				; $8E85
+			RET M				; $8E86
+			RST $38				; $8E87
+			LD SP,$FE0E				; $8E88
+			RST $38				; $8E8B
+			LD (HL),C				; $8E8C
+			EX AF,AF'				; $8E8D
+			CP $E7				; $8E8E
+			LD (HL),C				; $8E90
+			INC B				; $8E91
+			RET M				; $8E92
+			RST $38				; $8E93
+			POP AF				; $8E94
+			RET M				; $8E95
+			RST $38				; $8E96
+			INC BC				; $8E97
+			LD H,B				; $8E98
+			JP P,$03FF				; $8E99
+			LD B,$71				; $8E9C
+			RET P				; $8E9E
+			LD BC,$F08E				; $8E9F
+			RST $38				; $8EA2
+			ADD HL,BC				; $8EA3
+			RRCA				; $8EA4
+			RET M				; $8EA5
+			RST $38				; $8EA6
+			LD B,C				; $8EA7
+			LD C,$FE				; $8EA8
+			RST $38				; $8EAA
+			LD B,C				; $8EAB
+			INC C				; $8EAC
+			CP $E7				; $8EAD
+			POP BC				; $8EAF
+			INC B				; $8EB0
+			SBC A,B				; $8EB1
+			RST $38				; $8EB2
+			LD B,C				; $8EB3
+			RET M				; $8EB4
+			RST $38				; $8EB5
+			INC BC				; $8EB6
+			LD H,B				; $8EB7
+			DI				; $8EB8
+			RST $38				; $8EB9
+			LD BC,$3006				; $8EBA
+			JP P,$8E09				; $8EBD
+			RET P				; $8EC0
+			RST $38				; $8EC1
+			LD BC,$F80F				; $8EC2
+			RST $38				; $8EC5
+			LD SP,$FE0E				; $8EC6
+			RST $38				; $8EC9
+			LD (HL),C				; $8ECA
+			LD C,$FE				; $8ECB
+			RST $20				; $8ECD
+			POP AF				; $8ECE
+			RET M				; $8ECF
+			RST $38				; $8ED0
+			POP AF				; $8ED1
+			RET M				; $8ED2
+			RST $38				; $8ED3
+			INC BC				; $8ED4
+			LD H,D				; $8ED5
+			POP AF				; $8ED6
+			RST $38				; $8ED7
+			LD BC,$6107				; $8ED8
+			LD A,(HL)				; $8EDB
+			ADC A,(HL)				; $8EDC
+			RET P				; $8EDD
+			RST $38				; $8EDE
+			LD BC,$FC0D				; $8EDF
+			RST $38				; $8EE2
+			LD B,C				; $8EE3
+			INC C				; $8EE4
+			CP $FF				; $8EE5
+			LD B,C				; $8EE7
+			INC C				; $8EE8
+			CP $FF				; $8EE9
+			POP BC				; $8EEB
+			INC B				; $8EEC
+			SBC A,B				; $8EED
+			RST $38				; $8EEE
+			POP BC				; $8EEF
+			RET M				; $8EF0
+			RST $38				; $8EF1
+			INC BC				; $8EF2
+			JR NZ,$8EE6				; $8EF3
+			RST $38				; $8EF5
+			LD BC,$E086				; $8EF6
+			LD (HL),E				; $8EF9
+			ADC A,(HL)				; $8EFA
+			RET M				; $8EFB
+			RST $38				; $8EFC
+			LD BC,$FC0F				; $8EFD
+			RST $38				; $8F00
+			LD (HL),C				; $8F01
+			LD C,$FE				; $8F02
+			RST $38				; $8F04
+			LD (HL),C				; $8F05
+			EX AF,AF'				; $8F06
+			CP $FF				; $8F07
+			POP AF				; $8F09
+			INC B				; $8F0A
+			SBC A,B				; $8F0B
+			RST $38				; $8F0C
+			POP AF				; $8F0D
+			RET M				; $8F0E
+			RST $38				; $8F0F
+			JP $F0F8				; $8F10
+			INC BC				; $8F13
+			JR $8F0E				; $8F14
+			JP HL				; $8F16
+			INC BC				; $8F17
+			JR $8F16				; $8F18
+			JR NC,$8F1E				; $8F1A
+			ADC A,8F				; $8F1C
+			RLCA				; $8F1E
+			LD (BC),A				; $8F1F
+			RST $38				; $8F20
+			CCF				; $8F21
+			ADD A,H				; $8F22
+			RST $38				; $8F23
+			LD A,A				; $8F24
+			EX AF,AF'				; $8F25
+			CP $C7				; $8F26
+			RLCA				; $8F28
+			RET M				; $8F29
+			LD (HL),C				; $8F2A
+			RET M				; $8F2B
+			RET P				; $8F2C
+			INC DE				; $8F2D
+			CP B				; $8F2E
+			RET M				; $8F2F
+			RET				; $8F30
+			INC BC				; $8F31
+			JR $8F30				; $8F32
+			JR NZ,$8F39				; $8F34
+			ADC A,0F				; $8F36
+			RLCA				; $8F38
+			RST $38				; $8F39
+			LD A,A				; $8F3A
+			ADD A,H				; $8F3B
+			RST $38				; $8F3C
+			LD A,A				; $8F3D
+			ADC A,B				; $8F3E
+			CP $C7				; $8F3F
+			INC BC				; $8F41
+			LD A,B				; $8F42
+			LD (BC),A				; $8F43
+			JR NZ,$8F3E				; $8F44
+			CALL P,$1803				; $8F46
+			RET M				; $8F49
+			RET				; $8F4A
+			INC BC				; $8F4B
+			ADD HL,DE				; $8F4C
+			CALL M,$07C0				; $8F4D
+			ADC A,0F				; $8F50
+			LD B,$FF				; $8F52
+			LD A,A				; $8F54
+			INC B				; $8F55
+			ADD A,B				; $8F56
+			RST $38				; $8F57
+			RST $38				; $8F58
+			JR $8F59				; $8F59
+			RST 0				; $8F5B
+			ADD HL,BC				; $8F5C
+			LD A,B				; $8F5D
+			JR NC,$8F58				; $8F5E
+			CALL P,$3813				; $8F60
+			CALL M,$01C3				; $8F63
+			EX AF,AF'				; $8F66
+			CALL M,$07C7				; $8F67
+			CP $0F				; $8F6A
+			LD B,$30				; $8F6C
+			RST $38				; $8F6E
+			LD A,A				; $8F6F
+			INC B				; $8F70
+			ADD A,B				; $8F71
+			RST $38				; $8F72
+			RST $38				; $8F73
+			INC E				; $8F74
+			EX AF,AF'				; $8F75
+			CP $C7				; $8F76
+			ADD HL,BC				; $8F78
+			LD A,B				; $8F79
+			LD (BC),A				; $8F7A
+			JR NC,$8F75				; $8F7B
+			CALL PO,$1803				; $8F7D
+			CALL M,$0343				; $8F80
+			EX AF,AF'				; $8F83
+			CP $87				; $8F84
+			RLCA				; $8F86
+			CP $1F				; $8F87
+			INC B				; $8F89
+			JR NZ,$8F8B				; $8F8A
+			LD A,A				; $8F8C
+			EX AF,AF'				; $8F8D
+			ADD A,B				; $8F8E
+			RST $38				; $8F8F
+			RST $38				; $8F90
+			RRA				; $8F91
+			CP $C7				; $8F92
+			ADD HL,BC				; $8F94
+			RET M				; $8F95
+			INC SP				; $8F96
+			DJNZ $8F91				; $8F97
+			PUSH HL				; $8F99
+			INC BC				; $8F9A
+			JR $8F99				; $8F9B
+			LD D,E				; $8F9D
+			INC HL				; $8F9E
+			EX AF,AF'				; $8F9F
+			CP $EF				; $8FA0
+			DAA				; $8FA2
+			RST $38				; $8FA3
+			RRA				; $8FA4
+			INC B				; $8FA5
+			LD SP,$7FFF				; $8FA6
+			EX AF,AF'				; $8FA9
+			ADD A,B				; $8FAA
+			RST $38				; $8FAB
+			RST $38				; $8FAC
+			CCF				; $8FAD
+			EX AF,AF'				; $8FAE
+			CP $C7				; $8FAF
+			INC C				; $8FB1
+			RET P				; $8FB2
+			INC BC				; $8FB3
+			DJNZ $8FAE				; $8FB4
+			POP HL				; $8FB6
+			INC HL				; $8FB7
+			JR $8FB6				; $8FB8
+			LD B,B				; $8FBA
+			LD B,$08				; $8FBB
+			CP $8F				; $8FBD
+			RLCA				; $8FBF
+			RST $38				; $8FC0
+			RRA				; $8FC1
+			RST $38				; $8FC2
+			CCF				; $8FC3
+			EX AF,AF'				; $8FC4
+			ADD A,B				; $8FC5
+			RST $38				; $8FC6
+			RST $38				; $8FC7
+			RLCA				; $8FC8
+			INC C				; $8FC9
+			CP $CF				; $8FCA
+			INC C				; $8FCC
+			RET P				; $8FCD
+			INC DE				; $8FCE
+			JR NC,$8FC9				; $8FCF
+			POP HL				; $8FD1
+			INC BC				; $8FD2
+			JR $8FD3				; $8FD3
+			LD ($FE04),HL				; $8FD5
+			ADC A,A				; $8FD8
+			RLCA				; $8FD9
+			LD (BC),A				; $8FDA
+			RST $38				; $8FDB
+			CCF				; $8FDC
+			ADD A,H				; $8FDD
+			RST $38				; $8FDE
+			LD A,A				; $8FDF
+			EX AF,AF'				; $8FE0
+			RET PO				; $8FE1
+			RST $38				; $8FE2
+			RST $38				; $8FE3
+			RLCA				; $8FE4
+			INC B				; $8FE5
+			CP $CF				; $8FE6
+			LD C,$FE				; $8FE8
+			RST $38				; $8FEA
+			RST $38				; $8FEB
+			defb FD				; $8FEC
+			CP $FF				; $8FED
+			RST $38				; $8FEF
+			defb FD				; $8FF0
+			CP $FF				; $8FF1
+			RST $38				; $8FF3
+			defb FD				; $8FF4
+			CP $FF				; $8FF5
+			RST $38				; $8FF7
+			RST $38				; $8FF8
+			RST $38				; $8FF9
+			RST $38				; $8FFA
+			RST $38				; $8FFB
+			defb FD				; $8FFC
+			CP $FF				; $8FFD
+			RST $38				; $8FFF
+			defb FD				; $9000
+			CP $BF				; $9001
+			RST $38				; $9003
+			RST $38				; $9004
+			CP $BF				; $9005
+			RST $38				; $9007
+			RST $38				; $9008
+			CP $BF				; $9009
+			RST $38				; $900B
+			RST $38				; $900C
+			CP $BF				; $900D
+			RST $38				; $900F
+			RST $38				; $9010
+			CP $BF				; $9011
+			RST $38				; $9013
+			RST $38				; $9014
+			CP $BF				; $9015
+			RST $38				; $9017
+			RST $38				; $9018
+			CP $BF				; $9019
+			RST $38				; $901B
+			RST $38				; $901C
+			CP $7F				; $901D
+			RST $38				; $901F
+			RST $38				; $9020
+			CP $7F				; $9021
+			RST $38				; $9023
+			RST $38				; $9024
+			CP $FF				; $9025
+			CP $FF				; $9027
+			CP $FF				; $9029
+			defb FD				; $902B
+			RST $38				; $902C
+			CP $FF				; $902D
+			defb FD				; $902F
+			RST $38				; $9030
+			CP $FF				; $9031
+			EI				; $9033
+			RST $38				; $9034
+			CP $FF				; $9035
+			EI				; $9037
+			RST $38				; $9038
+			CALL PE,$F7FF				; $9039
+			RST $38				; $903C
+			CP $FF				; $903D
+			RST $30				; $903F
+			RST $38				; $9040
+			CP $FF				; $9041
+			RST $28				; $9043
+			RST $38				; $9044
+			CP $FF				; $9045
+			RST $28				; $9047
+			RST $38				; $9048
+			RST $38				; $9049
+			IN A,($DF)				; $904A
+			RST $38				; $904C
+			RST $38				; $904D
+			CP B				; $904E
+			RST $18				; $904F
+			RST $38				; $9050
+			RST $38				; $9051
+			SBC A,B				; $9052
+			RST $18				; $9053
+			RST $38				; $9054
+			RST $18				; $9055
+			JR $9037				; $9056
+			RST $38				; $9058
+			RST $18				; $9059
+			RRA				; $905A
+			RST $38				; $905B
+			RST $38				; $905C
+			RST $18				; $905D
+			LD A,A				; $905E
+			defb FD				; $905F
+			RST $38				; $9060
+			RST $18				; $9061
+			LD A,A				; $9062
+			defb FD				; $9063
+			RST $38				; $9064
+			RST $38				; $9065
+			defb FD				; $9066
+			defb FD				; $9067
+			RST $38				; $9068
+			RST $38				; $9069
+			RST $18				; $906A
+			RST $38				; $906B
+			RST $38				; $906C
+			RST $38				; $906D
+			RST $38				; $906E
+			RST $38				; $906F
+			RST $38				; $9070
+			RST $38				; $9071
+			RST $38				; $9072
+			RST $38				; $9073
+			CP A				; $9074
+			RST $38				; $9075
+			RST $38				; $9076
+			RST $38				; $9077
+			CP A				; $9078
+			RST $38				; $9079
+			RST $38				; $907A
+			RST $38				; $907B
+			CP A				; $907C
+			RST $38				; $907D
+			RST $38				; $907E
+			RST $38				; $907F
+			CP E				; $9080
+			RST $38				; $9081
+			defb FD				; $9082
+			RST $38				; $9083
+			CP A				; $9084
+			RST $38				; $9085
+			defb FD				; $9086
+			RST $38				; $9087
+			CP A				; $9088
+			EI				; $9089
+			CP A				; $908A
+			RST $18				; $908B
+			LD (HL),E				; $908C
+			EI				; $908D
+			CP A				; $908E
+			IN A,($73)				; $908F
+			RST $38				; $9091
+			CP A				; $9092
+			EI				; $9093
+			LD (HL),E				; $9094
+			EI				; $9095
+			CP A				; $9096
+			RST $38				; $9097
+			LD (HL),A				; $9098
+			RST $38				; $9099
+			CP A				; $909A
+			RST $38				; $909B
+			LD (HL),E				; $909C
+			RST $38				; $909D
+			CP A				; $909E
+			RST $38				; $909F
+			LD (HL),A				; $90A0
+			RST $38				; $90A1
+			CP A				; $90A2
+			LD SP,HL				; $90A3
+			LD (HL),A				; $90A4
+			RST $38				; $90A5
+			CP $FD				; $90A6
+			LD (HL),A				; $90A8
+			RST $38				; $90A9
+			RST $38				; $90AA
+			RST $38				; $90AB
+			RST $38				; $90AC
+			RST $38				; $90AD
+			RST $38				; $90AE
+			RST $38				; $90AF
+			RST $38				; $90B0
+			RST $38				; $90B1
+			RST $38				; $90B2
+			RST $38				; $90B3
+			RST $38				; $90B4
+			NOP				; $90B5
+			NOP				; $90B6
+			NOP				; $90B7
+			NOP				; $90B8
+			NOP				; $90B9
+			NOP				; $90BA
+			NOP				; $90BB
+			NOP				; $90BC
+			NOP				; $90BD
+			NOP				; $90BE
+			NOP				; $90BF
+			NOP				; $90C0
+			NOP				; $90C1
+			NOP				; $90C2
+			NOP				; $90C3
+			NOP				; $90C4
+			NOP				; $90C5
+			NOP				; $90C6
+			NOP				; $90C7
+			NOP				; $90C8
+			NOP				; $90C9
+			NOP				; $90CA
+			NOP				; $90CB
+			NOP				; $90CC
+			NOP				; $90CD
+			NOP				; $90CE
+			NOP				; $90CF
+			NOP				; $90D0
+			NOP				; $90D1
+			NOP				; $90D2
+			NOP				; $90D3
+			NOP				; $90D4
+			NOP				; $90D5
+			NOP				; $90D6
+			NOP				; $90D7
+			NOP				; $90D8
+			NOP				; $90D9
+			NOP				; $90DA
+			NOP				; $90DB
+			NOP				; $90DC
+			NOP				; $90DD
+			NOP				; $90DE
+			NOP				; $90DF
+			NOP				; $90E0
+			NOP				; $90E1
+			NOP				; $90E2
+			NOP				; $90E3
+			NOP				; $90E4
+			NOP				; $90E5
+			NOP				; $90E6
+			NOP				; $90E7
+			NOP				; $90E8
+			NOP				; $90E9
+			NOP				; $90EA
+			NOP				; $90EB
+			NOP				; $90EC
+			NOP				; $90ED
+			NOP				; $90EE
+			NOP				; $90EF
+			NOP				; $90F0
+			NOP				; $90F1
+			NOP				; $90F2
+			NOP				; $90F3
+			NOP				; $90F4
+			NOP				; $90F5
+			NOP				; $90F6
+			NOP				; $90F7
+			NOP				; $90F8
+			NOP				; $90F9
+			NOP				; $90FA
+			NOP				; $90FB
+			NOP				; $90FC
+			NOP				; $90FD
+			NOP				; $90FE
+			NOP				; $90FF
+			NOP				; $9100
+			NOP				; $9101
+			NOP				; $9102
+			NOP				; $9103
+			NOP				; $9104
+			NOP				; $9105
+			NOP				; $9106
+			NOP				; $9107
+			NOP				; $9108
+			NOP				; $9109
+			NOP				; $910A
+			NOP				; $910B
+			NOP				; $910C
+			NOP				; $910D
+			NOP				; $910E
+			NOP				; $910F
+			NOP				; $9110
+			NOP				; $9111
+			NOP				; $9112
+			NOP				; $9113
+			NOP				; $9114
+			NOP				; $9115
+			NOP				; $9116
+			NOP				; $9117
+			NOP				; $9118
+			NOP				; $9119
+			NOP				; $911A
+			NOP				; $911B
+			NOP				; $911C
+			NOP				; $911D
+			NOP				; $911E
+			NOP				; $911F
+			NOP				; $9120
+			NOP				; $9121
+			NOP				; $9122
+			NOP				; $9123
+			NOP				; $9124
+			NOP				; $9125
+			NOP				; $9126
+			NOP				; $9127
+			NOP				; $9128
+			NOP				; $9129
+			NOP				; $912A
+			NOP				; $912B
+			NOP				; $912C
+			NOP				; $912D
+			NOP				; $912E
+			NOP				; $912F
+			NOP				; $9130
+			NOP				; $9131
+			NOP				; $9132
+			NOP				; $9133
+			NOP				; $9134

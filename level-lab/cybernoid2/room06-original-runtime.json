@@ -1,0 +1,68 @@
+{
+  "operations": 1000000,
+  "final_pc": 8525,
+  "final_room_index": 0,
+  "data_reads_by_page": [],
+  "top_data_addresses": [],
+  "screen_write_routines": [
+    {
+      "pc": 33024,
+      "count": 160
+    },
+    {
+      "pc": 33026,
+      "count": 160
+    },
+    {
+      "pc": 32994,
+      "count": 70
+    },
+    {
+      "pc": 32996,
+      "count": 70
+    },
+    {
+      "pc": 33054,
+      "count": 56
+    },
+    {
+      "pc": 33057,
+      "count": 56
+    },
+    {
+      "pc": 33060,
+      "count": 56
+    },
+    {
+      "pc": 33063,
+      "count": 56
+    },
+    {
+      "pc": 33066,
+      "count": 56
+    },
+    {
+      "pc": 33069,
+      "count": 56
+    },
+    {
+      "pc": 33072,
+      "count": 56
+    },
+    {
+      "pc": 33080,
+      "count": 7
+    },
+    {
+      "pc": 33012,
+      "count": 1
+    },
+    {
+      "pc": 33014,
+      "count": 1
+    }
+  ],
+  "likely_screen_source_addresses": [],
+  "collision_write_routines": [],
+  "likely_collision_source_addresses": []
+}

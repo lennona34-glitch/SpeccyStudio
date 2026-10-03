@@ -1,0 +1,15 @@
+
+			JP $0562				; $FC96
+			DI				; $FC99
+			CALL $028E				; $FC9A
+			INC E				; $FC9D
+			JR Z,$FC9A				; $FC9E
+			LD A,$21				; $FCA0
+			LD ($FE51),A				; $FCA2
+			LD A,$5F				; $FCA5
+			LD ($FE52),A				; $FCA7
+			LD A,$FE				; $FCAA
+			LD ($FE53),A				; $FCAC
+			JP $FE51				; $FCAF
+
+			JP $FC99				; $FE51

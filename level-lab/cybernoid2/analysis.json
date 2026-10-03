@@ -1,0 +1,2600 @@
+{
+  "source": "work\\level-lab\\cybernoid2\\cybernoid2-original-copy.tap",
+  "source_size": 48033,
+  "source_sha256": "BF416648617F2EC3FBC9DE99DB38C679D9777A9EB993864D53F2B1BC92A2DE92",
+  "blocks": [
+    {
+      "tap_offset": 0,
+      "length": 19,
+      "flag": 0,
+      "checksum_ok": true
+    },
+    {
+      "tap_offset": 21,
+      "length": 674,
+      "flag": 255,
+      "checksum_ok": true
+    },
+    {
+      "tap_offset": 697,
+      "length": 19,
+      "flag": 0,
+      "checksum_ok": true
+    },
+    {
+      "tap_offset": 718,
+      "length": 202,
+      "flag": 255,
+      "checksum_ok": true
+    },
+    {
+      "tap_offset": 922,
+      "length": 6914,
+      "flag": 255,
+      "checksum_ok": true
+    },
+    {
+      "tap_offset": 7838,
+      "length": 40193,
+      "flag": 255,
+      "checksum_ok": true
+    }
+  ],
+  "main_image": {
+    "load_address": 25344,
+    "end_address_inclusive": 65534,
+    "length": 40191,
+    "sha256": "835E81EE3C84E9A13708D922E005D4852BC7EC2C462328F07139203FF66AC2A3"
+  },
+  "candidate_atlases": [
+    {
+      "name": "room-patterns-dd2b",
+      "address": 56619,
+      "length": 128,
+      "tile_count": 16
+    },
+    {
+      "name": "room-patterns-e3eb",
+      "address": 58347,
+      "length": 64,
+      "tile_count": 8
+    },
+    {
+      "name": "room-patterns-ebf7",
+      "address": 60407,
+      "length": 16,
+      "tile_count": 2
+    },
+    {
+      "name": "room-patterns-d00b",
+      "address": 53259,
+      "length": 80,
+      "tile_count": 10
+    },
+    {
+      "name": "hud-and-font-7dd7",
+      "address": 32215,
+      "length": 200,
+      "tile_count": 25
+    },
+    {
+      "name": "sprite-fragments-bfdb",
+      "address": 49115,
+      "length": 32,
+      "tile_count": 4
+    },
+    {
+      "name": "sprites-c04a",
+      "address": 49226,
+      "length": 1344,
+      "tile_count": 168
+    },
+    {
+      "name": "graphics-c708",
+      "address": 50952,
+      "length": 768,
+      "tile_count": 96
+    },
+    {
+      "name": "graphics-ed93",
+      "address": 60819,
+      "length": 704,
+      "tile_count": 88
+    },
+    {
+      "name": "graphics-bf32",
+      "address": 48946,
+      "length": 264,
+      "tile_count": 33
+    },
+    {
+      "name": "graphics-9ab8",
+      "address": 39608,
+      "length": 808,
+      "tile_count": 101
+    }
+  ],
+  "immediate_references_bf00_f0ff": [
+    {
+      "at": 25377,
+      "opcode": "LD BC,nn",
+      "target": 50359
+    },
+    {
+      "at": 25441,
+      "opcode": "JP PE,nn",
+      "target": 52619
+    },
+    {
+      "at": 25462,
+      "opcode": "LD (nn),HL",
+      "target": 52598
+    },
+    {
+      "at": 25486,
+      "opcode": "CALL NZ,nn",
+      "target": 52615
+    },
+    {
+      "at": 25567,
+      "opcode": "CALL P,nn",
+      "target": 52481
+    },
+    {
+      "at": 26024,
+      "opcode": "JP NC,nn",
+      "target": 56677
+    },
+    {
+      "at": 26119,
+      "opcode": "LD BC,nn",
+      "target": 61438
+    },
+    {
+      "at": 26190,
+      "opcode": "LD A,(nn)",
+      "target": 51479
+    },
+    {
+      "at": 26375,
+      "opcode": "LD (nn),A",
+      "target": 60776
+    },
+    {
+      "at": 26874,
+      "opcode": "LD BC,nn",
+      "target": 52541
+    },
+    {
+      "at": 26967,
+      "opcode": "JP PO,nn",
+      "target": 58888
+    },
+    {
+      "at": 27117,
+      "opcode": "JP M,nn",
+      "target": 49513
+    },
+    {
+      "at": 27165,
+      "opcode": "JP M,nn",
+      "target": 49955
+    },
+    {
+      "at": 27224,
+      "opcode": "JP M,nn",
+      "target": 49445
+    },
+    {
+      "at": 27318,
+      "opcode": "LD BC,nn",
+      "target": 52189
+    },
+    {
+      "at": 27490,
+      "opcode": "LD BC,nn",
+      "target": 52189
+    },
+    {
+      "at": 27586,
+      "opcode": "LD HL,nn",
+      "target": 49227
+    },
+    {
+      "at": 27600,
+      "opcode": "LD BC,nn",
+      "target": 59915
+    },
+    {
+      "at": 27602,
+      "opcode": "JP PE,nn",
+      "target": 52489
+    },
+    {
+      "at": 28208,
+      "opcode": "CALL P,nn",
+      "target": 57709
+    },
+    {
+      "at": 28229,
+      "opcode": "LD BC,nn",
+      "target": 60673
+    },
+    {
+      "at": 28412,
+      "opcode": "LD DE,nn",
+      "target": 50031
+    },
+    {
+      "at": 28422,
+      "opcode": "LD DE,nn",
+      "target": 57711
+    },
+    {
+      "at": 28429,
+      "opcode": "LD BC,nn",
+      "target": 58807
+    },
+    {
+      "at": 28537,
+      "opcode": "LD HL,nn",
+      "target": 49227
+    },
+    {
+      "at": 28693,
+      "opcode": "LD SP,nn",
+      "target": 52644
+    },
+    {
+      "at": 28750,
+      "opcode": "JP C,nn",
+      "target": 52612
+    },
+    {
+      "at": 28882,
+      "opcode": "LD BC,nn",
+      "target": 53729
+    },
+    {
+      "at": 29064,
+      "opcode": "LD BC,nn",
+      "target": 51380
+    },
+    {
+      "at": 29204,
+      "opcode": "LD DE,nn",
+      "target": 50023
+    },
+    {
+      "at": 29316,
+      "opcode": "LD HL,nn",
+      "target": 49227
+    },
+    {
+      "at": 29326,
+      "opcode": "JP PE,nn",
+      "target": 52595
+    },
+    {
+      "at": 29450,
+      "opcode": "LD BC,nn",
+      "target": 56833
+    },
+    {
+      "at": 29461,
+      "opcode": "LD BC,nn",
+      "target": 56326
+    },
+    {
+      "at": 29463,
+      "opcode": "CALL C,nn",
+      "target": 56074
+    },
+    {
+      "at": 29472,
+      "opcode": "LD BC,nn",
+      "target": 56847
+    },
+    {
+      "at": 29485,
+      "opcode": "JP C,nn",
+      "target": 53768
+    },
+    {
+      "at": 29487,
+      "opcode": "JP NC,nn",
+      "target": 57097
+    },
+    {
+      "at": 29490,
+      "opcode": "LD BC,nn",
+      "target": 55832
+    },
+    {
+      "at": 29492,
+      "opcode": "JP C,nn",
+      "target": 53774
+    },
+    {
+      "at": 29501,
+      "opcode": "LD BC,nn",
+      "target": 56320
+    },
+    {
+      "at": 29508,
+      "opcode": "LD BC,nn",
+      "target": 56351
+    },
+    {
+      "at": 29699,
+      "opcode": "LD BC,nn",
+      "target": 60855
+    },
+    {
+      "at": 29816,
+      "opcode": "JP M,nn",
+      "target": 57289
+    },
+    {
+      "at": 29819,
+      "opcode": "LD BC,nn",
+      "target": 58909
+    },
+    {
+      "at": 29834,
+      "opcode": "CALL NC,nn",
+      "target": 56342
+    },
+    {
+      "at": 29881,
+      "opcode": "CALL M,nn",
+      "target": 55082
+    },
+    {
+      "at": 30086,
+      "opcode": "CALL M,nn",
+      "target": 52085
+    },
+    {
+      "at": 30272,
+      "opcode": "LD HL,nn",
+      "target": 51574
+    },
+    {
+      "at": 30663,
+      "opcode": "LD BC,nn",
+      "target": 56751
+    },
+    {
+      "at": 30770,
+      "opcode": "LD HL,(nn)",
+      "target": 56671
+    },
+    {
+      "at": 30777,
+      "opcode": "LD BC,nn",
+      "target": 52567
+    },
+    {
+      "at": 30826,
+      "opcode": "LD A,(nn)",
+      "target": 52594
+    },
+    {
+      "at": 30829,
+      "opcode": "LD A,(nn)",
+      "target": 52594
+    },
+    {
+      "at": 30963,
+      "opcode": "JP P,nn",
+      "target": 50381
+    },
+    {
+      "at": 31244,
+      "opcode": "CALL M,nn",
+      "target": 50810
+    },
+    {
+      "at": 31255,
+      "opcode": "CALL M,nn",
+      "target": 54907
+    },
+    {
+      "at": 31261,
+      "opcode": "LD (nn),HL",
+      "target": 50042
+    },
+    {
+      "at": 31313,
+      "opcode": "CALL M,nn",
+      "target": 50810
+    },
+    {
+      "at": 31458,
+      "opcode": "LD A,(nn)",
+      "target": 52594
+    },
+    {
+      "at": 31461,
+      "opcode": "LD A,(nn)",
+      "target": 52594
+    },
+    {
+      "at": 31498,
+      "opcode": "LD A,(nn)",
+      "target": 52594
+    },
+    {
+      "at": 31501,
+      "opcode": "LD A,(nn)",
+      "target": 52594
+    },
+    {
+      "at": 31623,
+      "opcode": "LD HL,nn",
+      "target": 49227
+    },
+    {
+      "at": 31738,
+      "opcode": "CALL nn",
+      "target": 50677
+    },
+    {
+      "at": 31817,
+      "opcode": "LD HL,nn",
+      "target": 49227
+    },
+    {
+      "at": 31827,
+      "opcode": "JP PE,nn",
+      "target": 52595
+    },
+    {
+      "at": 31888,
+      "opcode": "LD DE,nn",
+      "target": 60819
+    },
+    {
+      "at": 32104,
+      "opcode": "CALL P,nn",
+      "target": 50433
+    },
+    {
+      "at": 32105,
+      "opcode": "LD BC,nn",
+      "target": 52677
+    },
+    {
+      "at": 32114,
+      "opcode": "JP M,nn",
+      "target": 49507
+    },
+    {
+      "at": 32129,
+      "opcode": "LD (nn),A",
+      "target": 50122
+    },
+    {
+      "at": 32141,
+      "opcode": "LD BC,nn",
+      "target": 49458
+    },
+    {
+      "at": 32172,
+      "opcode": "JP nn",
+      "target": 54909
+    },
+    {
+      "at": 32286,
+      "opcode": "LD SP,nn",
+      "target": 56096
+    },
+    {
+      "at": 32302,
+      "opcode": "LD (nn),A",
+      "target": 56096
+    },
+    {
+      "at": 32432,
+      "opcode": "JP NZ,nn",
+      "target": 59006
+    },
+    {
+      "at": 32449,
+      "opcode": "LD BC,nn",
+      "target": 52480
+    },
+    {
+      "at": 32486,
+      "opcode": "LD (nn),A",
+      "target": 54634
+    },
+    {
+      "at": 32506,
+      "opcode": "JP P,nn",
+      "target": 56702
+    },
+    {
+      "at": 32567,
+      "opcode": "LD BC,nn",
+      "target": 50000
+    },
+    {
+      "at": 32594,
+      "opcode": "CALL C,nn",
+      "target": 61068
+    },
+    {
+      "at": 32599,
+      "opcode": "CALL C,nn",
+      "target": 49804
+    },
+    {
+      "at": 32709,
+      "opcode": "CALL C,nn",
+      "target": 61307
+    },
+    {
+      "at": 32914,
+      "opcode": "JP P,nn",
+      "target": 54473
+    },
+    {
+      "at": 32916,
+      "opcode": "CALL NC,nn",
+      "target": 54997
+    },
+    {
+      "at": 32922,
+      "opcode": "JP C,nn",
+      "target": 56539
+    },
+    {
+      "at": 32924,
+      "opcode": "CALL C,nn",
+      "target": 57053
+    },
+    {
+      "at": 33008,
+      "opcode": "JP PO,nn",
+      "target": 49536
+    },
+    {
+      "at": 33114,
+      "opcode": "LD HL,nn",
+      "target": 49227
+    },
+    {
+      "at": 33218,
+      "opcode": "JP M,nn",
+      "target": 56706
+    },
+    {
+      "at": 33243,
+      "opcode": "CALL NZ,nn",
+      "target": 56705
+    },
+    {
+      "at": 33266,
+      "opcode": "LD BC,nn",
+      "target": 53050
+    },
+    {
+      "at": 33306,
+      "opcode": "LD BC,nn",
+      "target": 55757
+    },
+    {
+      "at": 33370,
+      "opcode": "LD BC,nn",
+      "target": 55757
+    },
+    {
+      "at": 33443,
+      "opcode": "LD BC,nn",
+      "target": 55757
+    },
+    {
+      "at": 33467,
+      "opcode": "LD BC,nn",
+      "target": 53050
+    },
+    {
+      "at": 33507,
+      "opcode": "LD BC,nn",
+      "target": 55757
+    },
+    {
+      "at": 33528,
+      "opcode": "JP M,nn",
+      "target": 56706
+    },
+    {
+      "at": 33576,
+      "opcode": "LD BC,nn",
+      "target": 54586
+    },
+    {
+      "at": 33612,
+      "opcode": "LD BC,nn",
+      "target": 55757
+    },
+    {
+      "at": 33635,
+      "opcode": "LD HL,nn",
+      "target": 49227
+    },
+    {
+      "at": 33741,
+      "opcode": "JP C,nn",
+      "target": 50051
+    },
+    {
+      "at": 33795,
+      "opcode": "LD BC,nn",
+      "target": 55757
+    },
+    {
+      "at": 33839,
+      "opcode": "LD BC,nn",
+      "target": 55757
+    },
+    {
+      "at": 33849,
+      "opcode": "JP NC,nn",
+      "target": 56707
+    },
+    {
+      "at": 33898,
+      "opcode": "LD BC,nn",
+      "target": 55757
+    },
+    {
+      "at": 33942,
+      "opcode": "LD BC,nn",
+      "target": 55757
+    },
+    {
+      "at": 33952,
+      "opcode": "JP NC,nn",
+      "target": 56707
+    },
+    {
+      "at": 34122,
+      "opcode": "LD BC,nn",
+      "target": 51383
+    },
+    {
+      "at": 34139,
+      "opcode": "LD BC,nn",
+      "target": 56642
+    },
+    {
+      "at": 34199,
+      "opcode": "LD SP,nn",
+      "target": 56740
+    },
+    {
+      "at": 34231,
+      "opcode": "LD BC,nn",
+      "target": 51383
+    },
+    {
+      "at": 34248,
+      "opcode": "LD BC,nn",
+      "target": 56642
+    },
+    {
+      "at": 34668,
+      "opcode": "LD (nn),HL",
+      "target": 50432
+    },
+    {
+      "at": 34731,
+      "opcode": "LD BC,nn",
+      "target": 49227
+    },
+    {
+      "at": 34840,
+      "opcode": "LD BC,nn",
+      "target": 49375
+    },
+    {
+      "at": 34860,
+      "opcode": "CALL P,nn",
+      "target": 57821
+    },
+    {
+      "at": 35265,
+      "opcode": "LD BC,nn",
+      "target": 49633
+    },
+    {
+      "at": 35615,
+      "opcode": "JP nn",
+      "target": 60810
+    },
+    {
+      "at": 35666,
+      "opcode": "JP nn",
+      "target": 60810
+    },
+    {
+      "at": 35799,
+      "opcode": "CALL nn",
+      "target": 58879
+    },
+    {
+      "at": 35814,
+      "opcode": "JP PE,nn",
+      "target": 57739
+    },
+    {
+      "at": 35998,
+      "opcode": "LD HL,nn",
+      "target": 49227
+    },
+    {
+      "at": 36016,
+      "opcode": "LD HL,nn",
+      "target": 49227
+    },
+    {
+      "at": 36092,
+      "opcode": "LD (nn),A",
+      "target": 55090
+    },
+    {
+      "at": 36172,
+      "opcode": "LD HL,nn",
+      "target": 49227
+    },
+    {
+      "at": 36374,
+      "opcode": "JP PE,nn",
+      "target": 52595
+    },
+    {
+      "at": 36530,
+      "opcode": "LD HL,nn",
+      "target": 49227
+    },
+    {
+      "at": 36540,
+      "opcode": "JP P,nn",
+      "target": 54926
+    },
+    {
+      "at": 36641,
+      "opcode": "JP M,nn",
+      "target": 50067
+    },
+    {
+      "at": 36668,
+      "opcode": "LD HL,nn",
+      "target": 49375
+    },
+    {
+      "at": 36770,
+      "opcode": "LD BC,nn",
+      "target": 60355
+    },
+    {
+      "at": 36803,
+      "opcode": "LD BC,nn",
+      "target": 60355
+    },
+    {
+      "at": 36952,
+      "opcode": "LD BC,nn",
+      "target": 55757
+    },
+    {
+      "at": 37231,
+      "opcode": "LD HL,nn",
+      "target": 49227
+    },
+    {
+      "at": 37319,
+      "opcode": "LD BC,nn",
+      "target": 52514
+    },
+    {
+      "at": 37321,
+      "opcode": "CALL nn",
+      "target": 57745
+    },
+    {
+      "at": 37342,
+      "opcode": "JP PO,nn",
+      "target": 57745
+    },
+    {
+      "at": 37397,
+      "opcode": "LD BC,nn",
+      "target": 56663
+    },
+    {
+      "at": 38000,
+      "opcode": "JP M,nn",
+      "target": 49507
+    },
+    {
+      "at": 38039,
+      "opcode": "LD HL,nn",
+      "target": 60794
+    },
+    {
+      "at": 38166,
+      "opcode": "LD DE,nn",
+      "target": 49227
+    },
+    {
+      "at": 38265,
+      "opcode": "LD BC,nn",
+      "target": 53050
+    },
+    {
+      "at": 38331,
+      "opcode": "LD HL,(nn)",
+      "target": 50083
+    },
+    {
+      "at": 38408,
+      "opcode": "LD BC,nn",
+      "target": 54586
+    },
+    {
+      "at": 38556,
+      "opcode": "LD HL,nn",
+      "target": 49227
+    },
+    {
+      "at": 38577,
+      "opcode": "JP P,nn",
+      "target": 50068
+    },
+    {
+      "at": 38592,
+      "opcode": "LD HL,nn",
+      "target": 49227
+    },
+    {
+      "at": 38613,
+      "opcode": "JP P,nn",
+      "target": 50068
+    },
+    {
+      "at": 38656,
+      "opcode": "LD BC,nn",
+      "target": 60839
+    },
+    {
+      "at": 38689,
+      "opcode": "CALL M,nn",
+      "target": 56727
+    },
+    {
+      "at": 38930,
+      "opcode": "CALL M,nn",
+      "target": 56727
+    },
+    {
+      "at": 39052,
+      "opcode": "LD DE,nn",
+      "target": 49227
+    },
+    {
+      "at": 39096,
+      "opcode": "CALL NZ,nn",
+      "target": 57701
+    },
+    {
+      "at": 39106,
+      "opcode": "LD HL,nn",
+      "target": 49227
+    },
+    {
+      "at": 39134,
+      "opcode": "JP PE,nn",
+      "target": 52595
+    },
+    {
+      "at": 39186,
+      "opcode": "JP PE,nn",
+      "target": 56777
+    },
+    {
+      "at": 39218,
+      "opcode": "JP PE,nn",
+      "target": 56777
+    },
+    {
+      "at": 39250,
+      "opcode": "JP PE,nn",
+      "target": 52681
+    },
+    {
+      "at": 39280,
+      "opcode": "JP C,nn",
+      "target": 52595
+    },
+    {
+      "at": 39345,
+      "opcode": "CALL M,nn",
+      "target": 60825
+    },
+    {
+      "at": 39350,
+      "opcode": "LD BC,nn",
+      "target": 54938
+    },
+    {
+      "at": 39436,
+      "opcode": "CALL M,nn",
+      "target": 59801
+    },
+    {
+      "at": 39674,
+      "opcode": "LD BC,nn",
+      "target": 57855
+    },
+    {
+      "at": 39687,
+      "opcode": "LD BC,nn",
+      "target": 58110
+    },
+    {
+      "at": 39713,
+      "opcode": "LD BC,nn",
+      "target": 58110
+    },
+    {
+      "at": 39721,
+      "opcode": "LD BC,nn",
+      "target": 58110
+    },
+    {
+      "at": 39730,
+      "opcode": "LD BC,nn",
+      "target": 58110
+    },
+    {
+      "at": 39738,
+      "opcode": "LD BC,nn",
+      "target": 57854
+    },
+    {
+      "at": 39747,
+      "opcode": "LD BC,nn",
+      "target": 58110
+    },
+    {
+      "at": 39759,
+      "opcode": "LD BC,nn",
+      "target": 58110
+    },
+    {
+      "at": 39763,
+      "opcode": "LD BC,nn",
+      "target": 57344
+    },
+    {
+      "at": 39768,
+      "opcode": "LD BC,nn",
+      "target": 57858
+    },
+    {
+      "at": 39789,
+      "opcode": "CALL M,nn",
+      "target": 58081
+    },
+    {
+      "at": 39857,
+      "opcode": "LD BC,nn",
+      "target": 57601
+    },
+    {
+      "at": 39858,
+      "opcode": "LD BC,nn",
+      "target": 58081
+    },
+    {
+      "at": 39870,
+      "opcode": "LD BC,nn",
+      "target": 57858
+    },
+    {
+      "at": 39896,
+      "opcode": "LD BC,nn",
+      "target": 57858
+    },
+    {
+      "at": 39904,
+      "opcode": "LD BC,nn",
+      "target": 57858
+    },
+    {
+      "at": 39913,
+      "opcode": "LD BC,nn",
+      "target": 57858
+    },
+    {
+      "at": 39921,
+      "opcode": "LD BC,nn",
+      "target": 57602
+    },
+    {
+      "at": 39930,
+      "opcode": "LD BC,nn",
+      "target": 57858
+    },
+    {
+      "at": 39942,
+      "opcode": "LD BC,nn",
+      "target": 57858
+    },
+    {
+      "at": 39946,
+      "opcode": "LD BC,nn",
+      "target": 57344
+    },
+    {
+      "at": 39951,
+      "opcode": "LD BC,nn",
+      "target": 58110
+    },
+    {
+      "at": 39976,
+      "opcode": "CALL M,nn",
+      "target": 57856
+    },
+    {
+      "at": 39997,
+      "opcode": "LD BC,nn",
+      "target": 57858
+    },
+    {
+      "at": 40001,
+      "opcode": "LD BC,nn",
+      "target": 57856
+    },
+    {
+      "at": 40005,
+      "opcode": "LD BC,nn",
+      "target": 58110
+    },
+    {
+      "at": 40029,
+      "opcode": "CALL M,nn",
+      "target": 57600
+    },
+    {
+      "at": 40072,
+      "opcode": "CALL M,nn",
+      "target": 57600
+    },
+    {
+      "at": 40077,
+      "opcode": "CALL M,nn",
+      "target": 57856
+    },
+    {
+      "at": 40102,
+      "opcode": "LD BC,nn",
+      "target": 58110
+    },
+    {
+      "at": 40106,
+      "opcode": "LD BC,nn",
+      "target": 57856
+    },
+    {
+      "at": 40127,
+      "opcode": "CALL M,nn",
+      "target": 57600
+    },
+    {
+      "at": 40191,
+      "opcode": "LD BC,nn",
+      "target": 58081
+    },
+    {
+      "at": 40203,
+      "opcode": "LD BC,nn",
+      "target": 57856
+    },
+    {
+      "at": 40207,
+      "opcode": "LD BC,nn",
+      "target": 57346
+    },
+    {
+      "at": 40236,
+      "opcode": "LD BC,nn",
+      "target": 58110
+    },
+    {
+      "at": 40240,
+      "opcode": "LD BC,nn",
+      "target": 57858
+    },
+    {
+      "at": 40278,
+      "opcode": "LD BC,nn",
+      "target": 57344
+    },
+    {
+      "at": 40304,
+      "opcode": "LD BC,nn",
+      "target": 57856
+    },
+    {
+      "at": 40308,
+      "opcode": "LD BC,nn",
+      "target": 57346
+    },
+    {
+      "at": 40313,
+      "opcode": "LD BC,nn",
+      "target": 58110
+    },
+    {
+      "at": 40333,
+      "opcode": "LD BC,nn",
+      "target": 57346
+    },
+    {
+      "at": 40338,
+      "opcode": "LD BC,nn",
+      "target": 57856
+    },
+    {
+      "at": 40409,
+      "opcode": "LD BC,nn",
+      "target": 57601
+    },
+    {
+      "at": 40482,
+      "opcode": "LD BC,nn",
+      "target": 59003
+    },
+    {
+      "at": 40492,
+      "opcode": "LD DE,nn",
+      "target": 49227
+    },
+    {
+      "at": 40771,
+      "opcode": "LD DE,nn",
+      "target": 50023
+    },
+    {
+      "at": 41049,
+      "opcode": "LD BC,nn",
+      "target": 59597
+    },
+    {
+      "at": 41116,
+      "opcode": "LD BC,nn",
+      "target": 49227
+    },
+    {
+      "at": 41245,
+      "opcode": "LD BC,nn",
+      "target": 49227
+    },
+    {
+      "at": 41448,
+      "opcode": "LD BC,nn",
+      "target": 49227
+    },
+    {
+      "at": 41813,
+      "opcode": "LD A,(nn)",
+      "target": 57763
+    },
+    {
+      "at": 41879,
+      "opcode": "LD BC,nn",
+      "target": 52683
+    },
+    {
+      "at": 41969,
+      "opcode": "LD BC,nn",
+      "target": 52683
+    },
+    {
+      "at": 41971,
+      "opcode": "CALL nn",
+      "target": 49417
+    },
+    {
+      "at": 41990,
+      "opcode": "LD BC,nn",
+      "target": 52683
+    },
+    {
+      "at": 42045,
+      "opcode": "LD BC,nn",
+      "target": 59915
+    },
+    {
+      "at": 42303,
+      "opcode": "LD HL,nn",
+      "target": 58131
+    },
+    {
+      "at": 42372,
+      "opcode": "JP NZ,nn",
+      "target": 50371
+    },
+    {
+      "at": 42373,
+      "opcode": "JP nn",
+      "target": 50628
+    },
+    {
+      "at": 42530,
+      "opcode": "CALL PE,nn",
+      "target": 60652
+    },
+    {
+      "at": 42578,
+      "opcode": "JP Z,nn",
+      "target": 51914
+    },
+    {
+      "at": 42676,
+      "opcode": "JP NZ,nn",
+      "target": 50371
+    },
+    {
+      "at": 42677,
+      "opcode": "JP nn",
+      "target": 50628
+    },
+    {
+      "at": 43646,
+      "opcode": "CALL PE,nn",
+      "target": 60652
+    },
+    {
+      "at": 43750,
+      "opcode": "LD HL,nn",
+      "target": 60950
+    },
+    {
+      "at": 44044,
+      "opcode": "LD HL,nn",
+      "target": 58134
+    },
+    {
+      "at": 44066,
+      "opcode": "CALL PE,nn",
+      "target": 60652
+    },
+    {
+      "at": 44472,
+      "opcode": "LD HL,nn",
+      "target": 52224
+    },
+    {
+      "at": 44809,
+      "opcode": "LD HL,nn",
+      "target": 60949
+    },
+    {
+      "at": 44848,
+      "opcode": "JP NZ,nn",
+      "target": 50371
+    },
+    {
+      "at": 44849,
+      "opcode": "JP nn",
+      "target": 50628
+    },
+    {
+      "at": 44898,
+      "opcode": "JP Z,nn",
+      "target": 51914
+    },
+    {
+      "at": 45121,
+      "opcode": "JP NZ,nn",
+      "target": 50371
+    },
+    {
+      "at": 45122,
+      "opcode": "JP nn",
+      "target": 50628
+    },
+    {
+      "at": 45462,
+      "opcode": "LD HL,nn",
+      "target": 58130
+    },
+    {
+      "at": 45878,
+      "opcode": "LD HL,nn",
+      "target": 58131
+    },
+    {
+      "at": 46025,
+      "opcode": "CALL PE,nn",
+      "target": 60652
+    },
+    {
+      "at": 46126,
+      "opcode": "JP NZ,nn",
+      "target": 50371
+    },
+    {
+      "at": 46127,
+      "opcode": "JP nn",
+      "target": 50628
+    },
+    {
+      "at": 46689,
+      "opcode": "LD HL,nn",
+      "target": 58133
+    },
+    {
+      "at": 46825,
+      "opcode": "LD BC,nn",
+      "target": 52480
+    },
+    {
+      "at": 46850,
+      "opcode": "LD HL,nn",
+      "target": 52737
+    },
+    {
+      "at": 46949,
+      "opcode": "CALL PE,nn",
+      "target": 60652
+    },
+    {
+      "at": 47425,
+      "opcode": "LD HL,nn",
+      "target": 60949
+    },
+    {
+      "at": 47734,
+      "opcode": "LD HL,nn",
+      "target": 58136
+    },
+    {
+      "at": 48031,
+      "opcode": "LD HL,nn",
+      "target": 58130
+    },
+    {
+      "at": 48058,
+      "opcode": "LD HL,nn",
+      "target": 58132
+    },
+    {
+      "at": 48118,
+      "opcode": "LD HL,nn",
+      "target": 58131
+    },
+    {
+      "at": 48130,
+      "opcode": "LD HL,nn",
+      "target": 58132
+    },
+    {
+      "at": 48840,
+      "opcode": "LD SP,nn",
+      "target": 53501
+    },
+    {
+      "at": 48867,
+      "opcode": "LD BC,nn",
+      "target": 49956
+    },
+    {
+      "at": 49581,
+      "opcode": "LD BC,nn",
+      "target": 61695
+    },
+    {
+      "at": 49668,
+      "opcode": "LD HL,(nn)",
+      "target": 49311
+    },
+    {
+      "at": 49785,
+      "opcode": "LD BC,nn",
+      "target": 56439
+    },
+    {
+      "at": 50148,
+      "opcode": "LD BC,nn",
+      "target": 49399
+    },
+    {
+      "at": 50151,
+      "opcode": "LD BC,nn",
+      "target": 49399
+    },
+    {
+      "at": 50175,
+      "opcode": "LD BC,nn",
+      "target": 49239
+    },
+    {
+      "at": 51116,
+      "opcode": "CALL P,nn",
+      "target": 58113
+    },
+    {
+      "at": 51117,
+      "opcode": "LD BC,nn",
+      "target": 59619
+    },
+    {
+      "at": 51222,
+      "opcode": "LD HL,(nn)",
+      "target": 49152
+    },
+    {
+      "at": 51327,
+      "opcode": "LD BC,nn",
+      "target": 54474
+    },
+    {
+      "at": 51367,
+      "opcode": "LD BC,nn",
+      "target": 49152
+    },
+    {
+      "at": 51792,
+      "opcode": "LD BC,nn",
+      "target": 49385
+    },
+    {
+      "at": 52269,
+      "opcode": "LD BC,nn",
+      "target": 51440
+    },
+    {
+      "at": 52476,
+      "opcode": "LD BC,nn",
+      "target": 61687
+    },
+    {
+      "at": 52479,
+      "opcode": "LD BC,nn",
+      "target": 57463
+    },
+    {
+      "at": 52728,
+      "opcode": "JP NC,nn",
+      "target": 59903
+    },
+    {
+      "at": 52746,
+      "opcode": "JP NC,nn",
+      "target": 61455
+    },
+    {
+      "at": 52791,
+      "opcode": "CALL nn",
+      "target": 51715
+    },
+    {
+      "at": 52793,
+      "opcode": "JP Z,nn",
+      "target": 50187
+    },
+    {
+      "at": 52795,
+      "opcode": "CALL NZ,nn",
+      "target": 49154
+    },
+    {
+      "at": 52886,
+      "opcode": "CALL Z,nn",
+      "target": 59415
+    },
+    {
+      "at": 52922,
+      "opcode": "CALL P,nn",
+      "target": 59392
+    },
+    {
+      "at": 52957,
+      "opcode": "CALL nn",
+      "target": 52692
+    },
+    {
+      "at": 52958,
+      "opcode": "CALL NC,nn",
+      "target": 59853
+    },
+    {
+      "at": 52962,
+      "opcode": "CALL P,nn",
+      "target": 61457
+    },
+    {
+      "at": 53036,
+      "opcode": "LD SP,nn",
+      "target": 59048
+    },
+    {
+      "at": 53072,
+      "opcode": "JP nn",
+      "target": 53785
+    },
+    {
+      "at": 53074,
+      "opcode": "JP NC,nn",
+      "target": 50451
+    },
+    {
+      "at": 53082,
+      "opcode": "JP PO,nn",
+      "target": 57348
+    },
+    {
+      "at": 53181,
+      "opcode": "CALL nn",
+      "target": 58258
+    },
+    {
+      "at": 53216,
+      "opcode": "JP nn",
+      "target": 57620
+    },
+    {
+      "at": 53270,
+      "opcode": "JP PE,nn",
+      "target": 49285
+    },
+    {
+      "at": 53301,
+      "opcode": "LD (nn),A",
+      "target": 57522
+    },
+    {
+      "at": 53389,
+      "opcode": "CALL M,nn",
+      "target": 57557
+    },
+    {
+      "at": 53413,
+      "opcode": "CALL P,nn",
+      "target": 53304
+    },
+    {
+      "at": 53480,
+      "opcode": "JP PO,nn",
+      "target": 50177
+    },
+    {
+      "at": 53863,
+      "opcode": "CALL PO,nn",
+      "target": 58612
+    },
+    {
+      "at": 53864,
+      "opcode": "CALL P,nn",
+      "target": 55524
+    },
+    {
+      "at": 53902,
+      "opcode": "CALL Z,nn",
+      "target": 58983
+    },
+    {
+      "at": 53997,
+      "opcode": "CALL Z,nn",
+      "target": 58880
+    },
+    {
+      "at": 54021,
+      "opcode": "CALL Z,nn",
+      "target": 50844
+    },
+    {
+      "at": 54217,
+      "opcode": "JP C,nn",
+      "target": 57515
+    },
+    {
+      "at": 54341,
+      "opcode": "JP C,nn",
+      "target": 57333
+    },
+    {
+      "at": 54471,
+      "opcode": "JP C,nn",
+      "target": 54699
+    },
+    {
+      "at": 54489,
+      "opcode": "CALL C,nn",
+      "target": 56913
+    },
+    {
+      "at": 54565,
+      "opcode": "LD (nn),A",
+      "target": 52224
+    },
+    {
+      "at": 54567,
+      "opcode": "CALL Z,nn",
+      "target": 51200
+    },
+    {
+      "at": 54582,
+      "opcode": "JP M,nn",
+      "target": 59499
+    },
+    {
+      "at": 54693,
+      "opcode": "LD (nn),A",
+      "target": 50176
+    },
+    {
+      "at": 54695,
+      "opcode": "CALL NZ,nn",
+      "target": 51200
+    },
+    {
+      "at": 54866,
+      "opcode": "CALL PE,nn",
+      "target": 60543
+    },
+    {
+      "at": 54868,
+      "opcode": "CALL PE,nn",
+      "target": 60639
+    },
+    {
+      "at": 55086,
+      "opcode": "JP M,nn",
+      "target": 54783
+    },
+    {
+      "at": 55117,
+      "opcode": "CALL P,nn",
+      "target": 59648
+    },
+    {
+      "at": 55121,
+      "opcode": "CALL P,nn",
+      "target": 59648
+    },
+    {
+      "at": 55224,
+      "opcode": "CALL nn",
+      "target": 61185
+    },
+    {
+      "at": 55297,
+      "opcode": "JP NZ,nn",
+      "target": 53239
+    },
+    {
+      "at": 55316,
+      "opcode": "CALL PO,nn",
+      "target": 55440
+    },
+    {
+      "at": 55321,
+      "opcode": "LD BC,nn",
+      "target": 60000
+    },
+    {
+      "at": 55360,
+      "opcode": "JP PO,nn",
+      "target": 49922
+    },
+    {
+      "at": 55468,
+      "opcode": "CALL NC,nn",
+      "target": 54283
+    },
+    {
+      "at": 55480,
+      "opcode": "CALL NC,nn",
+      "target": 54283
+    },
+    {
+      "at": 55482,
+      "opcode": "CALL NC,nn",
+      "target": 54283
+    },
+    {
+      "at": 55484,
+      "opcode": "CALL NC,nn",
+      "target": 54283
+    },
+    {
+      "at": 55782,
+      "opcode": "JP P,nn",
+      "target": 58431
+    },
+    {
+      "at": 55784,
+      "opcode": "CALL PO,nn",
+      "target": 51231
+    },
+    {
+      "at": 55897,
+      "opcode": "CALL PO,nn",
+      "target": 58368
+    },
+    {
+      "at": 55899,
+      "opcode": "CALL PO,nn",
+      "target": 58368
+    },
+    {
+      "at": 55905,
+      "opcode": "JP NC,nn",
+      "target": 59392
+    },
+    {
+      "at": 55909,
+      "opcode": "CALL P,nn",
+      "target": 59952
+    },
+    {
+      "at": 55972,
+      "opcode": "CALL PO,nn",
+      "target": 58517
+    },
+    {
+      "at": 56019,
+      "opcode": "JP NZ,nn",
+      "target": 57722
+    },
+    {
+      "at": 56124,
+      "opcode": "CALL M,nn",
+      "target": 60599
+    },
+    {
+      "at": 56142,
+      "opcode": "CALL M,nn",
+      "target": 54015
+    },
+    {
+      "at": 56183,
+      "opcode": "CALL M,nn",
+      "target": 48896
+    },
+    {
+      "at": 56205,
+      "opcode": "CALL P,nn",
+      "target": 59434
+    },
+    {
+      "at": 56223,
+      "opcode": "JP PO,nn",
+      "target": 53757
+    },
+    {
+      "at": 56227,
+      "opcode": "JP PO,nn",
+      "target": 49655
+    },
+    {
+      "at": 56231,
+      "opcode": "JP PO,nn",
+      "target": 49589
+    },
+    {
+      "at": 56328,
+      "opcode": "CALL P,nn",
+      "target": 61429
+    },
+    {
+      "at": 56381,
+      "opcode": "CALL Z,nn",
+      "target": 52784
+    },
+    {
+      "at": 56437,
+      "opcode": "CALL NC,nn",
+      "target": 59927
+    },
+    {
+      "at": 56475,
+      "opcode": "CALL C,nn",
+      "target": 60160
+    },
+    {
+      "at": 56542,
+      "opcode": "CALL NC,nn",
+      "target": 59845
+    },
+    {
+      "at": 56546,
+      "opcode": "CALL P,nn",
+      "target": 61501
+    },
+    {
+      "at": 56606,
+      "opcode": "CALL NC,nn",
+      "target": 59673
+    },
+    {
+      "at": 56610,
+      "opcode": "CALL P,nn",
+      "target": 61689
+    },
+    {
+      "at": 56720,
+      "opcode": "CALL P,nn",
+      "target": 58404
+    },
+    {
+      "at": 56722,
+      "opcode": "CALL PO,nn",
+      "target": 50200
+    },
+    {
+      "at": 56803,
+      "opcode": "JP P,nn",
+      "target": 60150
+    },
+    {
+      "at": 56837,
+      "opcode": "JP PE,nn",
+      "target": 54360
+    },
+    {
+      "at": 57005,
+      "opcode": "JP P,nn",
+      "target": 60672
+    },
+    {
+      "at": 57009,
+      "opcode": "CALL PE,nn",
+      "target": 56384
+    },
+    {
+      "at": 57011,
+      "opcode": "CALL C,nn",
+      "target": 56608
+    },
+    {
+      "at": 57423,
+      "opcode": "LD A,(nn)",
+      "target": 49084
+    },
+    {
+      "at": 57433,
+      "opcode": "JP Z,nn",
+      "target": 54694
+    },
+    {
+      "at": 57437,
+      "opcode": "JP Z,nn",
+      "target": 54732
+    },
+    {
+      "at": 57533,
+      "opcode": "CALL Z,nn",
+      "target": 52784
+    },
+    {
+      "at": 57557,
+      "opcode": "CALL NC,nn",
+      "target": 60029
+    },
+    {
+      "at": 57597,
+      "opcode": "CALL C,nn",
+      "target": 60160
+    },
+    {
+      "at": 57685,
+      "opcode": "CALL NC,nn",
+      "target": 59995
+    },
+    {
+      "at": 57727,
+      "opcode": "CALL C,nn",
+      "target": 60160
+    },
+    {
+      "at": 57741,
+      "opcode": "JP P,nn",
+      "target": 59294
+    },
+    {
+      "at": 57900,
+      "opcode": "JP PE,nn",
+      "target": 54335
+    },
+    {
+      "at": 57928,
+      "opcode": "CALL P,nn",
+      "target": 60031
+    },
+    {
+      "at": 58023,
+      "opcode": "JP NC,nn",
+      "target": 59802
+    },
+    {
+      "at": 58193,
+      "opcode": "CALL Z,nn",
+      "target": 52477
+    },
+    {
+      "at": 58195,
+      "opcode": "CALL Z,nn",
+      "target": 52477
+    },
+    {
+      "at": 58197,
+      "opcode": "CALL Z,nn",
+      "target": 52477
+    },
+    {
+      "at": 58199,
+      "opcode": "CALL Z,nn",
+      "target": 52473
+    },
+    {
+      "at": 58201,
+      "opcode": "CALL Z,nn",
+      "target": 52449
+    },
+    {
+      "at": 58203,
+      "opcode": "CALL Z,nn",
+      "target": 52479
+    },
+    {
+      "at": 58263,
+      "opcode": "CALL Z,nn",
+      "target": 52224
+    },
+    {
+      "at": 58265,
+      "opcode": "CALL Z,nn",
+      "target": 52479
+    },
+    {
+      "at": 58267,
+      "opcode": "CALL Z,nn",
+      "target": 52479
+    },
+    {
+      "at": 58269,
+      "opcode": "CALL Z,nn",
+      "target": 52479
+    },
+    {
+      "at": 58271,
+      "opcode": "CALL Z,nn",
+      "target": 52477
+    },
+    {
+      "at": 58273,
+      "opcode": "CALL Z,nn",
+      "target": 52477
+    },
+    {
+      "at": 58275,
+      "opcode": "CALL Z,nn",
+      "target": 49401
+    },
+    {
+      "at": 58278,
+      "opcode": "JP P,nn",
+      "target": 50880
+    },
+    {
+      "at": 58292,
+      "opcode": "CALL Z,nn",
+      "target": 52275
+    },
+    {
+      "at": 58294,
+      "opcode": "CALL Z,nn",
+      "target": 52275
+    },
+    {
+      "at": 58296,
+      "opcode": "CALL Z,nn",
+      "target": 52275
+    },
+    {
+      "at": 58563,
+      "opcode": "CALL P,nn",
+      "target": 59514
+    },
+    {
+      "at": 58566,
+      "opcode": "CALL P,nn",
+      "target": 60112
+    },
+    {
+      "at": 58624,
+      "opcode": "JP C,nn",
+      "target": 60543
+    },
+    {
+      "at": 58628,
+      "opcode": "JP M,nn",
+      "target": 55743
+    },
+    {
+      "at": 58859,
+      "opcode": "CALL M,nn",
+      "target": 59644
+    },
+    {
+      "at": 58877,
+      "opcode": "CALL P,nn",
+      "target": 54352
+    },
+    {
+      "at": 58879,
+      "opcode": "CALL NC,nn",
+      "target": 58047
+    },
+    {
+      "at": 58914,
+      "opcode": "CALL P,nn",
+      "target": 59647
+    },
+    {
+      "at": 59138,
+      "opcode": "CALL P,nn",
+      "target": 53887
+    },
+    {
+      "at": 59140,
+      "opcode": "JP NC,nn",
+      "target": 60157
+    },
+    {
+      "at": 59224,
+      "opcode": "CALL M,nn",
+      "target": 57359
+    },
+    {
+      "at": 59284,
+      "opcode": "CALL P,nn",
+      "target": 55327
+    },
+    {
+      "at": 59421,
+      "opcode": "JP C,nn",
+      "target": 56832
+    },
+    {
+      "at": 59454,
+      "opcode": "JP PO,nn",
+      "target": 56379
+    },
+    {
+      "at": 59516,
+      "opcode": "JP nn",
+      "target": 51139
+    },
+    {
+      "at": 59526,
+      "opcode": "CALL C,nn",
+      "target": 55299
+    },
+    {
+      "at": 59679,
+      "opcode": "CALL M,nn",
+      "target": 56320
+    },
+    {
+      "at": 59736,
+      "opcode": "JP nn",
+      "target": 49155
+    },
+    {
+      "at": 60986,
+      "opcode": "CALL NC,nn",
+      "target": 59407
+    },
+    {
+      "at": 61008,
+      "opcode": "JP PE,nn",
+      "target": 54290
+    },
+    {
+      "at": 61525,
+      "opcode": "JP nn",
+      "target": 55552
+    },
+    {
+      "at": 61529,
+      "opcode": "JP C,nn",
+      "target": 55552
+    },
+    {
+      "at": 61533,
+      "opcode": "JP C,nn",
+      "target": 49408
+    },
+    {
+      "at": 61589,
+      "opcode": "JP nn",
+      "target": 49408
+    },
+    {
+      "at": 61593,
+      "opcode": "JP C,nn",
+      "target": 55552
+    },
+    {
+      "at": 61597,
+      "opcode": "JP C,nn",
+      "target": 49408
+    },
+    {
+      "at": 61653,
+      "opcode": "JP nn",
+      "target": 49408
+    },
+    {
+      "at": 61657,
+      "opcode": "JP NZ,nn",
+      "target": 55552
+    },
+    {
+      "at": 61661,
+      "opcode": "JP C,nn",
+      "target": 49408
+    },
+    {
+      "at": 61717,
+      "opcode": "JP nn",
+      "target": 49408
+    },
+    {
+      "at": 61721,
+      "opcode": "JP NZ,nn",
+      "target": 49408
+    },
+    {
+      "at": 61725,
+      "opcode": "JP C,nn",
+      "target": 49408
+    },
+    {
+      "at": 61777,
+      "opcode": "LD BC,nn",
+      "target": 60840
+    },
+    {
+      "at": 61832,
+      "opcode": "LD HL,nn",
+      "target": 49227
+    },
+    {
+      "at": 61849,
+      "opcode": "LD HL,nn",
+      "target": 49227
+    },
+    {
+      "at": 61891,
+      "opcode": "LD HL,nn",
+      "target": 49227
+    },
+    {
+      "at": 62041,
+      "opcode": "CALL nn",
+      "target": 52722
+    },
+    {
+      "at": 62055,
+      "opcode": "JP P,nn",
+      "target": 59081
+    },
+    {
+      "at": 62090,
+      "opcode": "LD HL,nn",
+      "target": 58490
+    },
+    {
+      "at": 62337,
+      "opcode": "JP NZ,nn",
+      "target": 50371
+    },
+    {
+      "at": 62338,
+      "opcode": "JP nn",
+      "target": 50628
+    },
+    {
+      "at": 62339,
+      "opcode": "CALL NZ,nn",
+      "target": 58309
+    },
+    {
+      "at": 62360,
+      "opcode": "LD BC,nn",
+      "target": 52559
+    },
+    {
+      "at": 62446,
+      "opcode": "LD DE,nn",
+      "target": 56577
+    },
+    {
+      "at": 62583,
+      "opcode": "LD BC,nn",
+      "target": 49149
+    },
+    {
+      "at": 62605,
+      "opcode": "LD DE,nn",
+      "target": 56770
+    },
+    {
+      "at": 62663,
+      "opcode": "CALL P,nn",
+      "target": 59902
+    },
+    {
+      "at": 62732,
+      "opcode": "LD BC,nn",
+      "target": 49963
+    },
+    {
+      "at": 63005,
+      "opcode": "LD BC,nn",
+      "target": 50823
+    },
+    {
+      "at": 63244,
+      "opcode": "CALL NZ,nn",
+      "target": 57871
+    },
+    {
+      "at": 63302,
+      "opcode": "CALL P,nn",
+      "target": 51714
+    },
+    {
+      "at": 63318,
+      "opcode": "CALL C,nn",
+      "target": 49409
+    },
+    {
+      "at": 63340,
+      "opcode": "CALL M,nn",
+      "target": 60928
+    },
+    {
+      "at": 63346,
+      "opcode": "CALL NC,nn",
+      "target": 51200
+    },
+    {
+      "at": 63500,
+      "opcode": "JP NZ,nn",
+      "target": 52226
+    },
+    {
+      "at": 63502,
+      "opcode": "CALL Z,nn",
+      "target": 58626
+    },
+    {
+      "at": 63584,
+      "opcode": "JP PO,nn",
+      "target": 57859
+    },
+    {
+      "at": 63626,
+      "opcode": "CALL C,nn",
+      "target": 51206
+    },
+    {
+      "at": 63829,
+      "opcode": "LD BC,nn",
+      "target": 58114
+    },
+    {
+      "at": 63893,
+      "opcode": "LD BC,nn",
+      "target": 51361
+    },
+    {
+      "at": 63993,
+      "opcode": "LD BC,nn",
+      "target": 49921
+    },
+    {
+      "at": 64026,
+      "opcode": "CALL P,nn",
+      "target": 57699
+    },
+    {
+      "at": 64032,
+      "opcode": "CALL P,nn",
+      "target": 59407
+    },
+    {
+      "at": 64040,
+      "opcode": "JP PE,nn",
+      "target": 57622
+    },
+    {
+      "at": 64044,
+      "opcode": "CALL P,nn",
+      "target": 59407
+    },
+    {
+      "at": 64055,
+      "opcode": "JP PE,nn",
+      "target": 57622
+    },
+    {
+      "at": 64059,
+      "opcode": "CALL P,nn",
+      "target": 59407
+    },
+    {
+      "at": 64067,
+      "opcode": "JP PE,nn",
+      "target": 57622
+    },
+    {
+      "at": 64071,
+      "opcode": "CALL P,nn",
+      "target": 59407
+    },
+    {
+      "at": 64079,
+      "opcode": "JP PE,nn",
+      "target": 57622
+    },
+    {
+      "at": 64083,
+      "opcode": "CALL P,nn",
+      "target": 59407
+    },
+    {
+      "at": 64094,
+      "opcode": "JP PE,nn",
+      "target": 57622
+    },
+    {
+      "at": 64098,
+      "opcode": "CALL P,nn",
+      "target": 59407
+    },
+    {
+      "at": 64109,
+      "opcode": "JP PE,nn",
+      "target": 57622
+    },
+    {
+      "at": 64113,
+      "opcode": "CALL P,nn",
+      "target": 59407
+    },
+    {
+      "at": 64121,
+      "opcode": "JP PE,nn",
+      "target": 57622
+    },
+    {
+      "at": 64125,
+      "opcode": "CALL P,nn",
+      "target": 57871
+    },
+    {
+      "at": 64127,
+      "opcode": "JP PO,nn",
+      "target": 59407
+    },
+    {
+      "at": 64137,
+      "opcode": "JP PE,nn",
+      "target": 57622
+    },
+    {
+      "at": 64141,
+      "opcode": "CALL P,nn",
+      "target": 59407
+    },
+    {
+      "at": 64152,
+      "opcode": "JP PE,nn",
+      "target": 57622
+    },
+    {
+      "at": 64156,
+      "opcode": "CALL P,nn",
+      "target": 59407
+    },
+    {
+      "at": 64164,
+      "opcode": "JP PE,nn",
+      "target": 57622
+    },
+    {
+      "at": 64168,
+      "opcode": "CALL P,nn",
+      "target": 59407
+    },
+    {
+      "at": 64181,
+      "opcode": "JP PE,nn",
+      "target": 57622
+    },
+    {
+      "at": 64185,
+      "opcode": "CALL P,nn",
+      "target": 59407
+    },
+    {
+      "at": 64198,
+      "opcode": "JP PE,nn",
+      "target": 57622
+    },
+    {
+      "at": 64215,
+      "opcode": "CALL P,nn",
+      "target": 59407
+    },
+    {
+      "at": 64227,
+      "opcode": "CALL P,nn",
+      "target": 59407
+    },
+    {
+      "at": 64238,
+      "opcode": "JP PE,nn",
+      "target": 57622
+    },
+    {
+      "at": 64242,
+      "opcode": "CALL P,nn",
+      "target": 59407
+    },
+    {
+      "at": 64252,
+      "opcode": "JP PE,nn",
+      "target": 57622
+    },
+    {
+      "at": 64275,
+      "opcode": "LD HL,(nn)",
+      "target": 59135
+    },
+    {
+      "at": 64283,
+      "opcode": "JP PO,nn",
+      "target": 58175
+    },
+    {
+      "at": 64294,
+      "opcode": "JP PE,nn",
+      "target": 58113
+    },
+    {
+      "at": 64298,
+      "opcode": "JP PE,nn",
+      "target": 59392
+    },
+    {
+      "at": 64308,
+      "opcode": "LD BC,nn",
+      "target": 58214
+    },
+    {
+      "at": 64499,
+      "opcode": "JP PE,nn",
+      "target": 59670
+    },
+    {
+      "at": 64791,
+      "opcode": "JP Z,nn",
+      "target": 50632
+    },
+    {
+      "at": 64909,
+      "opcode": "LD (nn),A",
+      "target": 59105
+    },
+    {
+      "at": 64921,
+      "opcode": "LD HL,nn",
+      "target": 57670
+    },
+    {
+      "at": 64933,
+      "opcode": "LD (nn),A",
+      "target": 59105
+    },
+    {
+      "at": 64986,
+      "opcode": "LD (nn),A",
+      "target": 59617
+    },
+    {
+      "at": 65129,
+      "opcode": "JP NC,nn",
+      "target": 56144
+    },
+    {
+      "at": 65137,
+      "opcode": "CALL PO,nn",
+      "target": 56144
+    },
+    {
+      "at": 65288,
+      "opcode": "LD HL,nn",
+      "target": 52480
+    },
+    {
+      "at": 65408,
+      "opcode": "CALL C,nn",
+      "target": 52734
+    }
+  ],
+  "reference_target_pages": {
+    "C0": 38,
+    "E1": 34,
+    "E2": 34,
+    "CD": 33,
+    "E8": 28,
+    "DD": 20,
+    "C1": 19,
+    "CC": 18,
+    "E3": 17,
+    "C3": 16,
+    "D9": 15,
+    "C4": 12,
+    "E0": 12,
+    "ED": 11,
+    "E6": 11,
+    "EA": 11,
+    "C5": 11,
+    "C8": 10,
+    "D4": 10,
+    "E9": 10,
+    "DC": 9,
+    "EC": 9,
+    "D5": 7,
+    "E4": 7,
+    "F0": 6,
+    "DE": 5,
+    "DB": 5,
+    "D2": 5,
+    "C6": 5,
+    "D6": 5,
+    "EE": 5,
+    "EB": 5,
+    "EF": 4,
+    "CF": 4,
+    "CA": 4,
+    "D8": 4,
+    "CB": 3,
+    "E5": 3,
+    "DF": 3,
+    "CE": 3,
+    "BF": 3,
+    "C9": 2,
+    "D1": 2,
+    "D7": 2,
+    "D0": 2,
+    "DA": 1,
+    "C2": 1,
+    "E7": 1,
+    "C7": 1
+  }
+}

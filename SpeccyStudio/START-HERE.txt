@@ -1,0 +1,47 @@
+SPECCY STUDIO v2.0 - WINDOWS x64
+Full Canvas Level Editor & ZX Spectrum Asset Workshop
+
+QUICK START:
+1. Run SpeccyStudio.exe.
+2. Open your Cybernoid II (1988) 128K TAP (or drag-and-drop it into the window).
+3. The app opens directly in the LEVEL EDITOR view with Room 06 selected (the first playable room).
+4. Use the top segmented toggle to switch between:
+   - 🖥️ Loading Screen (256x192 ULA canvas with color palette, PNG import/export, offline polish, and AI remastering)
+   - 🕹️ Level Editor (Full-size 16x10 interactive room canvas)
+
+INTERACTIVE LEVEL CANVAS:
+- Left-drag: Paint with the active tile using the selected tool.
+- Right-drag: Quick erase (paints empty tile $00).
+- Alt + Click (or Eyedropper): Sample any tile directly from the canvas into your brush.
+- Tools (toolbar or keyboard shortcuts):
+  * Pencil (P): Freehand single-tile painting.
+  * Eraser (E): Erase cells to empty tile $00.
+  * Picker (I): Sample tile ID from canvas.
+  * Fill (F): Flood fill contiguous matching area.
+  * Box (R): Click-and-drag rectangular area fill.
+- Shortcuts:
+  * 1: Switch to Loading Screen view
+  * 2: Switch to Level Editor view
+  * Ctrl+Z: Undo edit
+  * Ctrl+Y: Redo edit
+
+VISUAL TILE ATLAS & BRUSH:
+- Active Brush Card: Displays current 16x16 tile graphic, hex ID, name, and collision role.
+- In-Room Quick Strip: Click any tile in the bottom strip to paint with tiles already in the room.
+- Tile Atlas Browser: Filter tiles by Room, Terrain, Platforms, Hazards, Markers, or All 256 tiles.
+- Search Box: Search by hex ID (e.g. "21"), tile name ("wall"), or role.
+- Stamp Presets: One-click placement of verified runtime entities:
+  * Horizontal Patrol ($E8)
+  * Vertical Patrol ($F4)
+  * 4-Way Hunter ($F8)
+  * Drone Spawner ($EC)
+  * Level Exit Gate ($61)
+
+NAVIGATION & WORLD MAP:
+- Interactive World Map: Click any room in the mini-map grid to jump straight to it.
+- Canvas Edge Buttons: Click the ◀ ▲ ▼ ▶ buttons around the canvas borders to step through connected rooms.
+
+SAFETY & EXPORT:
+- Recompressed room descriptors must fit within the game's byte capacity.
+- Source tape is protected: use "Save as..." to export your verified, checksum-correct TAP file.
+- Configure an emulator in the "PLAY +2" tab to playtest your creations immediately.

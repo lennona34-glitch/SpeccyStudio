@@ -1,0 +1,49 @@
+## Build & Compilation Outputs
+[Bb]in/
+[Oo]bj/
+*.exe
+*.dll
+*.pdb
+*.msi
+*.appx
+
+## IDE & Editor files
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Logs and Crash Traces
+*.log
+*.trace
+
+## Python Cache & Artifacts
+__pycache__/
+*.py[cod]
+
+## Exclude Commercial Game Binaries and Tape Images (User-Supplied)
+*.tap
+*.tzx
+*.sna
+*.z80
+*.dsk
+*.trd
+*.scl
+*.mdr
+*.zip
+
+## Exclude local packaging/backups
+publish*/
+source-package-*/
+source-v*/
+tools/
+speccy-*.png
+screenshot-*.png
+
+## Keep test and fixture screens & documentation
+!visual-test.scr
+!docs/
+!docs/**

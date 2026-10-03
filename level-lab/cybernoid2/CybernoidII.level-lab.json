@@ -1,0 +1,136 @@
+{
+  "format": "speccy-studio-level-lab-profile",
+  "formatVersion": 2,
+  "profileId": "cybernoid-ii-1988-hewson-128k-tap",
+  "title": "Cybernoid II",
+  "platform": "ZX Spectrum 128K / +2",
+  "recognition": {
+    "fileSize": 48033,
+    "sha256": "BF416648617F2EC3FBC9DE99DB38C679D9777A9EB993864D53F2B1BC92A2DE92",
+    "requiredMatch": true
+  },
+  "tape": {
+    "blockCount": 6,
+    "allChecksumsVerified": true,
+    "blocks": [
+      { "index": 0, "tapOffset": "0x0000", "kind": "header", "name": "CYBERNIOD", "length": 19 },
+      { "index": 1, "tapOffset": "0x0015", "kind": "basic-data", "length": 674 },
+      { "index": 2, "tapOffset": "0x02B9", "kind": "header", "name": "cyber", "length": 19 },
+      { "index": 3, "tapOffset": "0x02CE", "kind": "machine-loader", "loadAddress": "0x61A8", "dataLength": 200, "length": 202 },
+      { "index": 4, "tapOffset": "0x039A", "kind": "loading-screen", "dataLength": 6912, "length": 6914 },
+      { "index": 5, "tapOffset": "0x1E9E", "kind": "main-image", "loadAddress": "0x6300", "endAddressInclusive": "0xFFFE", "dataLength": 40191, "length": 40193 }
+    ],
+    "mainImageDataOffset": "0x1EA1",
+    "mainImageChecksumOffset": "0xBBA0",
+    "checksum": "xor-all-payload-bytes-equals-zero"
+  },
+  "runtime": {
+    "machine": "128K Spectrum",
+    "menuProgramCounter": "0xFDFD",
+    "interruptRoutine": "0x6E50",
+    "pagedBankAtC000": 0,
+    "port7ffd": "0x10",
+    "usedBanksAtMenu": [5, 2, 0],
+    "unusedBanksAtMenu": [1, 3, 4, 6, 7]
+  },
+  "graphics": {
+    "status": "verified-by-runtime-read-trace-and-round-trip-probe",
+    "screenWriteRoutines": ["0x648C", "0x64AC", "0x6A55", "0xA309", "0xA310", "0xA317", "0xA31E", "0xA3C4", "0xA3C9", "0xA3D7", "0xA3DC", "0xA425", "0xA429"],
+    "runtimeSourceRegions": [
+      { "start": "0xDD2B", "endInclusive": "0xDDAA", "length": 128, "role": "masked-sprite-pattern-source", "traceReadsFeedingScreen": 21376, "confidence": "verified" },
+      { "start": "0xE3EB", "endInclusive": "0xE42A", "length": 64, "role": "sprite-pattern-source", "traceReadsFeedingScreen": 1536, "confidence": "verified" },
+      { "start": "0xEBF7", "endInclusive": "0xEC06", "length": 16, "role": "sprite-pattern-source", "traceReadsFeedingScreen": 1340, "confidence": "verified" },
+      { "start": "0xD00B", "endInclusive": "0xD056", "length": 76, "role": "room-render-source", "traceReadsFeedingScreen": 811, "confidence": "verified" },
+      { "start": "0x7DD7", "endInclusive": "0x7E9A", "length": 196, "role": "hud-font-and-render-source", "confidence": "strong" },
+      { "start": "0xBFDB", "endInclusive": "0xBFFA", "length": 32, "role": "sprite-fragments", "confidence": "strong" }
+    ],
+    "largerCandidateBanks": [
+      { "start": "0x9AB8", "length": 808, "role": "graphics-bank", "confidence": "strong" },
+      { "start": "0xBF32", "length": 264, "role": "hud-and-sprite-bank", "confidence": "strong" },
+      { "start": "0xC04A", "length": 1344, "role": "graphics-bank", "confidence": "strong" },
+      { "start": "0xC708", "length": 768, "role": "graphics-bank", "confidence": "strong" },
+      { "start": "0xED93", "length": 704, "role": "graphics-bank", "confidence": "strong" }
+    ],
+    "encoding": {
+      "description": "Mixed-width masked sprite and pattern records; not a flat 8x8 tile array.",
+      "editorPolicy": "Use profile-specific record decoders and preserve masks/record sizes. Do not apply generic tile rewriting."
+    }
+  },
+  "music": {
+    "chip": "AY-3-8912",
+    "engineStart": "0xF400",
+    "registerFlushRoutine": "0xF46C",
+    "registerShadow": { "start": "0xF67F", "length": 14 },
+    "streamPointerBase": "0xF700",
+    "streamDataEndApproximate": "0xFDDF",
+    "ports": { "registerSelect": "0xFFFD", "dataWrite": "0xBFFD" },
+    "confidence": "verified-by-disassembly",
+    "editorPolicy": "Keep the native three-channel AY interpreter and timing. +2 playback should emulate AY writes rather than synthesize guessed notes."
+  },
+  "levelLab": {
+    "roomOneCaptured": true,
+    "roomOneScreen": "cybernoid2-first-room.png",
+    "roomCount": 58,
+    "roomPointerTable": "0x6E77",
+    "roomIndexVariable": "0x7198",
+    "firstPlayableRoomIndex": 6,
+    "firstPlayableRoomDescriptor": "0xA732",
+    "roomGeometryEncoding": {
+      "status": "verified-by-disassembly-runtime-trace-and-round-trip",
+      "expandedSize": 160,
+      "grid": { "columns": 16, "rows": 10, "metaTilePixels": "16x16", "screenOriginPixels": [0, 32] },
+      "tokens": {
+        "literal": "any byte except 0xE2, 0xE3 and 0xFF",
+        "0xFF": "count,value RLE",
+        "0xE2": "count,a,b repeated pairs",
+        "0xE3": "count,a,b,c repeated triples"
+      },
+      "editorPolicy": "Recompress to the existing descriptor capacity; reject expansion beyond the next room pointer."
+    },
+    "collisionEncoding": {
+      "status": "verified-by-runtime-write-trace",
+      "physicalAttributes": "0x5800-0x5AFF",
+      "mirroredAttributes": "0x5B00-0x5DFF",
+      "collisionPlane": "0x5E00-0x60FF",
+      "dimensions": "32x24 bytes",
+      "tileCells": "room tile IDs appear at even collision X and even room rows; the native builder writes tile-specific neighbour flags"
+    },
+    "sharedDescriptors": [{ "roomIndices": [21, 22], "address": "0xAD8E" }],
+    "safeEditingNow": ["loading-screen", "verified-graphics-records", "static-room-tile-geometry", "collision-backed-tile-replacement", "AY-playback", "prompt-to-native-graphics-with-size-lock"],
+    "unsafeUntilDecoded": ["enemy-spawn-logic", "exit-graph-editing", "object-placement", "new-room-insertion"]
+  },
+  "roundTripProof": {
+    "kind": "one-byte-graphics-probe",
+    "memoryAddress": "0xDD2B",
+    "tapOffset": "0x98CC",
+    "before": "0x03",
+    "after": "0xFF",
+    "originalTapeChecksum": "0x67",
+    "patchedTapeChecksum": "0x9B",
+    "patchFile": "CybernoidII-Graphics-Proof.ips",
+    "result": "Patched TAP loaded to room one and produced a localized sprite-layer pixel change.",
+    "disposableProbeSha256": "D1220B7CB35AECB4D3957E9973BFE9571B987CFE2788CAD047984825CE545B2D"
+  },
+  "roomRoundTripProof": {
+    "kind": "room-tile-and-collision-probe",
+    "roomIndex": 6,
+    "cell": [8, 8],
+    "screenPixelOrigin": [128, 160],
+    "descriptorAddress": "0xA732",
+    "sourceAddress": "0xA78A",
+    "beforeTile": "0x00",
+    "afterTile": "0x21",
+    "collisionAddress": "0x6090",
+    "collisionBefore": "0x00",
+    "collisionAfter": "0x21",
+    "patchedTapeChecksum": "0x46",
+    "handProbeSha256": "2C062E5539B367852EF52FA6B50A3C88CA8E0FC7052B25381DC6EF9E9D82CD7F",
+    "result": "Both a one-byte descriptor probe and a full Speccy Studio v0.3 recompression loaded to room one and produced the expected wall tile and collision value."
+  },
+  "safety": {
+    "neverOverwriteOriginal": true,
+    "requireRecognitionHashOrVerifiedStructuralProfileBeforePatch": true,
+    "saveAsOnly": true,
+    "recomputeTapChecksum": true
+  }
+}

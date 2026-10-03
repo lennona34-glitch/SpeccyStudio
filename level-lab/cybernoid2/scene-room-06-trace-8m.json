@@ -1,0 +1,16 @@
+{
+  "operations": 8000000,
+  "final_pc": 10539,
+  "final_room_index": 0,
+  "data_reads_by_page": [],
+  "top_data_addresses": [],
+  "screen_write_routines": [],
+  "likely_screen_source_addresses": [],
+  "collision_write_routines": [
+    {
+      "pc": 16398,
+      "count": 190
+    }
+  ],
+  "likely_collision_source_addresses": []
+}

@@ -1,0 +1,963 @@
+<Window x:Class="SpeccyStudio.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:SpeccyStudio.Controls"
+        Title="Speccy Studio" Width="1240" Height="800" MinWidth="960" MinHeight="640" WindowState="Maximized"
+        Background="{StaticResource BackgroundBrush}" Foreground="{StaticResource TextBrush}" FontFamily="Segoe UI"
+        WindowStartupLocation="CenterScreen" AllowDrop="True" Drop="Window_Drop" DragOver="Window_DragOver"
+        Closing="Window_Closing" Loaded="Window_Loaded">
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="68"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="30"/>
+    </Grid.RowDefinitions>
+
+    <!-- TOP HEADER -->
+    <Border Grid.Row="0" Background="#111722" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+      <Grid Margin="18,0">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        
+        <!-- App Brand -->
+        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+          <Border Background="{StaticResource AccentBrush}" CornerRadius="6" Width="38" Height="38" Margin="0,0,12,0">
+            <TextBlock Text="ZX" Foreground="#071512" FontWeight="Black" FontSize="17" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          </Border>
+          <StackPanel>
+            <TextBlock Text="SPECCY STUDIO" FontWeight="Bold" FontSize="17"/>
+            <TextBlock Text="Spectrum asset &amp; level workshop" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+          </StackPanel>
+        </StackPanel>
+
+        <!-- Main Actions & View Mode Toggle -->
+        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="24,0,8,0">
+          <Button Content="Open game…" Click="Open_Click" Style="{StaticResource PrimaryButton}"/>
+          <ComboBox x:Name="StoredGamesBox" Width="180" Margin="6,0,0,0" VerticalAlignment="Center" SelectionChanged="StoredGamesBox_SelectionChanged" ToolTip="Quickly switch between stored games &amp; projects without browsing files"/>
+          <Button x:Name="SaveButton" Content="Save" Click="Save_Click" IsEnabled="False"/>
+          <Button x:Name="SaveAsButton" Content="Save as…" Click="SaveAs_Click" IsEnabled="False"/>
+          <Button x:Name="UndoButton" Content="Undo" Click="Undo_Click" IsEnabled="False" ToolTip="Undo edit (Ctrl+Z)"/>
+          <Button x:Name="RedoButton" Content="Redo" Click="Redo_Click" IsEnabled="False" ToolTip="Redo edit (Ctrl+Y)"/>
+          <Button x:Name="PlayHeaderButton" Content="▶ Playtest (F5)" Click="Play_Click" IsEnabled="False" Style="{StaticResource PrimaryButton}" Margin="6,0,0,0" ToolTip="Quick playtest in Spectrum Emulator (F5)"/>
+          <Button x:Name="ScreenshotHeaderButton" Content="📸 Screenshot (F10)" Click="Screenshot_Click" Margin="6,0,0,0" ToolTip="Capture high-resolution screenshot to Pictures and clipboard (F10 / PrintScreen)"/>
+          
+          <Border Width="1" Height="24" Background="{StaticResource BorderBrush}" Margin="12,0"/>
+          
+          <!-- View Switcher -->
+          <RadioButton x:Name="ViewScreenRadio" Content="🖥️ Loading Screen" Style="{StaticResource SegmentButton}" IsChecked="True" Checked="ViewMode_Changed" ToolTip="Edit loading screen art, colors &amp; attributes"/>
+          <RadioButton x:Name="ViewLevelRadio" Content="🕹️ Level Editor" Style="{StaticResource SegmentButton}" IsChecked="False" Checked="ViewMode_Changed" ToolTip="Interactive room canvas &amp; level editor"/>
+          <Button x:Name="HeaderSpriteBankButton" Content="🎨 Sprite Bank" Click="SpriteBank_Click" Margin="10,0,0,0" Padding="10,5" Background="#182338" Foreground="#42D392" BorderBrush="#35D0BA" ToolTip="Open Universal 8-Bit Sprite &amp; Tile Bank"/>
+          <Button x:Name="HeaderRomRipperButton" Content="🔬 ROM Ripper" Click="RomRipper_Click" Margin="6,0,0,0" Padding="10,5" Background="#1D2A42" Foreground="#35D0BA" BorderBrush="#35D0BA" ToolTip="Open In-App Visual Memory &amp; ROM Ripper to scrub 48K/128K memory and extract sprites"/>
+          <Button x:Name="HeaderAudioStudioButton" Content="🎵 Audio Studio" Click="AudioStudio_Click" Margin="6,0,0,0" Padding="10,5" Background="#241432" Foreground="#E040FB" BorderBrush="#E040FB" ToolTip="Open AY-3-8912 PSG (128K) &amp; 48K Beeper Sound Studio, tracker player &amp; inspector (Ctrl+M)"/>
+        </StackPanel>
+
+        <!-- Current File Status -->
+        <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
+          <TextBlock x:Name="FileNameText" Text="No file open" FontWeight="SemiBold" HorizontalAlignment="Right"/>
+          <TextBlock x:Name="FileMetaText" Text="Drop a game file anywhere" Foreground="{StaticResource MutedBrush}" FontSize="11" HorizontalAlignment="Right"/>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- MAIN BODY (3 COLUMNS) -->
+    <Grid Grid.Row="1">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="250"/>
+        <ColumnDefinition Width="*" MinWidth="340"/>
+        <ColumnDefinition Width="320"/>
+      </Grid.ColumnDefinitions>
+
+      <!-- LEFT SIDEBAR: File Structure & Printable Text -->
+      <Border Grid.Column="0" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
+        <Grid Margin="16">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="210"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+          </Grid.RowDefinitions>
+          <TextBlock Grid.Row="0" Text="FILE STRUCTURE" Foreground="{StaticResource MutedBrush}" FontSize="11" FontWeight="Bold" Margin="2,2,0,10"/>
+          <ListBox x:Name="AssetsList" Grid.Row="1" FontFamily="Cascadia Mono" FontSize="11">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <StackPanel Margin="3,4">
+                  <TextBlock Text="{Binding Kind}" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold"/>
+                  <TextBlock Text="{Binding Name}" TextWrapping="Wrap"/>
+                  <TextBlock Text="{Binding ByteSummary, Mode=OneWay}" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+          <Grid Grid.Row="2" Margin="0,16,0,8">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <TextBlock Text="PRINTABLE TEXT" Foreground="{StaticResource MutedBrush}" FontSize="11" FontWeight="Bold" Margin="2,0,0,8"/>
+            <ComboBox x:Name="StringModeBox" Grid.Row="1" SelectionChanged="StringMode_Changed" Margin="0,0,0,7" ToolTip="Choose how much detected text to show"/>
+            <TextBox x:Name="StringFilterBox" Grid.Row="2" TextChanged="StringFilter_TextChanged" ToolTip="Search detected strings"/>
+            <TextBlock x:Name="StringStatsText" Grid.Row="3" Text="Open a file to scan" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="2,5,0,0"/>
+          </Grid>
+          <ListBox x:Name="StringsList" Grid.Row="3" SelectionChanged="StringsList_SelectionChanged" FontFamily="Cascadia Mono" FontSize="11"
+                   HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ClipToBounds="True">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <StackPanel Margin="3,4">
+                  <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <TextBlock Text="{Binding OffsetHex}" Foreground="{StaticResource AccentAltBrush}" FontSize="10"/>
+                    <TextBlock Grid.Column="1" Text="{Binding Category}" Foreground="{StaticResource MutedBrush}" FontSize="9"/>
+                  </Grid>
+                  <TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+      </Border>
+
+      <!-- CENTER COLUMN: Switches between Screen View and Level Editor View -->
+      <Grid Grid.Column="1" Margin="20,16">
+        
+        <!-- 1. LOADING SCREEN VIEW -->
+        <Grid x:Name="ScreenViewContainer" Visibility="Visible">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+          </Grid.RowDefinitions>
+
+          <Grid Grid.Row="0" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <StackPanel>
+              <TextBlock Text="LOADING SCREEN" FontSize="12" Foreground="{StaticResource MutedBrush}" FontWeight="Bold"/>
+              <TextBlock x:Name="ScreenHintText" Text="Open a supported file to begin" FontSize="20" FontWeight="SemiBold" Margin="0,4,16,0" TextWrapping="Wrap"/>
+            </StackPanel>
+            <Border Grid.Column="1" Background="#152A27" CornerRadius="12" Padding="10,4" VerticalAlignment="Center">
+              <TextBlock Text="256 × 192 · ULA" Foreground="{StaticResource AccentBrush}" FontSize="11" FontWeight="SemiBold"/>
+            </Border>
+          </Grid>
+
+          <Border Grid.Row="1" Background="#06080D" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="7" Padding="10">
+            <Grid>
+              <controls:SpectrumCanvas x:Name="ScreenCanvas" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                       EditStarted="ScreenCanvas_EditStarted" PixelChanged="ScreenCanvas_PixelChanged"/>
+              <Border x:Name="EmptyScreenOverlay" Background="#D906080D" CornerRadius="5">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="380">
+                  <TextBlock Text="NO EDITABLE SCREEN FOUND" HorizontalAlignment="Center" FontSize="16" FontWeight="Bold"/>
+                  <TextBlock Text="SCR files and standard screen blocks in TAP/TZX/SNA/Z80 files appear here. You can still inspect text and launch this file in an emulator." TextWrapping="Wrap" TextAlignment="Center" Foreground="{StaticResource MutedBrush}" Margin="0,10,0,0"/>
+                </StackPanel>
+              </Border>
+            </Grid>
+          </Border>
+
+          <Grid Grid.Row="2" Margin="0,13,0,0">
+            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+              <TextBlock Text="COLOUR" Foreground="{StaticResource MutedBrush}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,9,0"/>
+              <UniformGrid Rows="2" Columns="8">
+                <Button Tag="0" Click="Palette_Click" Width="25" Height="25" Padding="0" Margin="1" Background="#000000"/>
+                <Button Tag="1" Click="Palette_Click" Width="25" Height="25" Padding="0" Margin="1" Background="#0000CD"/>
+                <Button Tag="2" Click="Palette_Click" Width="25" Height="25" Padding="0" Margin="1" Background="#CD0000"/>
+                <Button Tag="3" Click="Palette_Click" Width="25" Height="25" Padding="0" Margin="1" Background="#CD00CD"/>
+                <Button Tag="4" Click="Palette_Click" Width="25" Height="25" Padding="0" Margin="1" Background="#00CD00"/>
+                <Button Tag="5" Click="Palette_Click" Width="25" Height="25" Padding="0" Margin="1" Background="#00CDCD"/>
+                <Button Tag="6" Click="Palette_Click" Width="25" Height="25" Padding="0" Margin="1" Background="#CDCD00"/>
+                <Button Tag="7" Click="Palette_Click" Width="25" Height="25" Padding="0" Margin="1" Background="#CDCDCD" BorderBrush="{StaticResource AccentBrush}" BorderThickness="2"/>
+                <Button Tag="8" Click="Palette_Click" Width="25" Height="25" Padding="0" Margin="1" Background="#000000"/>
+                <Button Tag="9" Click="Palette_Click" Width="25" Height="25" Padding="0" Margin="1" Background="#0000FF"/>
+                <Button Tag="10" Click="Palette_Click" Width="25" Height="25" Padding="0" Margin="1" Background="#FF0000"/>
+                <Button Tag="11" Click="Palette_Click" Width="25" Height="25" Padding="0" Margin="1" Background="#FF00FF"/>
+                <Button Tag="12" Click="Palette_Click" Width="25" Height="25" Padding="0" Margin="1" Background="#00FF00"/>
+                <Button Tag="13" Click="Palette_Click" Width="25" Height="25" Padding="0" Margin="1" Background="#00FFFF"/>
+                <Button Tag="14" Click="Palette_Click" Width="25" Height="25" Padding="0" Margin="1" Background="#FFFF00"/>
+                <Button Tag="15" Click="Palette_Click" Width="25" Height="25" Padding="0" Margin="1" Background="#FFFFFF"/>
+              </UniformGrid>
+            </StackPanel>
+            <Grid Grid.Row="1" Margin="0,7,0,0">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+              <CheckBox x:Name="GridCheckBox" Content="Attribute grid" IsChecked="True" Checked="GridCheckBox_Changed" Unchecked="GridCheckBox_Changed" VerticalAlignment="Center"/>
+              <TextBlock Grid.Column="1" Text="Left-drag: ink · right-drag: paper" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center" Margin="14,0,0,0" TextAlignment="Right"/>
+            </Grid>
+          </Grid>
+        </Grid>
+
+        <!-- 2. INTERACTIVE LEVEL EDITOR VIEW -->
+        <Grid x:Name="LevelViewContainer" Visibility="Collapsed">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- Header & Toolbar -->
+            <RowDefinition Height="*"/>    <!-- Big Canvas -->
+            <RowDefinition Height="Auto"/> <!-- Quick Brush & Palette Bar -->
+          </Grid.RowDefinitions>
+
+          <!-- Level Header & Toolbar -->
+          <Grid Grid.Row="0" Margin="0,0,0,8">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Row 0: Room Quick Navigation & Title Badges -->
+            <Grid Grid.Row="0" Margin="0,0,0,6">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+              </Grid.ColumnDefinitions>
+
+              <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button x:Name="CanvasLeftButton" Content="◀" ToolTip="Step West (Left Room)" Width="28" Height="26" Padding="0" Tag="Left" Click="LevelNavigate_Click"/>
+                <ComboBox x:Name="CanvasRoomBox" SelectionChanged="LevelRoom_Changed" Width="135" Margin="4,0" ToolTip="Select Room"/>
+                <Button x:Name="CanvasRightButton" Content="▶" ToolTip="Step East (Right Room)" Width="28" Height="26" Padding="0" Tag="Right" Click="LevelNavigate_Click"/>
+                <Button x:Name="CanvasUpButton" Content="▲" ToolTip="Step North (Upper Room)" Width="28" Height="26" Padding="0" Tag="Up" Margin="3,0,0,0" Click="LevelNavigate_Click"/>
+                <Button x:Name="CanvasDownButton" Content="▼" ToolTip="Step South (Lower Room)" Width="28" Height="26" Padding="0" Tag="Down" Margin="3,0,0,0" Click="LevelNavigate_Click"/>
+
+                <Border Background="#152A27" CornerRadius="5" Padding="9,3" Margin="10,0,0,0" VerticalAlignment="Center">
+                  <TextBlock x:Name="CanvasRoomTitleText" Text="Room 06 · Level 1 Start" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold" FontSize="11"/>
+                </Border>
+                <Border Background="#151B27" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="5" Padding="8,3" Margin="6,0,0,0" VerticalAlignment="Center">
+                  <TextBlock x:Name="CanvasBudgetText" Text="Descriptor 58/82 B" Foreground="#72BDE8" FontSize="10"/>
+                </Border>
+                <Button x:Name="CanvasExportPngButton" Content="📸 Export PNG" Click="Screenshot_Click" Padding="8,3" Margin="8,0,0,0" ToolTip="Export current room view to PNG"/>
+              </StackPanel>
+            </Grid>
+
+            <!-- Row 1: Tools & Display Options -->
+            <Grid Grid.Row="1">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+              </Grid.ColumnDefinitions>
+
+              <!-- Tools (Left) -->
+              <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <RadioButton x:Name="ToolPencilRadio" Content="✏ Pencil" GroupName="LevelTools" Style="{StaticResource ToolRadioButton}" IsChecked="True" Checked="Tool_Checked" ToolTip="Paint active tile (P)"/>
+                <RadioButton x:Name="ToolEraserRadio" Content="⌫ Eraser" GroupName="LevelTools" Style="{StaticResource ToolRadioButton}" Checked="Tool_Checked" ToolTip="Paint empty tile $00 (E / Right-drag)"/>
+                <RadioButton x:Name="ToolPickerRadio" Content="⌖ Picker" GroupName="LevelTools" Style="{StaticResource ToolRadioButton}" Checked="Tool_Checked" ToolTip="Sample tile from canvas (I / Alt+click)"/>
+                <RadioButton x:Name="ToolBucketRadio" Content="◼ Fill" GroupName="LevelTools" Style="{StaticResource ToolRadioButton}" Checked="Tool_Checked" ToolTip="Flood fill matching area (F)"/>
+                <RadioButton x:Name="ToolRectRadio" Content="▢ Box" GroupName="LevelTools" Style="{StaticResource ToolRadioButton}" Checked="Tool_Checked" ToolTip="Fill rectangular area (R)"/>
+                <Border Width="1" Height="16" Background="#2B3548" Margin="8,0,8,0"/>
+                <Button x:Name="CanvasFlipHButton" Content="⇄ Flip H" Click="FlipHorizontal_Click" Padding="7,2" Margin="2,0" FontSize="11" ToolTip="Flip selected tile or sprite horizontally (H or X)"/>
+                <Button x:Name="CanvasFlipVButton" Content="⇅ Flip V" Click="FlipVertical_Click" Padding="7,2" Margin="2,0" FontSize="11" ToolTip="Flip selected tile or sprite vertically (V or Y)"/>
+                <Border Width="1" Height="16" Background="#2B3548" Margin="8,0,8,0"/>
+                <Button x:Name="CanvasSpriteBankButton" Content="🎨 Sprite Bank" Click="SpriteBank_Click" Padding="7,2" Margin="2,0" FontSize="11" Background="#1D2A42" Foreground="#42D392" ToolTip="Open Universal 8-Bit Sprite &amp; Tile Bank to mix and match graphics across games"/>
+              </StackPanel>
+
+              <!-- Display Options (Right) -->
+              <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                <CheckBox x:Name="CanvasShowArtCheck" Content="Art" IsChecked="True" Checked="LevelCanvasOption_Changed" Unchecked="LevelCanvasOption_Changed" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="11"/>
+                <CheckBox x:Name="CanvasShowCollisionCheck" Content="Collision" IsChecked="True" Checked="LevelCanvasOption_Changed" Unchecked="LevelCanvasOption_Changed" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="11"/>
+                <CheckBox x:Name="CanvasShowMarkersCheck" Content="Markers" IsChecked="True" Checked="LevelCanvasOption_Changed" Unchecked="LevelCanvasOption_Changed" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="11"/>
+                <CheckBox x:Name="CanvasShowGridCheck" Content="Grid" IsChecked="True" Checked="LevelCanvasOption_Changed" Unchecked="LevelCanvasOption_Changed" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="11"/>
+                <CheckBox x:Name="CanvasShowPreviewCheck" Content="Preview" IsChecked="True" Checked="LevelCanvasOption_Changed" Unchecked="LevelCanvasOption_Changed" VerticalAlignment="Center" FontSize="11" ToolTip="Toggle ghost stamp/paste preview on canvas (Middle mouse button / Wheel click)"/>
+              </StackPanel>
+            </Grid>
+          </Grid>
+
+          <!-- Central Canvas Stage -->
+          <Border Grid.Row="1" Background="#06080D" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="7" Padding="6">
+            <Grid>
+              <controls:LevelCanvas x:Name="MainLevelCanvas" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+
+              <!-- Interactive Edge Step Buttons -->
+              <Button Content="◀" HorizontalAlignment="Left" VerticalAlignment="Center" Width="24" Height="48" Padding="0" Opacity="0.55" Tag="Left" Click="LevelNavigate_Click" ToolTip="Step West (Left Room)"/>
+              <Button Content="▶" HorizontalAlignment="Right" VerticalAlignment="Center" Width="24" Height="48" Padding="0" Opacity="0.55" Tag="Right" Click="LevelNavigate_Click" ToolTip="Step East (Right Room)"/>
+              <Button Content="▲" HorizontalAlignment="Center" VerticalAlignment="Top" Width="48" Height="22" Padding="0" Opacity="0.55" Tag="Up" Click="LevelNavigate_Click" ToolTip="Step North (Upper Room)"/>
+              <Button Content="▼" HorizontalAlignment="Center" VerticalAlignment="Bottom" Width="48" Height="22" Padding="0" Opacity="0.55" Tag="Down" Click="LevelNavigate_Click" ToolTip="Step South (Lower Room)"/>
+
+              <!-- Overlay when no supported game loaded -->
+              <Border x:Name="LevelNoGameOverlay" Background="#E606080D" CornerRadius="5" Visibility="Collapsed">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="400">
+                  <TextBlock Text="SPECCY STUDIO LEVEL LAB" HorizontalAlignment="Center" FontSize="16" FontWeight="Bold"/>
+                  <TextBlock Text="Open Cybernoid II (1988) or Exolon (1987) to activate interactive Level Workshops. Decodes authentic rooms, entities, compression limits, and game graphics." TextWrapping="Wrap" TextAlignment="Center" Foreground="{StaticResource MutedBrush}" Margin="0,10,0,0"/>
+                </StackPanel>
+              </Border>
+            </Grid>
+          </Border>
+
+          <!-- Level Footer: Cybernoid II -->
+          <Grid x:Name="CybernoidLevelFooter" Grid.Row="2" Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto"/>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Active Brush Card -->
+            <Border Grid.Column="0" Background="#111722" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="5" Padding="8,4" Margin="0,0,12,0">
+              <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Border Width="32" Height="32" Background="#06080D" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="3" Margin="0,0,8,0">
+                  <Image x:Name="MainActiveTileImage" Width="32" Height="32" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                  <StackPanel Orientation="Horizontal">
+                    <TextBlock x:Name="MainActiveTileHex" Text="$21" FontWeight="Bold" FontSize="12" Foreground="{StaticResource AccentBrush}" Margin="0,0,6,0"/>
+                    <Border x:Name="MainActiveTileRoleBorder" Background="#502B35" CornerRadius="3" Padding="4,1">
+                      <TextBlock x:Name="MainActiveTileRoleText" Text="Solid" FontSize="9" FontWeight="SemiBold" Foreground="#FF8888"/>
+                    </Border>
+                  </StackPanel>
+                  <TextBlock x:Name="MainActiveTileName" Text="Wall" Foreground="{StaticResource MutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis" MaxWidth="110"/>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <!-- Room Tiles Strip -->
+            <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" VerticalAlignment="Center">
+              <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="IN-ROOM TILES:" Foreground="{StaticResource MutedBrush}" FontSize="9" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <StackPanel x:Name="MainQuickTilePanel" Orientation="Horizontal" VerticalAlignment="Center"/>
+              </StackPanel>
+            </ScrollViewer>
+
+            <!-- Quick Action Buttons -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+              <Button Content="Empty · $00" Tag="00" Click="LevelPreset_Click" Padding="7,4" FontSize="10"/>
+              <Button Content="Wall · $21" Tag="21" Click="LevelPreset_Click" Padding="7,4" FontSize="10"/>
+              <Button Content="Clear Room" Click="LevelClearRoom_Click" Padding="7,4" FontSize="10" ToolTip="Reset current room to empty"/>
+            </StackPanel>
+          </Grid>
+
+          <!-- Level Footer: Exolon -->
+          <Grid x:Name="ExolonLevelFooter" Grid.Row="2" Margin="0,10,0,0" Visibility="Collapsed">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto"/>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Active Entity Stamp Brush Card -->
+            <Border Grid.Column="0" Background="#111722" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="5" Padding="8,4" Margin="0,0,12,0">
+              <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Border Width="32" Height="32" Background="#141F2E" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="3" Margin="0,0,8,0">
+                  <Grid>
+                    <TextBlock x:Name="ExolonActiveBrushBadge" Text="$05" FontWeight="Bold" FontSize="11" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+                    <Image x:Name="ExolonActiveBrushImage" Width="26" Height="26" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                  </Grid>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                  <StackPanel Orientation="Horizontal">
+                    <TextBlock x:Name="ExolonActiveBrushHex" Text="$05" FontWeight="Bold" FontSize="11" Foreground="{StaticResource AccentBrush}" Margin="0,0,6,0"/>
+                    <Border x:Name="ExolonActiveBrushCategoryBorder" Background="#502B35" CornerRadius="3" Padding="4,1">
+                      <TextBlock x:Name="ExolonActiveBrushCategoryText" Text="Enemies" FontSize="9" FontWeight="SemiBold" Foreground="#FF8888"/>
+                    </Border>
+                  </StackPanel>
+                  <TextBlock x:Name="ExolonActiveBrushName" Text="Swivel Gun Turret" Foreground="{StaticResource MutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis" MaxWidth="110"/>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <!-- In-Room Entities Quick Strip -->
+            <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" VerticalAlignment="Center">
+              <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="IN-ROOM PARTS:" Foreground="{StaticResource MutedBrush}" FontSize="9" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <StackPanel x:Name="ExolonQuickPartsPanel" Orientation="Horizontal" VerticalAlignment="Center"/>
+              </StackPanel>
+            </ScrollViewer>
+
+            <!-- Quick Action Buttons -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+              <Button Content="➕ Add Entity" Click="ExolonAddEntity_Click" Style="{StaticResource PrimaryButton}" Padding="8,4" FontSize="10" Margin="6,0,0,0" ToolTip="Add entity to current room"/>
+            </StackPanel>
+          </Grid>
+
+          <!-- Level Footer: Universal (Rex / Myth) -->
+          <Grid x:Name="UniversalLevelFooter" Grid.Row="2" Margin="0,10,0,0" Visibility="Collapsed">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto"/>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Active Sprite Brush Card -->
+            <Border Grid.Column="0" Background="#111722" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="5" Padding="8,4" Margin="0,0,12,0">
+              <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Border Width="32" Height="32" Background="#141F2E" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="3" Margin="0,0,8,0">
+                  <Image x:Name="UniversalActiveBrushImage" Width="28" Height="28" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                  <StackPanel Orientation="Horizontal">
+                    <TextBlock x:Name="UniversalActiveBrushId" Text="REX_01" FontWeight="Bold" FontSize="11" Foreground="{StaticResource AccentBrush}" Margin="0,0,6,0"/>
+                    <Border x:Name="UniversalActiveBrushCategoryBorder" Background="#1A2D25" CornerRadius="3" Padding="4,1">
+                      <TextBlock x:Name="UniversalActiveBrushCategoryText" Text="Characters" FontSize="9" FontWeight="SemiBold" Foreground="#42D392"/>
+                    </Border>
+                  </StackPanel>
+                  <TextBlock x:Name="UniversalActiveBrushName" Text="Rex Cyber Warrior" Foreground="{StaticResource MutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis" MaxWidth="110"/>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <!-- In-Scene Sprites Quick Strip -->
+            <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" VerticalAlignment="Center">
+              <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="IN-SCENE ACTORS:" Foreground="{StaticResource MutedBrush}" FontSize="9" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <StackPanel x:Name="UniversalQuickSpritesPanel" Orientation="Horizontal" VerticalAlignment="Center"/>
+              </StackPanel>
+            </ScrollViewer>
+
+            <!-- Quick Action Buttons -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+              <Button Content="➕ Stamp at Center" Click="UniversalAddEntity_Click" Style="{StaticResource PrimaryButton}" Padding="8,4" FontSize="10" Margin="6,0,0,0"/>
+              <Button Content="Clear Scene" Click="UniversalClearEntities_Click" Padding="7,4" FontSize="10" Margin="4,0,0,0"/>
+            </StackPanel>
+          </Grid>
+        </Grid>
+      </Grid>
+
+      <!-- RIGHT SIDEBAR: Tools, AI Studio, Level Lab, Play -->
+      <Border x:Name="ToolsPanel" Grid.Column="2" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1,0,0,0">
+        <TabControl x:Name="ToolsTabs" Margin="10" SelectionChanged="ToolsTabs_SelectionChanged">
+          
+          <!-- SCREEN TOOLS TAB -->
+          <TabItem Header="SCREEN">
+            <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="6,12,6,8">
+              <TextBlock Text="Native tools" FontSize="19" FontWeight="SemiBold"/>
+              <TextBlock Text="All imports are reduced to real ULA colour rules." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,14"/>
+              <WrapPanel Margin="0,0,0,12">
+                <Button x:Name="ImportButton" Content="Import PNG…" Click="ImportImage_Click" IsEnabled="False"/>
+                <Button x:Name="ExportButton" Content="Export PNG…" Click="ExportImage_Click" IsEnabled="False"/>
+              </WrapPanel>
+              <WrapPanel Margin="0,0,0,16">
+                <Button x:Name="ClearButton" Content="Clear screen" Click="ClearScreen_Click" IsEnabled="False"/>
+              </WrapPanel>
+              <GroupBox Header="OFFLINE PIXEL LAB">
+                <StackPanel>
+                  <TextBlock Text="Instant local cleanup — no account, upload, or API cost. Each pass can be undone." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,0,0,9"/>
+                  <WrapPanel>
+                    <Button x:Name="PolishButton" Content="Auto polish" Click="AutoPolish_Click" IsEnabled="False" ToolTip="Remove isolated specks and close obvious one-pixel gaps"/>
+                    <Button x:Name="BoostButton" Content="Boost colours" Click="BoostColours_Click" IsEnabled="False" ToolTip="Enable BRIGHT on non-black attribute cells"/>
+                  </WrapPanel>
+                </StackPanel>
+              </GroupBox>
+              <GroupBox Header="TEXT REPLACEMENT">
+                <StackPanel>
+                  <TextBlock Text="Select a detected string on the left. Replacements are padded and cannot exceed the original byte length." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,0,0,9"/>
+                  <TextBox x:Name="ReplacementBox" IsEnabled="False"/>
+                  <TextBlock x:Name="ReplacementLimitText" Text="No string selected" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,5,0,9"/>
+                  <Button x:Name="ReplaceButton" Content="Replace bytes" Click="ReplaceText_Click" IsEnabled="False" HorizontalAlignment="Left"/>
+                </StackPanel>
+              </GroupBox>
+              <GroupBox Header="HARDWARE NOTES">
+                <TextBlock Text="A Spectrum attribute cell can use one ink, one paper, and one shared BRIGHT bit. FLASH attributes are previewed automatically. Import and AI conversion optimise each 8×8 cell independently." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
+              </GroupBox>
+            </StackPanel></ScrollViewer>
+          </TabItem>
+
+          <!-- SPRITES TAB -->
+          <TabItem x:Name="SpritesTab" Header="SPRITES">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+              <StackPanel Margin="6,12,6,8">
+                <TextBlock x:Name="SpritesTabTitle" Text="Native Sprite Bank" FontSize="19" FontWeight="SemiBold"/>
+                <TextBlock x:Name="SpritesTabSubtitle" Text="Browse authentic graphics from current game" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,12"/>
+
+                <!-- Category Filters -->
+                <WrapPanel x:Name="SpritesFilterPanel" Margin="0,0,0,8">
+                  <Button Content="All" Click="SpriteTabFilter_Click" Tag="All" Padding="6,3" FontSize="10"/>
+                  <Button Content="Characters" Click="SpriteTabFilter_Click" Tag="Characters" Padding="6,3" FontSize="10" Margin="2,0,0,0"/>
+                  <Button Content="Enemies" Click="SpriteTabFilter_Click" Tag="Enemies" Padding="6,3" FontSize="10" Margin="2,0,0,0"/>
+                  <Button Content="Hazards" Click="SpriteTabFilter_Click" Tag="Hazards" Padding="6,3" FontSize="10" Margin="2,0,0,0"/>
+                  <Button Content="Interactive" Click="SpriteTabFilter_Click" Tag="Interactive" Padding="6,3" FontSize="10" Margin="2,0,0,0"/>
+                  <Button Content="Terrain" Click="SpriteTabFilter_Click" Tag="Terrain" Padding="6,3" FontSize="10" Margin="2,0,0,0"/>
+                </WrapPanel>
+
+                <!-- Search Box -->
+                <TextBox x:Name="SpriteTabSearchBox" TextChanged="SpriteTabSearch_TextChanged" Margin="0,0,0,8" FontSize="11" ToolTip="Search sprites by name or ID"/>
+
+                <!-- Sprites Grid ScrollViewer -->
+                <Border Background="#070A0F" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="4">
+                  <ScrollViewer MaxHeight="240" VerticalScrollBarVisibility="Auto">
+                    <WrapPanel x:Name="SpritesTabCatalogPanel"/>
+                  </ScrollViewer>
+                </Border>
+                <TextBlock x:Name="SpritesTabSummary" Text="Showing 0 sprites" Foreground="{StaticResource MutedBrush}" FontSize="9" Margin="2,4,0,6"/>
+                <Button Content="🔬 Open Visual Memory / ROM Ripper..." Click="RomRipper_Click" Margin="0,0,0,10" Padding="8,5" Background="#1D2A42" Foreground="#35D0BA" BorderBrush="#35D0BA" FontWeight="SemiBold" ToolTip="Scrub raw 48K/128K memory to find and extract new sprites"/>
+
+                <!-- Inspector Card -->
+                <GroupBox Header="SPRITE INSPECTOR">
+                  <StackPanel x:Name="SpriteTabInspectorPanel">
+                    <Grid Margin="0,4,0,6">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                      </Grid.ColumnDefinitions>
+                      <Border Width="64" Height="64" Background="#0C1018" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4" Margin="0,0,10,0">
+                        <Image x:Name="SpriteTabInspectorImage" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                      </Border>
+                      <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock x:Name="SpriteTabInspectorId" Text="SELECT A SPRITE" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" FontSize="12"/>
+                        <TextBlock x:Name="SpriteTabInspectorName" Text="Click any sprite above to inspect" Foreground="White" FontSize="11" Margin="0,2,0,2"/>
+                        <TextBlock x:Name="SpriteTabInspectorDetails" Text="" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                      </StackPanel>
+                    </Grid>
+                    <WrapPanel Margin="0,4,0,0">
+                      <Button x:Name="SpriteTabCopyButton" Content="📋 Copy to Stamp Brush" Click="SpriteTabCopy_Click" Style="{StaticResource PrimaryButton}" Padding="8,4" FontSize="10" IsEnabled="False"/>
+                      <Button x:Name="SpriteTabExportPngButton" Content="📸 Export PNG" Click="SpriteTabExportPng_Click" Padding="8,4" FontSize="10" Margin="6,0,0,0" IsEnabled="False"/>
+                      <Button Content="⚡ Open Sprite Bank..." Click="SpriteBank_Click" Padding="8,4" FontSize="10" Margin="6,0,0,0"/>
+                    </WrapPanel>
+                  </StackPanel>
+                </GroupBox>
+              </StackPanel>
+            </ScrollViewer>
+          </TabItem>
+
+          <!-- AI STUDIO TAB -->
+          <TabItem Header="AI STUDIO">
+            <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="6,12,6,8">
+              <TextBlock Text="Prompt the pixels" FontSize="19" FontWeight="SemiBold"/>
+              <TextBlock Text="Google Gemini &amp; Imagen 3 reimagine the artwork using your free Google AI Studio key; Speccy Studio then quantizes it back to an authentic 256×192 Spectrum screen." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,14"/>
+              <TextBlock Text="Quick direction" FontSize="11" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,6"/>
+              <WrapPanel Margin="0,0,0,12">
+                <Button Content="Faithful remaster" Click="AiPreset_Click" Tag="Improve clarity, composition and silhouettes while preserving the original subjects, title layout and authentic 1980s ZX Spectrum pixel-art character."/>
+                <Button Content="Clean pixel art" Click="AiPreset_Click" Tag="Clean noisy edges, strengthen readable shapes and lettering, and preserve the current design with crisp authentic ZX Spectrum pixel art."/>
+                <Button Content="New scene" Click="AiPreset_Click" Tag="Reimagine this as a dramatic new game loading scene inspired by the existing artwork, with bold readable silhouettes and authentic ZX Spectrum pixel art."/>
+                <Button Content="Title treatment" Click="AiPreset_Click" Tag="Redesign the game title to be more legible and dramatic while keeping the rest of the picture recognisable and authentically ZX Spectrum."/>
+              </WrapPanel>
+              <TextBlock Text="Describe the change" FontSize="11" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,6"/>
+              <TextBox x:Name="AiPromptBox" Height="128" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Text="Make the title more dramatic, improve the character silhouettes, and retain an authentic 1980s Spectrum pixel-art style."/>
+              <CheckBox x:Name="AiConfirmCheck" Content="Send prompt to Google AI Studio (Free API key)" IsChecked="True" Margin="0,12,0,12"/>
+              <TextBlock Text="The current screen is kept in Undo before the AI result is applied." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" FontSize="10" Margin="0,0,0,10"/>
+              <WrapPanel>
+                <Button x:Name="AiRunButton" Content="Transform screen" Click="AiRun_Click" Style="{StaticResource PrimaryButton}" IsEnabled="False"/>
+                <Button x:Name="AiKeyButton" Content="Configure key…" Click="AiKey_Click"/>
+              </WrapPanel>
+              <Border Background="#101923" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="5" Padding="11" Margin="0,16,0,0">
+                <StackPanel>
+                  <TextBlock x:Name="AiKeyStatusText" Text="API key not configured" FontWeight="SemiBold"/>
+                  <TextBlock Text="Keys entered here are held securely by Windows Credential Manager, not in the game file or settings JSON." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" FontSize="11" Margin="0,4,0,0"/>
+                </StackPanel>
+              </Border>
+              <ProgressBar x:Name="AiProgress" Height="4" IsIndeterminate="True" Visibility="Collapsed" Margin="0,18,0,0" Foreground="{StaticResource AccentBrush}"/>
+            </StackPanel></ScrollViewer>
+          </TabItem>
+
+          <!-- LEVEL LAB TAB -->
+          <TabItem x:Name="LevelLabTab" Header="LEVEL LAB">
+            <ScrollViewer VerticalScrollBarVisibility="Auto"><Grid Margin="6,12,6,8">
+              
+              <!-- If game is unavailable -->
+              <Grid x:Name="LevelUnavailablePanel">
+                <StackPanel>
+                  <TextBlock Text="Game-specific level editing" FontSize="19" FontWeight="SemiBold"/>
+                  <TextBlock x:Name="LevelUnavailableText" Text="Open the Cybernoid II (1988) 128K TAP to activate this lab." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,6,0,16"/>
+                  <Border Background="#101923" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="5" Padding="11">
+                    <TextBlock Text="Level Lab only enables a profile after its room parser, compression limits and collision behaviour have been verified. More games can gain profiles without weakening that safety rule." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" FontSize="11"/>
+                  </Border>
+                </StackPanel>
+              </Grid>
+
+              <!-- Main Level Workshop Panel -->
+              <StackPanel x:Name="LevelEditorPanel" Visibility="Collapsed">
+                <TextBlock Text="Cybernoid II · Level Workshop" FontSize="18" FontWeight="SemiBold"/>
+                <TextBlock x:Name="LevelMatchText" Foreground="{StaticResource AccentBrush}" TextWrapping="Wrap" FontSize="10" Margin="0,3,0,6"/>
+
+                <!-- 1. World Map / Level Mini-Map -->
+                <GroupBox Header="WORLD MAP / LEVEL ROOMS">
+                  <StackPanel>
+                    <TextBlock x:Name="LevelMapText" Text="Level map position" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="1,0,0,6"/>
+                    <Border Background="#06080D" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="4" Margin="0,0,0,8">
+                      <UniformGrid x:Name="LevelWorldMapGrid" Columns="5"/>
+                    </Border>
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                      </Grid.ColumnDefinitions>
+                      <ComboBox x:Name="LevelRoomBox" SelectionChanged="LevelRoom_Changed" ToolTip="Select Room"/>
+                      <WrapPanel Grid.Column="1" Margin="6,0,0,0">
+                        <Button x:Name="LevelLeftButton" Content="◀" Tag="Left" Click="LevelNavigate_Click" Width="26" Height="26" Padding="0"/>
+                        <Button x:Name="LevelUpButton" Content="▲" Tag="Up" Click="LevelNavigate_Click" Width="26" Height="26" Padding="0" Margin="2,0,0,0"/>
+                        <Button x:Name="LevelDownButton" Content="▼" Tag="Down" Click="LevelNavigate_Click" Width="26" Height="26" Padding="0" Margin="2,0,0,0"/>
+                        <Button x:Name="LevelRightButton" Content="▶" Tag="Right" Click="LevelNavigate_Click" Width="26" Height="26" Padding="0" Margin="2,0,0,0"/>
+                      </WrapPanel>
+                    </Grid>
+                  </StackPanel>
+                </GroupBox>
+
+                <!-- 2. Visual Tile Atlas Browser -->
+                <GroupBox Header="VISUAL TILE ATLAS">
+                  <StackPanel>
+                    <!-- Category filter buttons -->
+                    <WrapPanel Margin="0,0,0,6">
+                      <Button Content="Room" Click="TileFilter_Click" Tag="Room" Padding="6,3" FontSize="9"/>
+                      <Button Content="Terrain" Click="TileFilter_Click" Tag="Terrain" Padding="6,3" FontSize="9"/>
+                      <Button Content="Platforms" Click="TileFilter_Click" Tag="Platforms" Padding="6,3" FontSize="9"/>
+                      <Button Content="Hazards" Click="TileFilter_Click" Tag="Hazards" Padding="6,3" FontSize="9"/>
+                      <Button Content="Markers" Click="TileFilter_Click" Tag="Markers" Padding="6,3" FontSize="9"/>
+                      <Button Content="All (256)" Click="TileFilter_Click" Tag="All" Padding="6,3" FontSize="9"/>
+                    </WrapPanel>
+                    <TextBox x:Name="TileSearchBox" TextChanged="TileSearch_TextChanged" Margin="0,0,0,6" FontSize="10" ToolTip="Filter tiles by hex, name, or role"/>
+                    
+                    <Border Background="#070A0F" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="4">
+                      <ScrollViewer MaxHeight="160" VerticalScrollBarVisibility="Auto">
+                        <WrapPanel x:Name="LevelTileAtlasPanel"/>
+                      </ScrollViewer>
+                    </Border>
+                    
+                    <TextBlock x:Name="LevelVisualSummaryText" Text="Click any tile in the atlas to load into the brush" Foreground="{StaticResource MutedBrush}" FontSize="9" Margin="1,5,0,0"/>
+                  </StackPanel>
+                </GroupBox>
+
+                <!-- 3. Current Cell Inspection -->
+                <GroupBox Header="SELECTED CELL DETAILS">
+                  <StackPanel>
+                    <TextBlock x:Name="LevelCellText" Text="Click a cell in the main canvas" Foreground="{StaticResource MutedBrush}" FontSize="10" TextWrapping="Wrap" Margin="1,0,0,6"/>
+                    <Border Background="#101923" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="6" Margin="0,0,0,6">
+                      <StackPanel>
+                        <TextBlock x:Name="LevelRoleText" Text="No cell selected" FontWeight="SemiBold" FontSize="11"/>
+                        <TextBlock x:Name="LevelRoleDetailText" Text="Hover or click any cell on the main canvas." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" FontSize="10" Margin="0,2,0,0"/>
+                      </StackPanel>
+                    </Border>
+                    <Grid>
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <TextBox x:Name="LevelTileValueBox" Text="00" FontFamily="Cascadia Mono" ToolTip="Hexadecimal tile ID (00-FF)"/>
+                      <Button x:Name="LevelApplyButton" Grid.Column="1" Content="Paint tile" Click="LevelApply_Click" Style="{StaticResource PrimaryButton}" Margin="6,0,0,0" IsEnabled="False" Padding="8,4"/>
+                    </Grid>
+                  </StackPanel>
+                </GroupBox>
+
+                <!-- 4. Verified Marker Presets -->
+                <GroupBox Header="GAMEPLAY ACTOR STAMPS">
+                  <StackPanel>
+                    <TextBlock Text="Verified native runtime entities (enemies, spawners, gates)" Foreground="{StaticResource MutedBrush}" FontSize="9" Margin="0,0,0,6"/>
+                    <Grid Margin="0,0,0,8">
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <ComboBox x:Name="LevelGameplayBox" DisplayMemberPath="DisplayName"/>
+                      <Button Grid.Column="1" Content="Use stamp" Click="LevelGameplayPreset_Click" Margin="6,0,0,0" Padding="8,4"/>
+                    </Grid>
+                    <WrapPanel>
+                      <Button Content="H-Patrol ($E8)" Tag="E8" Click="LevelDirectMarker_Click" Padding="5,3" FontSize="9"/>
+                      <Button Content="V-Patrol ($F4)" Tag="F4" Click="LevelDirectMarker_Click" Padding="5,3" FontSize="9"/>
+                      <Button Content="4-Way ($F8)" Tag="F8" Click="LevelDirectMarker_Click" Padding="5,3" FontSize="9"/>
+                      <Button Content="Spawner ($EC)" Tag="EC" Click="LevelDirectMarker_Click" Padding="5,3" FontSize="9"/>
+                      <Button Content="End Gate ($61)" Tag="61" Click="LevelDirectMarker_Click" Padding="5,3" FontSize="9"/>
+                    </WrapPanel>
+                  </StackPanel>
+                </GroupBox>
+
+                <!-- Hidden fallback bindings to keep full backward compatibility -->
+                <StackPanel Visibility="Collapsed">
+                  <UniformGrid x:Name="LevelGrid" Rows="10" Columns="16"/>
+                  <WrapPanel x:Name="LevelTilePalette"/>
+                  <TextBlock x:Name="LevelBudgetText"/>
+                  <TextBlock x:Name="LevelMarkerSummaryText"/>
+                  <CheckBox x:Name="LevelShowArtCheck" IsChecked="True"/>
+                  <Button x:Name="LevelUndoButton" Click="LevelUndo_Click"/>
+                </StackPanel>
+
+                <!-- 5. Offline Combat Composer -->
+                <Border Background="#101923" BorderBrush="#355D79" BorderThickness="1" CornerRadius="5" Padding="10" Margin="0,0,0,10">
+                  <StackPanel>
+                    <TextBlock Text="OFFLINE LEVEL COMPOSER" Foreground="#72BDE8" FontWeight="Bold" FontSize="10"/>
+                    <TextBlock Text="Creates a reversible combat-layer proposal on empty cells. Geometry, exits, and collision stay intact." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" FontSize="10" Margin="0,3,0,8"/>
+                    <Grid Margin="0,0,0,8">
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="70"/></Grid.ColumnDefinitions>
+                      <ComboBox x:Name="LevelComposerStyleBox"/>
+                      <TextBox x:Name="LevelComposerSeedBox" Grid.Column="1" Text="1988" FontFamily="Cascadia Mono" Margin="6,0,0,0" ToolTip="Seed"/>
+                    </Grid>
+                    <WrapPanel Margin="0,0,0,6">
+                      <Button Content="Proposal" Click="LevelCompose_Click" Padding="7,4" FontSize="10"/>
+                      <Button Content="Linked scene" Click="LevelComposeScene_Click" Padding="7,4" FontSize="10"/>
+                      <TextBox x:Name="LevelSceneLengthBox" Text="3" FontFamily="Cascadia Mono" Width="30" Margin="2,0,0,0" ToolTip="Rooms (2-5)"/>
+                    </WrapPanel>
+                    <WrapPanel Margin="0,0,0,6">
+                      <Button x:Name="LevelApplyProposalButton" Content="Apply" Click="LevelApplyProposal_Click" Style="{StaticResource PrimaryButton}" IsEnabled="False" Padding="8,4" FontSize="10"/>
+                      <Button x:Name="LevelDiscardProposalButton" Content="Discard" Click="LevelDiscardProposal_Click" IsEnabled="False" Padding="8,4" FontSize="10"/>
+                    </WrapPanel>
+                    <TextBlock x:Name="LevelProposalText" Text="Choose a style and generate a reviewable proposal." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" FontSize="9"/>
+                  </StackPanel>
+                </Border>
+
+                <!-- 6. AI Level Director -->
+                <Border Background="#1A1324" BorderBrush="#7945A5" BorderThickness="1" CornerRadius="5" Padding="10" Margin="0,0,0,10">
+                  <StackPanel>
+                    <TextBlock Text="AI LEVEL DIRECTOR" Foreground="#DAA5FF" FontWeight="Bold" FontSize="10"/>
+                    <TextBlock Text="Describe the encounter. Gemini 2.0 Flash picks style, pacing and scene length; the local composer safely creates the verified proposal." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" FontSize="10" Margin="0,3,0,6"/>
+                    <TextBox x:Name="LevelAiPromptBox" Height="60" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Text="Create a tense three-room ascent: start readable, build pressure, then finish with a hard but fair finale."/>
+                    <CheckBox x:Name="LevelAiConfirmCheck" Content="Send prompt to Google AI Studio (Free API key)" IsChecked="True" FontSize="9" Margin="0,6,0,6"/>
+                    <WrapPanel Margin="0,0,0,6">
+                      <Button x:Name="LevelAiGenerateButton" Content="Direct scene" Click="LevelAiCompose_Click" Style="{StaticResource PrimaryButton}" Padding="7,4" FontSize="10"/>
+                      <Button x:Name="LevelAiRoomButton" Content="AI Room 06" Click="LevelAiRoom_Click" Padding="7,4" FontSize="10"/>
+                      <Button x:Name="LevelVerifiedRoomSixButton" Content="Room 06 remix" Click="LevelVerifiedRoomSix_Click" Padding="7,4" FontSize="10"/>
+                    </WrapPanel>
+                    <TextBlock x:Name="LevelAiDirectionText" Text="Review proposals on the canvas before applying." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" FontSize="9"/>
+                    <ProgressBar x:Name="LevelAiProgress" Height="3" IsIndeterminate="True" Visibility="Collapsed" Margin="0,8,0,0" Foreground="#DAA5FF"/>
+                  </StackPanel>
+                </Border>
+
+                <!-- Safety Note -->
+                <Border Background="#152A27" BorderBrush="#24695F" BorderThickness="1" CornerRadius="5" Padding="9">
+                  <StackPanel>
+                    <TextBlock Text="SOURCE TAPE PROTECTED" Foreground="{StaticResource AccentBrush}" FontWeight="Bold" FontSize="10"/>
+                    <TextBlock Text="Edits must fit the compressed byte budget. Save as… creates a checksum-correct copy." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" FontSize="9" Margin="0,3,0,0"/>
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+
+              <!-- Exolon Level Workshop Panel -->
+              <StackPanel x:Name="ExolonEditorPanel" Visibility="Collapsed">
+                <TextBlock Text="Exolon · Level Workshop" FontSize="18" FontWeight="SemiBold"/>
+                <TextBlock x:Name="ExolonMatchText" Foreground="{StaticResource AccentBrush}" TextWrapping="Wrap" FontSize="10" Margin="0,3,0,6" Text="Exolon (1987 Hewson) · 125 screens across 5 zones verified"/>
+
+                <!-- 1. Zone Selector & Room Navigation -->
+                <GroupBox Header="ZONES &amp; SCREENS (125 TOTAL)">
+                  <StackPanel>
+                    <TextBlock Text="Quick Zone Jump (25 screens each):" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,0,0,4"/>
+                    <UniformGrid Columns="5" Margin="0,0,0,8">
+                      <Button Content="Zone 1" Tag="0" Click="ExolonZone_Click" Padding="4,3" FontSize="10" Margin="1"/>
+                      <Button Content="Zone 2" Tag="25" Click="ExolonZone_Click" Padding="4,3" FontSize="10" Margin="1"/>
+                      <Button Content="Zone 3" Tag="50" Click="ExolonZone_Click" Padding="4,3" FontSize="10" Margin="1"/>
+                      <Button Content="Zone 4" Tag="75" Click="ExolonZone_Click" Padding="4,3" FontSize="10" Margin="1"/>
+                      <Button Content="Zone 5" Tag="100" Click="ExolonZone_Click" Padding="4,3" FontSize="10" Margin="1"/>
+                    </UniformGrid>
+
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                      </Grid.ColumnDefinitions>
+                      <ComboBox x:Name="ExolonRoomBox" SelectionChanged="ExolonRoom_Changed" ToolTip="Select Screen (0..124)"/>
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="6,0,0,0">
+                        <Button Content="◀ Prev" Click="ExolonPrevRoom_Click" Padding="6,3" FontSize="10" ToolTip="Previous Screen"/>
+                        <Button Content="Next ▶" Click="ExolonNextRoom_Click" Padding="6,3" FontSize="10" Margin="3,0,0,0" ToolTip="Next Screen"/>
+                      </StackPanel>
+                    </Grid>
+                  </StackPanel>
+                </GroupBox>
+
+                <!-- 2. Visual Entity & Parts Catalog -->
+                <GroupBox Header="VISUAL ENTITY &amp; PARTS CATALOG">
+                  <StackPanel>
+                    <WrapPanel Margin="0,0,0,6">
+                      <Button Content="All (57)" Click="ExolonCatalogFilter_Click" Tag="All" Padding="5,3" FontSize="9"/>
+                      <Button Content="Enemies" Click="ExolonCatalogFilter_Click" Tag="Enemies" Padding="5,3" FontSize="9"/>
+                      <Button Content="Interactive" Click="ExolonCatalogFilter_Click" Tag="Interactive" Padding="5,3" FontSize="9"/>
+                      <Button Content="Structures" Click="ExolonCatalogFilter_Click" Tag="Structures" Padding="5,3" FontSize="9"/>
+                      <Button Content="Hazards" Click="ExolonCatalogFilter_Click" Tag="Hazards" Padding="5,3" FontSize="9"/>
+                      <Button Content="Scenery" Click="ExolonCatalogFilter_Click" Tag="Scenery" Padding="5,3" FontSize="9"/>
+                    </WrapPanel>
+                    <TextBox x:Name="ExolonSearchBox" TextChanged="ExolonSearch_TextChanged" Margin="0,0,0,6" FontSize="10" ToolTip="Filter entities by hex or name"/>
+
+                    <Border Background="#070A0F" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="4">
+                      <ScrollViewer MaxHeight="180" VerticalScrollBarVisibility="Auto">
+                        <WrapPanel x:Name="ExolonVisualCatalogPanel"/>
+                      </ScrollViewer>
+                    </Border>
+
+                    <TextBlock x:Name="ExolonVisualCatalogSummaryText" Text="Click any part to load into the stamp brush, then click on the canvas to place it" Foreground="{StaticResource MutedBrush}" FontSize="9" Margin="1,5,0,0"/>
+                  </StackPanel>
+                </GroupBox>
+
+                <!-- 3. Room Descriptor Budget & Info -->
+                <GroupBox Header="ROOM DESCRIPTOR &amp; CAPACITY">
+                  <StackPanel>
+                    <TextBlock x:Name="ExolonBudgetText" Text="Capacity: 45 bytes (Entities: 14 · 43 bytes)" Foreground="#72BDE8" FontSize="11" FontWeight="SemiBold"/>
+                    <ProgressBar x:Name="ExolonBudgetBar" Height="6" Margin="0,4,0,4" Foreground="{StaticResource AccentBrush}" Background="#101923"/>
+                    <TextBlock Text="Each entity descriptor takes 3 bytes (Row, Col, Type) + 1 terminator byte ($FF). Edits must not exceed capacity." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" FontSize="9"/>
+                  </StackPanel>
+                </GroupBox>
+
+                <!-- 3. Entities in Current Room -->
+                <GroupBox Header="ROOM ENTITIES &amp; ACTORS">
+                  <StackPanel>
+                    <ListBox x:Name="ExolonEntitiesList" Height="140" SelectionChanged="ExolonEntitiesList_SelectionChanged" FontFamily="Cascadia Mono" FontSize="11">
+                      <ListBox.ItemTemplate>
+                        <DataTemplate>
+                          <StackPanel Orientation="Horizontal" Margin="2">
+                            <Border Background="#253545" CornerRadius="3" Padding="3,1" Margin="0,0,6,0">
+                              <TextBlock Text="{Binding TypeId, StringFormat='${0:X2}'}" Foreground="{StaticResource AccentBrush}" FontSize="10" FontWeight="Bold"/>
+                            </Border>
+                            <TextBlock Text="{Binding DisplayText}" FontSize="11" VerticalAlignment="Center"/>
+                          </StackPanel>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <WrapPanel Margin="0,6,0,0">
+                      <Button x:Name="ExolonAddEntityButton" Content="➕ Add Entity" Click="ExolonAddEntity_Click" Padding="6,3" FontSize="10"/>
+                      <Button x:Name="ExolonDeleteEntityButton" Content="✖ Delete" Click="ExolonDeleteEntity_Click" IsEnabled="False" Padding="6,3" FontSize="10" Margin="4,0,0,0"/>
+                    </WrapPanel>
+                  </StackPanel>
+                </GroupBox>
+
+                <!-- 4. Selected Entity Inspector -->
+                <GroupBox Header="ENTITY INSPECTOR &amp; EDIT">
+                  <StackPanel x:Name="ExolonInspectorPanel" IsEnabled="False">
+                    <Grid Margin="0,0,0,6">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                      </Grid.ColumnDefinitions>
+                      <TextBlock Text="Row (0-19):" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                      <TextBox x:Name="ExolonRowBox" Grid.Column="1" Text="10" FontFamily="Cascadia Mono" FontSize="11"/>
+                      <TextBlock Text="Col (0-31):" Grid.Column="2" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                      <TextBox x:Name="ExolonColBox" Grid.Column="3" Text="15" FontFamily="Cascadia Mono" FontSize="11"/>
+                    </Grid>
+
+                    <TextBlock Text="Entity Type Preset:" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,0,0,4"/>
+                    <ComboBox x:Name="ExolonTypePresetBox" DisplayMemberPath="DisplayText" Margin="0,0,0,8"/>
+
+                    <Button x:Name="ExolonApplyEntityButton" Content="Apply Entity Edit" Click="ExolonApplyEntity_Click" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Padding="8,4" FontSize="10"/>
+                  </StackPanel>
+                </GroupBox>
+
+                <!-- 5. AI Level Architect (Gemini 2.0) -->
+                <GroupBox Header="AI LEVEL ARCHITECT (GEMINI 2.0)">
+                  <StackPanel>
+                    <TextBlock Text="Describe an Exolon screen theme, layout or defense setup:" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" FontSize="10" Margin="0,0,0,4"/>
+                    <TextBox x:Name="ExolonAiPromptBox" Height="48" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Text="A heavily fortified alien bunker with swivel turrets guarding an energy pod and raised platforms." FontSize="10"/>
+                    <CheckBox x:Name="ExolonAiConfirmCheck" Content="Send prompt to Gemini AI Studio (Free API key)" IsChecked="True" FontSize="9" Margin="0,5,0,5"/>
+                    <WrapPanel Margin="0,0,0,4">
+                      <Button x:Name="ExolonAiDraftButton" Content="✨ AI Draft Room" Click="ExolonAiDraft_Click" Style="{StaticResource PrimaryButton}" Padding="7,4" FontSize="10"/>
+                      <Button Content="Fortress" Click="ExolonAiPreset_Click" Tag="Fortress" Padding="5,3" FontSize="9" Margin="3,0,0,0" ToolTip="Alien fortress walls, heavy cannons, bunkers"/>
+                      <Button Content="Minefield" Click="ExolonAiPreset_Click" Tag="Minefield" Padding="5,3" FontSize="9" Margin="3,0,0,0" ToolTip="Underground mines, floating spores, laser barriers"/>
+                      <Button Content="Alien Swamp" Click="ExolonAiPreset_Click" Tag="Alien Swamp" Padding="5,3" FontSize="9" Margin="3,0,0,0" ToolTip="Acid swamp basin, tendril traps, crystals"/>
+                      <Button Content="Silo Base" Click="ExolonAiPreset_Click" Tag="Silo Base" Padding="5,3" FontSize="9" Margin="3,0,0,0" ToolTip="Rocket silos, launch missiles, radar dish"/>
+                    </WrapPanel>
+                    <ProgressBar x:Name="ExolonAiProgress" Height="3" IsIndeterminate="True" Visibility="Collapsed" Margin="0,3,0,5" Foreground="#DAA5FF"/>
+
+                    <!-- Proposal Review Panel -->
+                    <Border x:Name="ExolonAiProposalPanel" Visibility="Collapsed" Background="#180C26" BorderBrush="#8A42DE" BorderThickness="1" CornerRadius="4" Padding="6" Margin="0,2,0,0">
+                      <StackPanel>
+                        <TextBlock x:Name="ExolonAiProposalSummary" Text="AI Draft Ready" Foreground="#DAA5FF" FontWeight="SemiBold" TextWrapping="Wrap" FontSize="10" Margin="0,0,0,5"/>
+                        <WrapPanel>
+                          <Button x:Name="ExolonAiApplyButton" Content="✔ Apply AI Layout" Click="ExolonAiApply_Click" Style="{StaticResource PrimaryButton}" Padding="7,4" FontSize="10"/>
+                          <Button x:Name="ExolonAiDiscardButton" Content="✖ Discard" Click="ExolonAiDiscard_Click" Padding="7,4" FontSize="10" Margin="4,0,0,0"/>
+                        </WrapPanel>
+                      </StackPanel>
+                    </Border>
+                  </StackPanel>
+                </GroupBox>
+
+                <!-- 6. Quick Export / Actions -->
+                <GroupBox Header="ACTIONS">
+                  <WrapPanel>
+                    <Button Content="📸 Export Room PNG" Click="Screenshot_Click" Padding="6,3" FontSize="10" Margin="0,0,4,0"/>
+                    <Button Content="↺ Reset to Authentic" Click="ExolonResetRoom_Click" Padding="6,3" FontSize="10" Margin="0,0,4,0" ToolTip="Reset current room to original 1987 Hewson authentic layout"/>
+                    <Button Content="▶ Playtest in Emulator (F5)" Click="Play_Click" Style="{StaticResource PrimaryButton}" Padding="6,3" FontSize="10"/>
+                  </WrapPanel>
+                </GroupBox>
+              </StackPanel>
+
+              <!-- Universal / Rex / Myth Level & Sprite Workshop Panel -->
+              <StackPanel x:Name="UniversalEditorPanel" Visibility="Collapsed">
+                <TextBlock x:Name="UniversalTitleText" Text="Rex · Level &amp; Sprite Workshop" FontSize="18" FontWeight="SemiBold"/>
+                <TextBlock x:Name="UniversalMatchText" Foreground="{StaticResource AccentBrush}" TextWrapping="Wrap" FontSize="10" Margin="0,3,0,6" Text="32 authentic native sprites · Richard Franke &amp; Neil Harris"/>
+
+                <!-- 1. Visual Sprite Palette -->
+                <GroupBox Header="VISUAL SPRITE PALETTE">
+                  <StackPanel>
+                    <WrapPanel Margin="0,0,0,6">
+                      <Button Content="All" Click="UniversalCatalogFilter_Click" Tag="All" Padding="5,3" FontSize="9"/>
+                      <Button Content="Characters" Click="UniversalCatalogFilter_Click" Tag="Characters" Padding="5,3" FontSize="9"/>
+                      <Button Content="Enemies" Click="UniversalCatalogFilter_Click" Tag="Enemies" Padding="5,3" FontSize="9"/>
+                      <Button Content="Hazards" Click="UniversalCatalogFilter_Click" Tag="Hazards" Padding="5,3" FontSize="9"/>
+                      <Button Content="Interactive" Click="UniversalCatalogFilter_Click" Tag="Interactive" Padding="5,3" FontSize="9"/>
+                      <Button Content="Platforms/Terrain" Click="UniversalCatalogFilter_Click" Tag="Terrain" Padding="5,3" FontSize="9"/>
+                    </WrapPanel>
+                    <TextBox x:Name="UniversalSearchBox" TextChanged="UniversalSearch_TextChanged" Margin="0,0,0,6" FontSize="10" ToolTip="Filter sprites by id, name, or tag"/>
+
+                    <Border Background="#070A0F" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="4">
+                      <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                        <WrapPanel x:Name="UniversalVisualCatalogPanel"/>
+                      </ScrollViewer>
+                    </Border>
+
+                    <TextBlock x:Name="UniversalVisualCatalogSummaryText" Text="Click any sprite to load into brush, then click or drag on the canvas to place it" Foreground="{StaticResource MutedBrush}" FontSize="9" Margin="1,5,0,0"/>
+                  </StackPanel>
+                </GroupBox>
+
+                <!-- 2. Scene Entities & Actors -->
+                <GroupBox Header="SCENE ENTITIES &amp; ACTORS">
+                  <StackPanel>
+                    <ListBox x:Name="UniversalEntitiesList" Height="140" SelectionChanged="UniversalEntitiesList_SelectionChanged" FontFamily="Cascadia Mono" FontSize="11">
+                      <ListBox.ItemTemplate>
+                        <DataTemplate>
+                          <StackPanel Orientation="Horizontal" Margin="2">
+                            <Border Background="#253545" CornerRadius="3" Padding="3,1" Margin="0,0,6,0">
+                              <TextBlock Text="{Binding SpriteId}" Foreground="{StaticResource AccentBrush}" FontSize="10" FontWeight="Bold"/>
+                            </Border>
+                            <TextBlock Text="{Binding DisplayText}" FontSize="11" VerticalAlignment="Center"/>
+                          </StackPanel>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <WrapPanel Margin="0,6,0,0">
+                      <Button x:Name="UniversalAddEntityButton" Content="➕ Stamp at Center" Click="UniversalAddEntity_Click" Padding="6,3" FontSize="10"/>
+                      <Button x:Name="UniversalDeleteEntityButton" Content="✖ Delete" Click="UniversalDeleteEntity_Click" IsEnabled="False" Padding="6,3" FontSize="10" Margin="4,0,0,0"/>
+                      <Button Content="Clear All" Click="UniversalClearEntities_Click" Padding="6,3" FontSize="10" Margin="4,0,0,0"/>
+                    </WrapPanel>
+                  </StackPanel>
+                </GroupBox>
+
+                <!-- 3. Entity Inspector & Position -->
+                <GroupBox Header="ENTITY INSPECTOR &amp; EDIT">
+                  <StackPanel x:Name="UniversalInspectorPanel" IsEnabled="False">
+                    <Grid Margin="0,0,0,6">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                      </Grid.ColumnDefinitions>
+                      <TextBlock Text="Col (0-30):" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                      <TextBox x:Name="UniversalColBox" Grid.Column="1" Text="10" FontFamily="Cascadia Mono" FontSize="11"/>
+                      <TextBlock Text="Row (0-22):" Grid.Column="2" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                      <TextBox x:Name="UniversalRowBox" Grid.Column="3" Text="12" FontFamily="Cascadia Mono" FontSize="11"/>
+                    </Grid>
+                    <TextBlock x:Name="UniversalSelectedSpriteDetails" Text="Select an entity on canvas to move or edit" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,0,0,8"/>
+                    <Button x:Name="UniversalApplyEntityButton" Content="Apply Position Edit" Click="UniversalApplyEntity_Click" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Padding="8,4" FontSize="10"/>
+                  </StackPanel>
+                </GroupBox>
+
+                <!-- 4. Quick Actions -->
+                <GroupBox Header="ACTIONS">
+                  <WrapPanel>
+                    <Button Content="📸 Export Scene PNG" Click="Screenshot_Click" Padding="6,3" FontSize="10" Margin="0,0,4,0"/>
+                    <Button Content="▶ Playtest in Emulator (F5)" Click="Play_Click" Style="{StaticResource PrimaryButton}" Padding="6,3" FontSize="10"/>
+                  </WrapPanel>
+                </GroupBox>
+              </StackPanel>
+            </Grid></ScrollViewer>
+          </TabItem>
+
+          <!-- PLAY +2 TAB -->
+          <TabItem Header="PLAY +2">
+            <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="6,12,6,8">
+              <TextBlock Text="Run with accurate AY audio" FontSize="19" FontWeight="SemiBold"/>
+              <TextBlock Text="Speccy Studio launches a real emulator for CPU, ULA and AY-3-8912 timing. Fuse is the preconfigured option; any Windows emulator can be used." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,16"/>
+              <TextBlock Text="Emulator executable" FontSize="11" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,6"/>
+              <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBox x:Name="EmulatorPathBox" TextChanged="EmulatorSetting_Changed"/>
+                <Button Grid.Column="1" Content="Browse…" Click="BrowseEmulator_Click" Margin="8,0,0,0"/>
+              </Grid>
+              <Button Content="Auto-detect emulator" Click="DetectEmulator_Click" HorizontalAlignment="Left" Margin="0,8,0,14"/>
+              <TextBlock Text="Machine profile" FontSize="11" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,6"/>
+              <ComboBox x:Name="EmulatorProfileBox" SelectionChanged="EmulatorProfile_Changed" Margin="0,0,0,14"/>
+              <TextBlock Text="Arguments · {file} is replaced at launch" FontSize="11" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,6"/>
+              <TextBox x:Name="EmulatorArgumentsBox" TextChanged="EmulatorSetting_Changed" FontFamily="Cascadia Mono"/>
+              <Button x:Name="PlayButton" Content="Play current file" Click="Play_Click" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Margin="0,18,0,0" IsEnabled="False"/>
+              <Border Background="#211D11" BorderBrush="#6E5B20" BorderThickness="1" CornerRadius="5" Padding="11" Margin="0,18,0,0">
+                <TextBlock Text="Spectrum ROM files are copyrighted and are not included. Point your emulator at ROMs you are legally entitled to use. Game tape/snapshot files are passed directly to the emulator." Foreground="#E0C86B" TextWrapping="Wrap" FontSize="11"/>
+              </Border>
+            </StackPanel></ScrollViewer>
+          </TabItem>
+        </TabControl>
+      </Border>
+    </Grid>
+
+    <!-- STATUS BAR -->
+    <Border Grid.Row="2" Background="#090D14" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
+      <Grid Margin="12,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <TextBlock x:Name="StatusText" Text="Ready" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" FontSize="11"/>
+        <TextBlock Grid.Column="1" Text="v2.0 · Full Canvas Level Editor · Windows x64" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" FontSize="11"/>
+      </Grid>
+    </Border>
+  </Grid>
+</Window>
