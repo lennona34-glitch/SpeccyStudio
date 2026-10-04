@@ -307,7 +307,7 @@ public partial class MainWindow : Window
             RefreshStoredGamesDropdown();
             LoadLevelLab();
             ScreenCanvas.Screen = _document.Screen;
-            if (_levelLab != null || _exolonLab != null)
+            if (_levelLab != null || _exolonLab != null || _universalRoom != null)
             {
                 if (ViewLevelRadio != null) ViewLevelRadio.IsChecked = true;
             }
@@ -338,10 +338,8 @@ public partial class MainWindow : Window
                 Status($"Cybernoid II Level Lab ready · {_levelLab.Rooms.Count} rooms decoded · use Save as…");
             else if (_exolonLab != null)
                 Status($"Exolon Level Lab ready · {_exolonLab.Rooms.Count} screens decoded · use Save as…");
-            else if (_document.SourcePath.Contains("rex", StringComparison.OrdinalIgnoreCase))
-                Status("Rex (1988) [128K] loaded · 32 authentic native sprites in SPRITES tab");
-            else if (_document.SourcePath.Contains("myth", StringComparison.OrdinalIgnoreCase))
-                Status("Myth: History in the Making (1989) [128K] loaded · 32 authentic native sprites in SPRITES tab");
+            else if (_universalRoom != null)
+                Status($"{_universalRoom.GameTitle} Level Workshop ready · {_universalRoom.AvailableSprites.Count} authentic sprites in bank · click canvas to place");
             else
                 Status($"Opened {path}");
             Title = $"Speccy Studio — {_document.DisplayName}";
@@ -1006,6 +1004,38 @@ public partial class MainWindow : Window
 
             InitExolonUI(exolonProject!);
         }
+        else if (isRex)
+        {
+            _levelLab = null;
+            _exolonLab = null;
+            _universalRoom = UniversalSpriteRoom.CreateRexRoom();
+            LevelUnavailablePanel.Visibility = Visibility.Collapsed;
+            LevelEditorPanel.Visibility = Visibility.Collapsed;
+            if (ExolonEditorPanel != null) ExolonEditorPanel.Visibility = Visibility.Collapsed;
+            if (UniversalEditorPanel != null) UniversalEditorPanel.Visibility = Visibility.Visible;
+            if (CybernoidLevelFooter != null) CybernoidLevelFooter.Visibility = Visibility.Collapsed;
+            if (ExolonLevelFooter != null) ExolonLevelFooter.Visibility = Visibility.Collapsed;
+            if (UniversalLevelFooter != null) UniversalLevelFooter.Visibility = Visibility.Visible;
+            if (LevelNoGameOverlay != null) LevelNoGameOverlay.Visibility = Visibility.Collapsed;
+
+            InitUniversalUI(_universalRoom);
+        }
+        else if (isMyth)
+        {
+            _levelLab = null;
+            _exolonLab = null;
+            _universalRoom = UniversalSpriteRoom.CreateMythRoom();
+            LevelUnavailablePanel.Visibility = Visibility.Collapsed;
+            LevelEditorPanel.Visibility = Visibility.Collapsed;
+            if (ExolonEditorPanel != null) ExolonEditorPanel.Visibility = Visibility.Collapsed;
+            if (UniversalEditorPanel != null) UniversalEditorPanel.Visibility = Visibility.Visible;
+            if (CybernoidLevelFooter != null) CybernoidLevelFooter.Visibility = Visibility.Collapsed;
+            if (ExolonLevelFooter != null) ExolonLevelFooter.Visibility = Visibility.Collapsed;
+            if (UniversalLevelFooter != null) UniversalLevelFooter.Visibility = Visibility.Visible;
+            if (LevelNoGameOverlay != null) LevelNoGameOverlay.Visibility = Visibility.Collapsed;
+
+            InitUniversalUI(_universalRoom);
+        }
         else
         {
             _levelLab = null;
@@ -1020,17 +1050,7 @@ public partial class MainWindow : Window
             if (UniversalLevelFooter != null) UniversalLevelFooter.Visibility = Visibility.Collapsed;
             if (LevelNoGameOverlay != null) LevelNoGameOverlay.Visibility = Visibility.Visible;
 
-            if (isRex || isMyth)
-            {
-                string name = isRex ? "Rex (1988) [128K]" : "Myth: History in the Making (1989) [128K]";
-                LevelUnavailableText.Text = $"{name} does not have a verified in-game level room decoder yet.\n\n" +
-                    $"• Game level editing is verified for Cybernoid II (15 rooms) and Exolon (125 screens).\n" +
-                    $"• {name}'s full 32-sprite native library is ready in the SPRITES tab (on the right) and Sprite Bank for previewing, exporting, and cross-game level editing.";
-            }
-            else
-            {
-                LevelUnavailableText.Text = reason;
-            }
+            LevelUnavailableText.Text = reason;
 
             if (ViewLevelRadio != null) ViewLevelRadio.IsEnabled = false;
             if (ViewScreenRadio != null) ViewScreenRadio.IsChecked = true;

@@ -244,28 +244,54 @@ public sealed class ChiptuneEngine
         {
             try
             {
-                if (SpeccyMidiOut.Instance.IsOpen)
+                int durationMs = sfxId switch
                 {
-                    int sfxNote = sfxId switch
-                    {
-                        "SFX_REX_01" => 36, // Heavy blast C2
-                        "SFX_REX_02" => 60, // Thruster ascent C4
-                        "SFX_REX_03" => 84, // Shield deflect C6
-                        "SFX_MYTH_01" => 45, // Broadsword cleave A2
-                        "SFX_MYTH_02" => 69, // Skeleton bone clatter A4
-                        "SFX_MYTH_03" => 54, // Petrify ray F#3
-                        "SFX_CYB_01" => 35, // Smart bomb bass drum
-                        _ => 76             // Speccy 1UP chime E5
-                    };
-                    int sfxCh = sfxId == "SFX_CYB_01" ? 9 : 0;
-                    SpeccyMidiOut.Instance.SendNoteOn(sfxCh, sfxNote, 115);
-                    _ = Task.Delay(250).ContinueWith(_ => SpeccyMidiOut.Instance.SendNoteOff(sfxCh, sfxNote));
-                }
+                    "SFX_REX_01" => 320,  // Plasma
+                    "SFX_REX_02" => 480,  // Jet
+                    "SFX_REX_03" => 280,  // Shield
+                    "SFX_MYTH_01" => 240, // Sword
+                    "SFX_MYTH_02" => 350, // Skeleton
+                    "SFX_MYTH_03" => 600, // Medusa
+                    "SFX_CYB_01" => 750,  // Smart Bomb
+                    _ => 400              // 1UP chime
+                };
 
                 byte[] wav = GenerateSfxWav(sfxId);
-                using var ms = new MemoryStream(wav);
-                using var player = new SoundPlayer(ms);
-                player.PlaySync();
+
+                if (SpeccyMidiOut.Instance.IsOpen)
+                {
+                    var chip = new AySoundChip
+                    {
+                        PitchTransposeSemitones = Chip.PitchTransposeSemitones,
+                        NoisePitchTweak = Chip.NoisePitchTweak
+                    };
+                    chip.Reset();
+
+                    int frames = Math.Max(1, durationMs / 20); // 50 Hz PAL frames
+                    var sw = System.Diagnostics.Stopwatch.StartNew();
+
+                    using var ms = new MemoryStream(wav);
+                    using var player = new SoundPlayer(ms);
+                    player.Play();
+
+                    for (int f = 0; f < frames; f++)
+                    {
+                        UpdateSfxFrame(chip, sfxId, f, frames);
+                        DispatchAyToMidi(chip);
+
+                        int targetMs = (f + 1) * 20;
+                        int wait = targetMs - (int)sw.ElapsedMilliseconds;
+                        if (wait > 0) Thread.Sleep(wait);
+                    }
+
+                    SpeccyMidiOut.Instance.SendAllNotesOff();
+                }
+                else
+                {
+                    using var ms = new MemoryStream(wav);
+                    using var player = new SoundPlayer(ms);
+                    player.PlaySync();
+                }
             }
             catch (Exception ex)
             {

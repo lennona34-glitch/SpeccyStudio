@@ -352,7 +352,6 @@ public sealed class ExolonLevelLabProject
                 int tblFileOffset = -1;
                 int roomBaseOffset = -1;
 
-                // Find pointer table pattern: Pointer 0 is always 0xC8EE (0xEE, 0xC8), Pointer 1 high byte is 0xC9
                 for (int i = 0; i <= document.Bytes.Length - 4; i++)
                 {
                     if (document.Bytes[i] == 0xEE && document.Bytes[i + 1] == 0xC8 && document.Bytes[i + 3] == 0xC9)
@@ -370,11 +369,31 @@ public sealed class ExolonLevelLabProject
                     int cap = Math.Max(DefaultRoomCapacity, ExolonVerifiedRoomsData.Capacities[i] + 40);
                     ushort addr = ExolonVerifiedRoomsData.Addresses[i];
 
-                    // If file has live data for this room, read from file
+                    // If file has live data for this room, read from file if pointer is genuine.
+                    // Note: TOSEC TAP files have a 1-byte desync at offset 22120 which shifts pointers for rooms 23-124.
+                    // For authentic unedited files or clean snapshots, liveAddr matches addr exactly.
+                    // For user edits, liveAddr starts at 0xC8EE and stays close to the verified address.
                     if (tblFileOffset >= 0 && tblFileOffset + i * 2 + 1 < document.Bytes.Length)
                     {
                         int liveAddr = document.Bytes[tblFileOffset + i * 2] | (document.Bytes[tblFileOffset + i * 2 + 1] << 8);
-                        if (liveAddr >= 0xC8EE)
+                        bool isLiveValid = (liveAddr == addr) || (i == 0 && liveAddr == 0xC8EE);
+                        if (!isLiveValid && Math.Abs(liveAddr - addr) <= 80 && liveAddr >= 0xC8EE)
+                        {
+                            if (i + 1 < TotalRooms && tblFileOffset + (i + 1) * 2 + 1 < document.Bytes.Length)
+                            {
+                                int nextLive = document.Bytes[tblFileOffset + (i + 1) * 2] | (document.Bytes[tblFileOffset + (i + 1) * 2 + 1] << 8);
+                                if (nextLive > liveAddr && nextLive - liveAddr <= DefaultRoomCapacity * 2)
+                                {
+                                    isLiveValid = true;
+                                }
+                            }
+                            else if (i == TotalRooms - 1)
+                            {
+                                isLiveValid = true;
+                            }
+                        }
+
+                        if (isLiveValid)
                         {
                             int rOffset = roomBaseOffset + (liveAddr - 0xC8EE);
                             if (rOffset >= 0 && rOffset < document.Bytes.Length)

@@ -772,13 +772,12 @@ internal static class Program
             var win = new MainWindow();
             var loadMethod = typeof(MainWindow).GetMethod("LoadFile", BindingFlags.Instance | BindingFlags.NonPublic)!;
             loadMethod.Invoke(win, [rexPath]);
-            var viewScreenRadio = (System.Windows.Controls.RadioButton)win.FindName("ViewScreenRadio");
-            Assert(viewScreenRadio.IsChecked == true, "Rex stays on clean Screen view");
             var viewLevelRadio = (System.Windows.Controls.RadioButton)win.FindName("ViewLevelRadio");
-            Assert(!viewLevelRadio.IsEnabled, "Rex level editor disabled (no unverified fake editor)");
+            Assert(viewLevelRadio.IsEnabled, "Rex level editor workshop is enabled");
+            Assert(viewLevelRadio.IsChecked == true, "Rex defaults to Level Workshop");
             var spritesTitle = (System.Windows.Controls.TextBlock)win.FindName("SpritesTabTitle");
             Assert(spritesTitle.Text.Contains("Rex"), "Sprites tab populated for Rex");
-            Console.WriteLine("DEBUG: Rex clean screen and SPRITES tab verified in MainWindow");
+            Console.WriteLine("DEBUG: Rex Level Workshop and SPRITES tab verified in MainWindow");
         }
 
         string? mythPath = projects.FirstOrDefault(p => p.GameType == "Myth")?.FilePath;
@@ -787,16 +786,15 @@ internal static class Program
             var win = new MainWindow();
             var loadMethod = typeof(MainWindow).GetMethod("LoadFile", BindingFlags.Instance | BindingFlags.NonPublic)!;
             loadMethod.Invoke(win, [mythPath]);
-            var viewScreenRadio = (System.Windows.Controls.RadioButton)win.FindName("ViewScreenRadio");
-            Assert(viewScreenRadio.IsChecked == true, "Myth stays on clean Screen view");
             var viewLevelRadio = (System.Windows.Controls.RadioButton)win.FindName("ViewLevelRadio");
-            Assert(!viewLevelRadio.IsEnabled, "Myth level editor disabled (no unverified fake editor)");
+            Assert(viewLevelRadio.IsEnabled, "Myth level editor workshop is enabled");
+            Assert(viewLevelRadio.IsChecked == true, "Myth defaults to Level Workshop");
             var docField = typeof(MainWindow).GetField("_document", BindingFlags.Instance | BindingFlags.NonPublic)!;
             var doc = (SpectrumDocument)docField.GetValue(win)!;
             Assert(doc.Screen != null, "Myth has companion full-screen SCR");
             var spritesTitle = (System.Windows.Controls.TextBlock)win.FindName("SpritesTabTitle");
             Assert(spritesTitle.Text.Contains("Myth"), "Sprites tab populated for Myth");
-            Console.WriteLine("DEBUG: Myth clean full screen and SPRITES tab verified in MainWindow");
+            Console.WriteLine("DEBUG: Myth Level Workshop and SPRITES tab verified in MainWindow");
         }
 
         // 12. Test Cybernoid Tile Flip: Ensure flipping does NOT mutate other identical tiles
