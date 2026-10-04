@@ -71,6 +71,11 @@ public sealed class CybernoidTileAtlas
 
     public CybernoidTileArt Get(byte tileId)
     {
+        if (CybernoidActorSpriteCatalog.TryGetActorSprite(tileId, out byte[] markerBitmap, out byte[] markerAttributes, out CybernoidCollisionRole markerRole))
+        {
+            return new CybernoidTileArt(tileId, markerBitmap, markerAttributes, markerRole);
+        }
+
         var bitmap = ReadBytes(BitmapAddress + tileId * 32, 32);
         var attributes = ReadBytes(AttributeAddress + tileId * 4, 4);
         CybernoidCollisionRole collision = tileId >= 0xE2
@@ -78,6 +83,7 @@ public sealed class CybernoidTileAtlas
             : _collisionRoles.TryGetValue(tileId, out CybernoidCollisionRole role) ? role : CybernoidCollisionRole.Solid;
         return new(tileId, bitmap, attributes, collision);
     }
+
 
     /// <summary>
     /// Reverses the bits of a byte (MSB -> LSB).

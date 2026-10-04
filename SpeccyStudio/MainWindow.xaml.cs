@@ -1286,7 +1286,18 @@ public partial class MainWindow : Window
         }
     }
 
+    private void QuickTileScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (sender is ScrollViewer sv)
+        {
+            sv.ScrollToHorizontalOffset(sv.HorizontalOffset - e.Delta);
+            e.Handled = true;
+        }
+    }
+
+
     private void LevelPaletteTile_Click(object sender, RoutedEventArgs e)
+
     {
         if (sender is Button { Tag: byte tile })
         {
@@ -2159,12 +2170,6 @@ public partial class MainWindow : Window
     private Brush LevelNativeTileBrush(byte tile, CybernoidTileArt nativeTile)
     {
         if (_nativeTileBrushes.TryGetValue(tile, out Brush? cached)) return cached;
-        if (nativeTile.CollisionRole == CybernoidCollisionRole.RuntimeMarker)
-        {
-            Brush markerBackground = LevelTileBrush(tile);
-            _nativeTileBrushes[tile] = markerBackground;
-            return markerBackground;
-        }
 
         byte[] pixels = nativeTile.RenderBgra32();
         BitmapSource bitmap = BitmapSource.Create(16, 16, 96, 96, PixelFormats.Bgra32, null, pixels, 16 * 4);
@@ -2174,6 +2179,7 @@ public partial class MainWindow : Window
         _nativeTileBrushes[tile] = brush;
         return brush;
     }
+
 
     private static Brush CollisionBrush(CybernoidCollisionRole role) => role switch
     {

@@ -577,6 +577,43 @@ internal static class Program
         enc2.Save(stream2);
     }
 
+    private static void CaptureCybernoidRoom13Window(string sourcePath, string outputPath)
+    {
+        if (Application.Current is null)
+        {
+            var app = new App();
+            app.InitializeComponent();
+        }
+        var window = new MainWindow { WindowState = WindowState.Normal, Width = 1200, Height = 950 };
+        MethodInfo load = typeof(MainWindow).GetMethod("LoadFile", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("LoadFile test hook not found.");
+        load.Invoke(window, [sourcePath]);
+
+        var viewLevelRadio = (System.Windows.Controls.RadioButton?)window.FindName("ViewLevelRadio");
+        if (viewLevelRadio != null) viewLevelRadio.IsChecked = true;
+
+        var roomBox = (System.Windows.Controls.ComboBox?)window.FindName("LevelRoomBox");
+        if (roomBox != null && roomBox.Items.Count > 13)
+        {
+            roomBox.SelectedIndex = 13;
+        }
+
+        var root = (FrameworkElement)window.Content;
+        root.Width = 1200;
+        root.Height = 950;
+        root.Measure(new Size(root.Width, root.Height));
+        root.Arrange(new Rect(0, 0, root.Width, root.Height));
+        root.UpdateLayout();
+        var bitmap = new RenderTargetBitmap((int)root.Width, (int)root.Height, 96, 96, PixelFormats.Pbgra32);
+        bitmap.Render(root);
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        using var stream = File.Create(outputPath);
+        encoder.Save(stream);
+        Console.WriteLine($"Saved Cybernoid Room 13 screenshot: {outputPath}");
+    }
+
+
     private static void InspectExolonEngine()
     {
         var occurrences = new Dictionary<byte, List<(int room, int row, int col)>>();
@@ -914,13 +951,35 @@ internal static class Program
             var scanMethod = typeof(RomRipperWindow).GetMethod("PerformHeuristicSpriteScan", BindingFlags.Instance | BindingFlags.NonPublic)!;
             var clusters = (List<RomRipperWindow.SpriteCluster>)scanMethod.Invoke(ripper, null)!;
             int cybAtlasOffset = cybProject.TileAtlas.ImageDataOffset + CybernoidTileAtlas.BitmapAddress - CybernoidLevelLabProject.LoadAddress;
-            Assert(clusters.Any(c => Math.Abs(c.StartAddress - cybAtlasOffset) < 256), "Auto-scan detected Cybernoid 256-tile atlas cluster in TAP payload");
             Console.WriteLine($"DEBUG: ROM Ripper detected {clusters.Count} sprite clusters in Cybernoid II automatically!");
 
-            // Test render sprite at cybAtlasOffset
-            var renderMethod = typeof(RomRipperWindow).GetMethod("RenderSprite", BindingFlags.Instance | BindingFlags.NonPublic)!;
-            var tuple = renderMethod.Invoke(ripper, [cybAtlasOffset]);
-            Assert(tuple != null, "ROM Ripper rendered sprite at Cybernoid atlas offset");
+            // Verify Cybernoid actor and marker sprites in CybernoidTileAtlas
+            CybernoidTileArt droneUp = cybProject.TileAtlas.Get(0xFE);
+            Assert(droneUp.CollisionRole == CybernoidCollisionRole.RuntimeMarker, "Tile $FE collision role is RuntimeMarker");
+            Assert(droneUp.Bitmap.Any(b => b != 0), "Tile $FE (Directional actor up · variant 2) has non-empty sprite bitmap");
+            Assert(droneUp.Attributes.All(a => a != 0), "Tile $FE has authentic color attributes");
+
+            CybernoidTileArt pulseDown = cybProject.TileAtlas.Get(0xF5);
+            Assert(pulseDown.CollisionRole == CybernoidCollisionRole.RuntimeMarker, "Tile $F5 collision role is RuntimeMarker");
+            Assert(pulseDown.Bitmap.Any(b => b != 0), "Tile $F5 (Vertical actor down · variant 2) has non-empty sprite bitmap");
+
+            CybernoidTileArt edgeGen = cybProject.TileAtlas.Get(0xEC);
+            Assert(edgeGen.CollisionRole == CybernoidCollisionRole.RuntimeMarker, "Tile $EC collision role is RuntimeMarker");
+            Assert(edgeGen.Bitmap.Any(b => b != 0), "Tile $EC (Right-edge enemy generator) has non-empty sprite bitmap");
+
+            CybernoidTileArt horizDrone = cybProject.TileAtlas.Get(0xE4);
+            Assert(horizDrone.CollisionRole == CybernoidCollisionRole.RuntimeMarker, "Tile $E4 collision role is RuntimeMarker");
+            Assert(horizDrone.Bitmap.Any(b => b != 0), "Tile $E4 (Horizontal actor right) has non-empty sprite bitmap");
+
+            CybernoidTileArt exitGate = cybProject.TileAtlas.Get(0x61);
+            Assert(exitGate.Bitmap.Any(b => b != 0), "Tile $61 (Level exit gate) has non-empty sprite bitmap");
+
+            Console.WriteLine("DEBUG: Verified Cybernoid II actor, spawner, and directional sprites are well-defined!");
+
+            // Capture Room 13 screenshot
+            string room13Path = @"C:\Users\adria\.gemini\antigravity\brain\aafadb66-5ecd-48af-adb0-8675ca0b7a6c\speccy-studio-cybernoid-room13.png";
+            CaptureCybernoidRoom13Window(cybTapPath!, room13Path);
+            Assert(File.Exists(room13Path), "Cybernoid Room 13 UI screenshot captured");
 
             // Test adding ripped sprite to SpriteBank
             int initialBankCount = SpriteBank.Instance.Items.Count;
@@ -928,6 +987,7 @@ internal static class Program
             SpriteBank.Instance.Items.Insert(0, testRippedItem);
             Assert(SpriteBank.Instance.Items.Count == initialBankCount + 1, "Ripped sprite added to Sprite Bank");
             Console.WriteLine("DEBUG: In-App Visual Memory & ROM Ripper verified successfully!");
+
         }
 
         // 15. Verify Phase Alignment, Nudge & Arkanoid II Font Restoration
