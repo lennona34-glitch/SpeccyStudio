@@ -27,6 +27,9 @@ public partial class AudioStudioWindow : Window
     private readonly SolidColorBrush _ledOnBrush = new(Color.FromRgb(0x00, 0xD2, 0xFF));
     private readonly DispatcherTimer _ledOffTimer = new() { Interval = TimeSpan.FromMilliseconds(70) };
 
+    public Core.SpectrumDocument? ActiveDocument { get; set; }
+    private PsgSong? _loadedPsg;
+
     public AudioStudioWindow()
     {
         InitializeComponent();
@@ -163,8 +166,15 @@ public partial class AudioStudioWindow : Window
 
     private void Play_Click(object sender, RoutedEventArgs e)
     {
-        string track = (TrackSelectorCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Myth: History in the Making (Main Theme)";
-        _engine.PlayTrack(track, LoopCheck.IsChecked == true);
+        string track = (TrackSelectorCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Tim Follin: Moonlight Cybercop (RoboCop & Ghouls Homage)";
+        if (_loadedPsg != null && _loadedPsg.Title == track)
+        {
+            _engine.PlayPsg(_loadedPsg, LoopCheck.IsChecked == true);
+        }
+        else
+        {
+            _engine.PlayTrack(track, LoopCheck.IsChecked == true);
+        }
         UpdateUiState();
     }
 
@@ -178,8 +188,15 @@ public partial class AudioStudioWindow : Window
     {
         if (_engine.IsPlaying)
         {
-            string track = (TrackSelectorCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Myth: History in the Making (Main Theme)";
-            _engine.PlayTrack(track, LoopCheck.IsChecked == true);
+            string track = (TrackSelectorCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Tim Follin: Moonlight Cybercop (RoboCop & Ghouls Homage)";
+            if (_loadedPsg != null && _loadedPsg.Title == track)
+            {
+                _engine.PlayPsg(_loadedPsg, LoopCheck.IsChecked == true);
+            }
+            else
+            {
+                _engine.PlayTrack(track, LoopCheck.IsChecked == true);
+            }
         }
     }
 
@@ -329,7 +346,7 @@ public partial class AudioStudioWindow : Window
 
     private void ExportWav_Click(object sender, RoutedEventArgs e)
     {
-        string track = (TrackSelectorCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Myth: History in the Making (Main Theme)";
+        string track = (TrackSelectorCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Tim Follin: Moonlight Cybercop (RoboCop & Ghouls Homage)";
         string defaultName = track.Split('(')[0].Trim() + ".wav";
 
         var sfd = new SaveFileDialog
@@ -343,10 +360,13 @@ public partial class AudioStudioWindow : Window
         {
             try
             {
-                byte[] wav = _engine.GenerateTrackWav(track, durationSeconds: 30);
+                byte[] wav = (_loadedPsg != null && _loadedPsg.Title == track)
+                    ? _engine.GeneratePsgWav(_loadedPsg)
+                    : _engine.GenerateTrackWav(track, durationSeconds: 30);
+
                 File.WriteAllBytes(sfd.FileName, wav);
                 MessageBox.Show(this,
-                    $"Successfully exported 30-second 44.1kHz 16-bit WAV file!\n\nFile: {Path.GetFileName(sfd.FileName)}\nSize: {wav.Length:N0} bytes",
+                    $"Successfully exported 44.1kHz 16-bit WAV file!\n\nFile: {Path.GetFileName(sfd.FileName)}\nSize: {wav.Length:N0} bytes",
                     "Audio Export Successful",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
@@ -356,6 +376,185 @@ public partial class AudioStudioWindow : Window
                 MessageBox.Show(this, "Failed to export WAV audio: " + ex.Message, "Export Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+    }
+
+    private void ExportPsg_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            string track = (TrackSelectorCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Chiptune";
+            string safeName = string.Join("_", track.Split(Path.GetInvalidFileNameChars())).Replace(" ", "_");
+
+            var sfd = new SaveFileDialog
+            {
+                Title = "Export .PSG Chiptune Stream",
+                Filter = "PSG Chiptune (*.psg)|*.psg",
+                FileName = $"{safeName}.psg"
+            };
+
+            if (sfd.ShowDialog(this) == true)
+            {
+                byte[] psgBytes;
+                if (_loadedPsg != null && _loadedPsg.Title == track)
+                {
+                    psgBytes = _loadedPsg.ToBytes();
+                }
+                else
+                {
+                    var frames = new List<PsgFrame>();
+                    var tempChip = new AySoundChip();
+                    tempChip.Reset();
+
+                    int totalFrames = 1500; // 30 seconds
+                    for (int f = 0; f < totalFrames; f++)
+                    {
+                        byte[] before = tempChip.GetRegisters();
+                        var method = typeof(ChiptuneEngine).GetMethod("UpdateTrackerFrame", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+                        method?.Invoke(null, [tempChip, track, f]);
+                        byte[] after = tempChip.GetRegisters();
+
+                        var diffs = new List<(byte, byte)>();
+                        for (int r = 0; r < 14; r++)
+                        {
+                            if (f == 0 || before[r] != after[r])
+                            {
+                                diffs.Add(((byte)r, after[r]));
+                            }
+                        }
+                        frames.Add(new PsgFrame(f, diffs));
+                    }
+                    var exportedPsg = new PsgSong(track, frames);
+                    psgBytes = exportedPsg.ToBytes();
+                }
+
+                File.WriteAllBytes(sfd.FileName, psgBytes);
+                StatusText.Text = $"💾 Exported {psgBytes.Length:N0} bytes to {Path.GetFileName(sfd.FileName)}";
+                MessageBox.Show(this,
+                    $"Successfully exported standard 50Hz .PSG chiptune file!\n\nFile: {Path.GetFileName(sfd.FileName)}\nSize: {psgBytes.Length:N0} bytes\nCompatible with Ay_Emul, Vortex Tracker, and modern DAWs.",
+                    "PSG Export Successful",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, "Could not export PSG file: " + ex.Message, "Export Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void LoadAy_Click(object sender, RoutedEventArgs e)
+    {
+        var ofd = new OpenFileDialog
+        {
+            Title = "Open AY or PSG Chiptune File",
+            Filter = "Chiptune Files (*.ay;*.psg)|*.ay;*.psg|PSG Files (*.psg)|*.psg|AY Files (*.ay)|*.ay|All Files (*.*)|*.*"
+        };
+
+        if (ofd.ShowDialog(this) == true)
+        {
+            try
+            {
+                byte[] data = File.ReadAllBytes(ofd.FileName);
+                string title = Path.GetFileNameWithoutExtension(ofd.FileName);
+
+                if (PsgSong.IsPsg(data))
+                {
+                    _loadedPsg = PsgSong.FromBytes(data, title);
+                    AddAndSelectCustomTrack(_loadedPsg.Title);
+                    _engine.PlayPsg(_loadedPsg, LoopCheck.IsChecked == true);
+                    StatusText.Text = $"▶ Playing PSG: '{_loadedPsg.Title}' ({_loadedPsg.TotalFrames} frames, {_loadedPsg.Duration:mm\\:ss})";
+                }
+                else if (AySong.TryParse(data, out var aySong, out var err) && aySong != null)
+                {
+                    string ayTitle = string.IsNullOrWhiteSpace(aySong.Title) ? title : $"{aySong.Title} by {aySong.Author}";
+                    _loadedPsg = AyMemoryRipper.Scan(new Core.SpectrumDocument(ofd.FileName, Core.SpectrumFormat.Ay, data, null, [], "")).GeneratedPsg
+                                ?? new PsgSong(ayTitle, []);
+                    AddAndSelectCustomTrack(ayTitle);
+                    if (_loadedPsg.TotalFrames > 0)
+                    {
+                        _engine.PlayPsg(_loadedPsg, LoopCheck.IsChecked == true);
+                    }
+                    StatusText.Text = $"▶ Loaded AY: '{ayTitle}' ({aySong.SongCount} song(s), Init: 0x{aySong.InitAddress:X4})";
+                }
+                else
+                {
+                    MessageBox.Show(this, "The selected file is not a valid .PSG or .AY file.\n" + err, "Invalid Chiptune File", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+                UpdateUiState();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, "Could not load chiptune file: " + ex.Message, "Error Loading Audio", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+    }
+
+    private void RipAy_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var targetDoc = ActiveDocument;
+            if (targetDoc == null)
+            {
+                var ofd = new OpenFileDialog
+                {
+                    Title = "Select Game Snapshot or Tape to Rip AY Audio",
+                    Filter = "Spectrum Files (*.z80;*.sna;*.tap;*.zip)|*.z80;*.sna;*.tap;*.zip|All Files (*.*)|*.*"
+                };
+                if (ofd.ShowDialog(this) != true) return;
+                targetDoc = Core.SpectrumFileParser.Open(ofd.FileName);
+            }
+
+            var rip = AyMemoryRipper.Scan(targetDoc);
+            if (rip.Success)
+            {
+                StatusText.Text = $"🎵 Ripped: {rip.DriverName}";
+                MessageBox.Show(this,
+                    $"Authentic AY-3-8912 Audio Driver Ripped Successfully!\n\n" +
+                    $"• Game: {targetDoc.DisplayName}\n" +
+                    $"• Driver: {rip.DriverName}\n" +
+                    $"• Address: 0x{rip.DriverAddress:X4}\n" +
+                    $"• Init Address: 0x{rip.InitAddress:X4} | Play Address: 0x{rip.PlayAddress:X4}\n\n" +
+                    $"{rip.Details}\n\n" +
+                    $"Playing ripped chiptune stream directly through AY-3-8912 engine and live MIDI!",
+                    "AY Audio Ripper", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                if (rip.GeneratedPsg != null)
+                {
+                    _loadedPsg = rip.GeneratedPsg;
+                    AddAndSelectCustomTrack(_loadedPsg.Title);
+                    _engine.PlayPsg(_loadedPsg, LoopCheck.IsChecked == true);
+                }
+                UpdateUiState();
+            }
+            else
+            {
+                MessageBox.Show(this,
+                    $"No standard AY-3-8912 audio driver routine was detected in {targetDoc.DisplayName}.\n\n" +
+                    $"{rip.Details}",
+                    "AY Audio Ripper", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, "Error ripping audio: " + ex.Message, "Rip Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void AddAndSelectCustomTrack(string trackTitle)
+    {
+        foreach (var item in TrackSelectorCombo.Items)
+        {
+            if (item is ComboBoxItem cbi && cbi.Content?.ToString() == trackTitle)
+            {
+                TrackSelectorCombo.SelectedItem = cbi;
+                return;
+            }
+        }
+
+        var newItem = new ComboBoxItem { Content = trackTitle, IsSelected = true };
+        TrackSelectorCombo.Items.Add(newItem);
+        TrackSelectorCombo.SelectedItem = newItem;
     }
 
     private void OnMidiActivityFired()

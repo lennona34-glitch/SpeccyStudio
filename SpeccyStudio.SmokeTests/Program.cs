@@ -1084,7 +1084,50 @@ internal static class Program
 
         audioWin.Close();
 
-        Console.WriteLine("DEBUG: Rex, Myth, and Audio Studio verified successfully!");
+        // 8. Test Tim Follin Homage Track & AyMemoryRipper & PSG Engine
+        Console.WriteLine("=== TESTING TIM FOLLIN HOMAGE & AY MEMORY RIPPER ===");
+        var follinWav = engine.GenerateTrackWav("Tim Follin: Moonlight Cybercop (RoboCop & Ghouls Homage)", durationSeconds: 2);
+        Assert(follinWav != null && follinWav.Length > 1000, "Tim Follin Moonlight Cybercop WAV generated");
+
+        // Test PSG serialization round-trip
+        var testFrames = new List<SpeccyStudio.Core.Audio.PsgFrame>
+        {
+            new(0, new (byte, byte)[] { (0, 0xE0), (1, 0x01), (7, 0x3E), (8, 0x0F) }),
+            new(1, new (byte, byte)[] { (0, 0xF0), (8, 0x0E) })
+        };
+        var psg = new SpeccyStudio.Core.Audio.PsgSong("Test Chiptune", testFrames);
+        byte[] psgBytes = psg.ToBytes();
+        Assert(SpeccyStudio.Core.Audio.PsgSong.IsPsg(psgBytes), "PsgSong encoded with valid PSG header");
+        var reloadedPsg = SpeccyStudio.Core.Audio.PsgSong.FromBytes(psgBytes, "Reloaded");
+        Assert(reloadedPsg.TotalFrames == 2, "Reloaded PSG contains 2 frames");
+
+        byte[] psgWav = engine.GeneratePsgWav(reloadedPsg);
+        Assert(psgWav != null && psgWav.Length > 100, "PSG rendered to WAV");
+
+        // Test AY Memory Ripper on Robocop 128K snapshot
+        string robocopZip = @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[Z80]\Robocop (1988)(Ocean)[128K].zip";
+        if (File.Exists(robocopZip))
+        {
+            var robocopDoc = SpectrumFileParser.Open(robocopZip);
+            var rip = SpeccyStudio.Core.Audio.AyMemoryRipper.Scan(robocopDoc);
+            Assert(rip.Success, "AY Memory Ripper detected driver in Robocop 128K");
+            Assert(rip.DriverName.Contains("Tim Follin"), "Driver identified as Tim Follin 128K Audio Engine");
+            Assert(rip.GeneratedPsg != null && rip.GeneratedPsg.TotalFrames > 0, "Ripped PSG generated from snapshot");
+            Console.WriteLine($"DEBUG: {rip.Details}");
+        }
+
+        // Test AY Memory Ripper on Cybernoid II
+        string cybZip = @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[TAP]\Cybernoid II - The Revenge (1988)(Hewson Consultants)[48-128K].zip";
+        if (File.Exists(cybZip))
+        {
+            var cybDoc = SpectrumFileParser.Open(cybZip);
+            var ripCyb = SpeccyStudio.Core.Audio.AyMemoryRipper.Scan(cybDoc);
+            Assert(ripCyb.Success, "AY Memory Ripper detected driver in Cybernoid II");
+            Assert(ripCyb.DriverName.Contains("Jeroen Tel"), "Driver identified as Jeroen Tel");
+            Console.WriteLine($"DEBUG: {ripCyb.Details}");
+        }
+
+        Console.WriteLine("DEBUG: Tim Follin chiptune, AY Memory Ripper, and PSG Engine verified successfully!");
     }
 
     private static void Assert(bool condition, string name) { if (!condition) throw new InvalidOperationException(name + " failed."); }

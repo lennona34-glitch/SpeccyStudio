@@ -1845,7 +1845,8 @@ public partial class MainWindow : Window
         {
             var win = new AudioStudioWindow
             {
-                Owner = this
+                Owner = this,
+                ActiveDocument = _document
             };
             win.Show();
         }

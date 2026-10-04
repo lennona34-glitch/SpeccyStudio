@@ -26,30 +26,34 @@
         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
           <TextBlock Text="🎵 " FontSize="18" VerticalAlignment="Center" Margin="0,0,4,0"/>
           <TextBlock Text="Soundtrack:" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" FontSize="12" Margin="0,0,8,0"/>
-          <ComboBox x:Name="TrackSelectorCombo" Width="290" SelectionChanged="TrackSelector_SelectionChanged">
-            <ComboBoxItem Content="Myth: History in the Making (Main Theme)" IsSelected="True"/>
+          <ComboBox x:Name="TrackSelectorCombo" Width="320" SelectionChanged="TrackSelector_SelectionChanged">
+            <ComboBoxItem Content="Tim Follin: Moonlight Cybercop (RoboCop &amp; Ghouls Homage)" IsSelected="True"/>
+            <ComboBoxItem Content="Myth: History in the Making (Main Theme)"/>
             <ComboBoxItem Content="Rex (Neon Infiltration Theme)"/>
             <ComboBoxItem Content="Cybernoid II: The Revenge (Space Armada)"/>
             <ComboBoxItem Content="Exolon (Frontier Recon Battle)"/>
           </ComboBox>
 
-          <Button x:Name="PlayButton" Content="▶ Play" Click="Play_Click" Width="70" Margin="10,0,0,0" Background="#1D4A32" Foreground="#4EFA94" FontWeight="Bold"/>
-          <Button x:Name="StopButton" Content="⏹ Stop" Click="Stop_Click" Width="70" Margin="6,0,0,0" Background="#3D1E22" Foreground="#FA5A68"/>
+          <Button x:Name="PlayButton" Content="▶ Play" Click="Play_Click" Width="68" Margin="8,0,0,0" Background="#1D4A32" Foreground="#4EFA94" FontWeight="Bold"/>
+          <Button x:Name="StopButton" Content="⏹ Stop" Click="Stop_Click" Width="68" Margin="4,0,0,0" Background="#3D1E22" Foreground="#FA5A68"/>
 
-          <CheckBox x:Name="LoopCheck" Content="Loop" IsChecked="True" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold"/>
+          <CheckBox x:Name="LoopCheck" Content="Loop" IsChecked="True" VerticalAlignment="Center" Margin="8,0,0,0" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold"/>
+          <Button x:Name="LoadAyBtn" Content="📂 Load .AY/.PSG" Click="LoadAy_Click" Margin="8,0,0,0" Padding="8,4" Background="#1A2D42" Foreground="#00D2FF" ToolTip="Load external .AY (ZXAY EMUL) or .PSG chiptune file into player"/>
+          <Button x:Name="RipAyBtn" Content="🎵 Rip AY Music" Click="RipAy_Click" Margin="4,0,0,0" Padding="8,4" Background="#2E1A47" Foreground="#E040FB" ToolTip="Rip authentic AY sound drivers directly from current loaded game snapshot (e.g. RoboCop, Cybernoid II, Rex, Myth, Exolon)"/>
         </StackPanel>
 
         <!-- Center: Position Slider & Time Display -->
         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,16,0">
           <TextBlock x:Name="TimeText" Text="00:00 / 00:30" FontFamily="Consolas" Foreground="{StaticResource MutedBrush}" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0"/>
-          <ProgressBar x:Name="TrackProgressBar" Minimum="0" Maximum="30" Value="0" Height="8" Width="200" VerticalAlignment="Center" Foreground="{StaticResource AccentBrush}" Background="#131E2E"/>
+          <ProgressBar x:Name="TrackProgressBar" Minimum="0" Maximum="30" Value="0" Height="8" Width="160" VerticalAlignment="Center" Foreground="{StaticResource AccentBrush}" Background="#131E2E"/>
         </StackPanel>
 
-        <!-- Right: Master Volume & WAV Export -->
+        <!-- Right: Master Volume & WAV/PSG Export -->
         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
           <TextBlock Text="🔊" VerticalAlignment="Center" Margin="0,0,4,0"/>
-          <Slider x:Name="VolumeSlider" Minimum="0" Maximum="1" Value="0.8" Width="90" VerticalAlignment="Center" ValueChanged="VolumeSlider_ValueChanged"/>
-          <Button x:Name="ExportWavButton" Content="💾 Export .WAV" Click="ExportWav_Click" Margin="12,0,0,0" Background="#1D2A42" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold" ToolTip="Export current track with your live parameter tweaks to standard 44.1kHz WAV"/>
+          <Slider x:Name="VolumeSlider" Minimum="0" Maximum="1" Value="0.8" Width="70" VerticalAlignment="Center" ValueChanged="VolumeSlider_ValueChanged"/>
+          <Button x:Name="ExportPsgButton" Content="💾 .PSG" Click="ExportPsg_Click" Margin="8,0,0,0" Background="#1A332E" Foreground="#00E676" FontWeight="SemiBold" ToolTip="Export current register playback stream as standard .PSG file"/>
+          <Button x:Name="ExportWavButton" Content="💾 .WAV" Click="ExportWav_Click" Margin="4,0,0,0" Background="#1D2A42" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold" ToolTip="Export current track with your live parameter tweaks to standard 44.1kHz WAV"/>
         </StackPanel>
       </Grid>
     </Border>

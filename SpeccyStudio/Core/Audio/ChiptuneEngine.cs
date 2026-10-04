@@ -168,6 +168,122 @@ public sealed class ChiptuneEngine
         PlaybackStateChanged?.Invoke();
     }
 
+    public void PlayPsg(PsgSong song, bool loop = true)
+    {
+        Stop();
+
+        lock (_lock)
+        {
+            CurrentTrack = song.Title;
+            IsPlaying = true;
+            _playCts = new CancellationTokenSource();
+            var token = _playCts.Token;
+
+            Task.Run(() =>
+            {
+                try
+                {
+                    byte[] wavBytes = GeneratePsgWav(song);
+                    using var ms = new MemoryStream(wavBytes);
+                    var player = new SoundPlayer(ms);
+                    lock (_lock)
+                    {
+                        if (token.IsCancellationRequested) return;
+                        _activePlayer = player;
+                    }
+
+                    if (loop) player.PlayLooping();
+                    else player.Play();
+
+                    var sw = System.Diagnostics.Stopwatch.StartNew();
+                    int lastMidiFrame = -1;
+                    int totalFrames = song.TotalFrames;
+
+                    while (!token.IsCancellationRequested)
+                    {
+                        double pos = sw.Elapsed.TotalSeconds;
+                        if (totalFrames > 0) pos %= (totalFrames / 50.0);
+                        PlaybackPosition = pos;
+
+                        int currentFrame = (int)(pos * 50.0 * Math.Max(0.2, Chip.TempoMultiplier));
+                        if (currentFrame != lastMidiFrame && totalFrames > 0)
+                        {
+                            lastMidiFrame = currentFrame;
+                            var frame = song.Frames[currentFrame % totalFrames];
+                            foreach (var (reg, val) in frame.Updates)
+                            {
+                                Chip.WriteRegister(reg, val);
+                            }
+                            DispatchAyToMidi(Chip);
+                        }
+
+                        Thread.Sleep(20);
+                    }
+                }
+                catch (OperationCanceledException) { }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine("Error playing PSG: " + ex.Message);
+                }
+                finally
+                {
+                    lock (_lock)
+                    {
+                        if (_playCts?.Token == token)
+                        {
+                            IsPlaying = false;
+                            SpeccyMidiOut.Instance.SendAllNotesOff();
+                            PlaybackStateChanged?.Invoke();
+                        }
+                    }
+                }
+            }, token);
+        }
+
+        PlaybackStateChanged?.Invoke();
+    }
+
+    public byte[] GeneratePsgWav(PsgSong song)
+    {
+        var chip = new AySoundChip
+        {
+            PitchTransposeSemitones = Chip.PitchTransposeSemitones,
+            TempoMultiplier = Chip.TempoMultiplier,
+            NoisePitchTweak = Chip.NoisePitchTweak,
+            EnvelopeShapeOverride = Chip.EnvelopeShapeOverride,
+            MuteA = Chip.MuteA,
+            MuteB = Chip.MuteB,
+            MuteC = Chip.MuteC,
+            MuteNoise = Chip.MuteNoise,
+            SoloChannel = Chip.SoloChannel
+        };
+        chip.Reset();
+
+        int totalFrames = Math.Max(1, song.TotalFrames);
+        double samplesPerFrame = (double)AySoundChip.SampleRate / (50.0 * Math.Max(0.2, chip.TempoMultiplier));
+        int totalSamples = (int)(totalFrames * samplesPerFrame);
+        var samples = new short[totalSamples];
+
+        for (int frame = 0; frame < totalFrames; frame++)
+        {
+            var f = song.Frames[frame];
+            foreach (var (reg, val) in f.Updates)
+            {
+                chip.WriteRegister(reg, val);
+            }
+
+            int startSample = (int)(frame * samplesPerFrame);
+            int endSample = Math.Min(totalSamples, (int)((frame + 1) * samplesPerFrame));
+
+            for (int s = startSample; s < endSample; s++)
+            {
+                samples[s] = chip.RenderSample();
+            }
+        }
+
+        return AySoundChip.EncodeWav(samples);
+    }
+
     public static void DispatchAyToMidi(AySoundChip chip)
     {
         var midi = SpeccyMidiOut.Instance;
@@ -481,7 +597,87 @@ public sealed class ChiptuneEngine
 
     private static void UpdateTrackerFrame(AySoundChip chip, string trackName, int frame)
     {
-        // 50Hz frame tracker logic
+        if (trackName.Contains("Follin", StringComparison.OrdinalIgnoreCase) ||
+            trackName.Contains("Cybercop", StringComparison.OrdinalIgnoreCase) ||
+            trackName.Contains("Robocop", StringComparison.OrdinalIgnoreCase) ||
+            trackName.Contains("Moonlight", StringComparison.OrdinalIgnoreCase))
+        {
+            // Tim Follin: Moonlight Cybercop (RoboCop 128 & Ghouls 'n Ghosts Homage)
+            // 8 frames per step (~94 BPM sorrowful, melancholic progression)
+            int follinStep = (frame / 8) % 32;
+            int follinSub = frame % 8;
+
+            // Minor sorrow progression: Cm -> Abmaj7 -> Fm9 -> G7b9
+            int[] melodyPeriods =
+            [
+                424, 356, 283, 212, // Step 0..3: C4, Eb4, G4, C5
+                267, 283, 356, 317, // Step 4..7: Ab4, G4, Eb4, F4
+                189, 212, 238, 267, // Step 8..11: D5, C5, Bb4, Ab4
+                283, 224, 189, 212  // Step 12..15: G4, B4, D5, C5
+            ];
+
+            int basePeriod = melodyPeriods[follinStep % 16];
+            int vibrato = (int)(Math.Sin(frame * 0.7) * 2);
+            int pA = Math.Max(10, basePeriod + vibrato);
+
+            // Channel A: Weeping Lead
+            chip.WriteRegister(0, (byte)(pA & 0xFF));
+            chip.WriteRegister(1, (byte)((pA >> 8) & 0x0F));
+
+            // Channel B: Microtonal chorus detune (+2 period offset) & arpeggiated echo shimmer
+            int pB = pA + 2;
+            int volB = 12;
+            if (follinSub >= 4)
+            {
+                pB = pA / 2; // High octave shimmer echo
+                volB = 9;
+            }
+            chip.WriteRegister(2, (byte)(pB & 0xFF));
+            chip.WriteRegister(3, (byte)((pB >> 8) & 0x0F));
+
+            // Channel C: Slap-bass with audio-rate Hardware Envelope
+            int[] bassPeriods = [ 847, 1068, 1270, 1130 ]; // C3, Ab2, F2, G2
+            int bassP = bassPeriods[(follinStep / 8) % 4];
+            chip.WriteRegister(4, (byte)(bassP & 0xFF));
+            chip.WriteRegister(5, (byte)((bassP >> 8) & 0x0F));
+
+            // Envelope Generator R11, R12, R13 (Audio rate slap modulation)
+            int envPeriod = (follinSub < 2) ? (bassP / 2) : (bassP * 2);
+            chip.WriteRegister(11, (byte)(envPeriod & 0xFF));
+            chip.WriteRegister(12, (byte)((envPeriod >> 8) & 0xFF));
+            if (follinSub == 0)
+            {
+                chip.WriteRegister(13, 0x08); // Sawtooth repeating decay
+            }
+
+            // Percussion & Mixer
+            bool snare = (follinStep % 8 == 4) && (follinSub < 2);
+            bool hihat = (follinStep % 2 != 0) && (follinSub == 0);
+
+            if (snare)
+            {
+                chip.WriteRegister(6, 12);
+                chip.WriteRegister(7, 0x30); // Tone A, B, C & Noise A
+                chip.WriteRegister(8, 15);
+            }
+            else if (hihat)
+            {
+                chip.WriteRegister(6, 3);
+                chip.WriteRegister(7, 0x34);
+                chip.WriteRegister(8, 13);
+            }
+            else
+            {
+                chip.WriteRegister(7, 0x38); // All tones enabled, no noise
+                chip.WriteRegister(8, 14);
+            }
+
+            chip.WriteRegister(9, (byte)volB);
+            chip.WriteRegister(10, 0x10); // Hardware Envelope controlled volume mode
+            return;
+        }
+
+        // 50Hz frame tracker logic for other tracks
         // Each pattern step is 6 frames (~120ms at 50Hz)
         int step = (frame / 6) % 32;
         int subFrame = frame % 6;
