@@ -29,8 +29,30 @@ public sealed class ChiptuneEngine
     public AySoundChip Chip { get; } = new();
 
     private SoundPlayer? _activePlayer;
+    private MemoryStream? _activeStream;
     private CancellationTokenSource? _playCts;
     private readonly object _lock = new();
+
+    private bool _mutePcmAudio;
+    public bool MutePcmAudio
+    {
+        get => _mutePcmAudio;
+        set
+        {
+            _mutePcmAudio = value;
+            lock (_lock)
+            {
+                if (_mutePcmAudio)
+                {
+                    try { _activePlayer?.Stop(); } catch { }
+                }
+                else if (IsPlaying && _activePlayer != null)
+                {
+                    try { _activePlayer.PlayLooping(); } catch { }
+                }
+            }
+        }
+    }
 
     public bool IsPlaying { get; private set; }
     public string? CurrentTrack { get; private set; }
@@ -90,6 +112,11 @@ public sealed class ChiptuneEngine
                 try { _activePlayer.Stop(); _activePlayer.Dispose(); } catch { }
                 _activePlayer = null;
             }
+            if (_activeStream != null)
+            {
+                try { _activeStream.Dispose(); } catch { }
+                _activeStream = null;
+            }
             IsPlaying = false;
             PlaybackPosition = 0;
             Chip.Reset();
@@ -115,16 +142,26 @@ public sealed class ChiptuneEngine
                 {
                     // Generate full 30-second authentic rendered audio in memory
                     byte[] wavBytes = GenerateTrackWav(trackName, durationSeconds: 30);
-                    using var ms = new MemoryStream(wavBytes);
+                    var ms = new MemoryStream(wavBytes);
                     var player = new SoundPlayer(ms);
                     lock (_lock)
                     {
-                        if (token.IsCancellationRequested) return;
+                        if (token.IsCancellationRequested)
+                        {
+                            ms.Dispose();
+                            player.Dispose();
+                            return;
+                        }
+                        _activeStream?.Dispose();
+                        _activeStream = ms;
                         _activePlayer = player;
                     }
 
-                    if (loop) player.PlayLooping();
-                    else player.Play();
+                    if (!MutePcmAudio)
+                    {
+                        if (loop) player.PlayLooping();
+                        else player.Play();
+                    }
 
                     // Telemetry and live MIDI streaming update loop (50Hz Spectrum PAL rate)
                     var sw = System.Diagnostics.Stopwatch.StartNew();
@@ -184,16 +221,26 @@ public sealed class ChiptuneEngine
                 try
                 {
                     byte[] wavBytes = GeneratePsgWav(song);
-                    using var ms = new MemoryStream(wavBytes);
+                    var ms = new MemoryStream(wavBytes);
                     var player = new SoundPlayer(ms);
                     lock (_lock)
                     {
-                        if (token.IsCancellationRequested) return;
+                        if (token.IsCancellationRequested)
+                        {
+                            ms.Dispose();
+                            player.Dispose();
+                            return;
+                        }
+                        _activeStream?.Dispose();
+                        _activeStream = ms;
                         _activePlayer = player;
                     }
 
-                    if (loop) player.PlayLooping();
-                    else player.Play();
+                    if (!MutePcmAudio)
+                    {
+                        if (loop) player.PlayLooping();
+                        else player.Play();
+                    }
 
                     var sw = System.Diagnostics.Stopwatch.StartNew();
                     int lastMidiFrame = -1;
@@ -388,7 +435,7 @@ public sealed class ChiptuneEngine
 
                     using var ms = new MemoryStream(wav);
                     using var player = new SoundPlayer(ms);
-                    player.Play();
+                    if (!MutePcmAudio) player.Play();
 
                     for (int f = 0; f < frames; f++)
                     {
@@ -404,9 +451,12 @@ public sealed class ChiptuneEngine
                 }
                 else
                 {
-                    using var ms = new MemoryStream(wav);
-                    using var player = new SoundPlayer(ms);
-                    player.PlaySync();
+                    if (!MutePcmAudio)
+                    {
+                        using var ms = new MemoryStream(wav);
+                        using var player = new SoundPlayer(ms);
+                        player.PlaySync();
+                    }
                 }
             }
             catch (Exception ex)
@@ -730,29 +780,190 @@ public sealed class ChiptuneEngine
         }
         else if (trackName.Contains("Rex", StringComparison.OrdinalIgnoreCase))
         {
-            // Jeroen Tel's Rex Theme (A Minor high-speed sci-fi synth arpeggios)
-            int[] aMinor = [ 284, 253, 213, 189 ]; // A4, B4, C5, D5
-            int leadNote = aMinor[(step + subFrame) % 4];
-            chip.WriteRegister(0, (byte)(leadNote & 0xFF));
-            chip.WriteRegister(1, (byte)((leadNote >> 8) & 0x0F));
+            // Jeroen Tel's Rex Theme (Maniacs of Noise 1988)
+            // 64-step full multi-section composition:
+            // Section 1 (Steps 0..15): Signature driving A minor slap-bass groove + high-speed chord arpeggios
+            // Section 2 (Steps 16..31): Soaring heroic lead melody with rapid Tel pitch bends & walking bass
+            // Section 3 (Steps 32..47): Dramatic sci-fi bridge (Dm -> F -> G -> E7)
+            // Section 4 (Steps 48..63): Virtuoso descending cascade arpeggios + climactic turnaround
+            int rexStep = (frame / 6) % 64;
+            int rexSub = frame % 6;
 
-            // Bassline in Channel B
-            int pB = (step % 4 == 0) ? 568 : 425; // A3 or D4
-            chip.WriteRegister(2, (byte)(pB & 0xFF));
-            chip.WriteRegister(3, (byte)((pB >> 8) & 0x0F));
+            int leadPeriod = 252;
+            int bassPeriod = 1008;
+            int harmonyPeriod = 336;
+            int volLead = 15;
+            int volBass = 14;
+            int volHarm = 12;
 
-            // Rapid arpeggios in Channel C
-            int pC = (int)(leadNote * 1.25);
-            chip.WriteRegister(4, (byte)(pC & 0xFF));
-            chip.WriteRegister(5, (byte)((pC >> 8) & 0x0F));
+            bool isSnare = false;
+            bool isHihat = false;
+            bool isKick = false;
 
-            // Percussion
-            bool beat = (step % 4 == 0) && subFrame < 2;
-            chip.WriteRegister(6, 6);
-            chip.WriteRegister(7, beat ? (byte)0x30 : (byte)0x38);
-            chip.WriteRegister(8, 15);
-            chip.WriteRegister(9, 14);
-            chip.WriteRegister(10, 12);
+            if (rexStep < 16)
+            {
+                // Section 1: Intro / Main Cyber-Drive Groove (Am -> G -> F -> E7)
+                int chordIdx = rexStep / 4; // 0=Am, 1=G, 2=F, 3=E7
+                int[][] arpChords =
+                [
+                    [ 252, 212, 168, 126 ], // Am: A4, C5, E5, A5
+                    [ 283, 224, 189, 141 ], // G:  G4, B4, D5, G5
+                    [ 317, 252, 212, 159 ], // F:  F4, A4, C5, F5
+                    [ 336, 267, 224, 168 ]  // E:  E4, G#4, B4, E5
+                ];
+                var chord = arpChords[chordIdx % 4];
+                leadPeriod = chord[(rexSub + (rexStep % 2) * 2) % 4];
+
+                // Syncopated slap-bass in Channel B
+                int[] bassRoots = [ 1008, 1136, 1276, 1352 ]; // A2, G2, F2, E2
+                int baseRoot = bassRoots[chordIdx % 4];
+                if ((rexStep % 2 == 1) && rexSub < 3)
+                    bassPeriod = baseRoot / 2; // Octave pop
+                else
+                    bassPeriod = baseRoot;
+
+                // Channel C: Shimmering fifth harmonic counterpoint
+                int[] harmTones = [ 336, 377, 424, 449 ]; // E4, D4, C4, B3
+                harmonyPeriod = harmTones[chordIdx % 4] + ((rexSub % 2 == 0) ? -2 : 2);
+
+                isKick = (rexStep % 4 == 0) && rexSub < 2;
+                isSnare = (rexStep % 4 == 2) && rexSub < 3;
+                isHihat = (rexStep % 2 == 1) && rexSub == 0;
+            }
+            else if (rexStep < 32)
+            {
+                // Section 2: Heroic Melody (Steps 16..31)
+                int[] melody =
+                [
+                    126, 106, 112, 126, // Step 16..19: A5, C6, B5, A5
+                    168, 189, 141, 159, // Step 20..23: E5, D5, G5, F5
+                    168, 141, 126, 112, // Step 24..27: E5, G5, A5, B5
+                    106, 94,  84,  126  // Step 28..31: C6, D6, E6, A5
+                ];
+                int note = melody[(rexStep - 16) % 16];
+                int vib = (rexSub >= 3) ? (int)(Math.Sin(frame * 0.9) * 3) : 0;
+                leadPeriod = Math.Max(10, note + vib);
+
+                // Walking bassline across A minor
+                int[] walkingBass =
+                [
+                    504, 449, 424, 377, // A3, B3, C4, D4
+                    336, 377, 424, 449, // E4, D4, C4, B3
+                    504, 565, 635, 673, // A3, G3, F3, E3
+                    504, 424, 336, 504  // A3, C4, E4, A3
+                ];
+                bassPeriod = walkingBass[(rexStep - 16) % 16] * 2; // Transposed down to bass register
+
+                // Channel C: Rapid arpeggio accompaniment
+                int[] cArp = [ 252, 212, 168, 212 ];
+                harmonyPeriod = cArp[rexSub % 4];
+
+                isKick = (rexStep % 4 == 0) && rexSub < 2;
+                isSnare = (rexStep % 4 == 2) && rexSub < 3;
+                isHihat = rexSub == 0;
+            }
+            else if (rexStep < 48)
+            {
+                // Section 3: Sci-Fi Bridge (Dm -> F -> G -> E7 buildup)
+                int bridgeBar = (rexStep - 32) / 4;
+                if (bridgeBar == 0) // D minor
+                {
+                    int[] dm = [ 189, 159, 126, 94 ]; // D5, F5, A5, D6
+                    leadPeriod = dm[rexSub % 4];
+                    bassPeriod = (rexSub < 3) ? 755 : 1510; // D3 / D2
+                    harmonyPeriod = 377; // D4
+                }
+                else if (bridgeBar == 1) // F major
+                {
+                    int[] fMaj = [ 159, 126, 106, 79 ]; // F5, A5, C6, F6
+                    leadPeriod = fMaj[rexSub % 4];
+                    bassPeriod = (rexSub < 3) ? 635 : 1270; // F3 / F2
+                    harmonyPeriod = 317; // F4
+                }
+                else if (bridgeBar == 2) // G major
+                {
+                    int[] gMaj = [ 141, 112, 94, 71 ]; // G5, B5, D6, G6
+                    leadPeriod = gMaj[rexSub % 4];
+                    bassPeriod = (rexSub < 3) ? 565 : 1130; // G3 / G2
+                    harmonyPeriod = 283; // G4
+                }
+                else // E7 Tension
+                {
+                    int[] e7 = [ 168, 133, 112, 84 ]; // E5, G#5, B5, E6
+                    leadPeriod = e7[rexSub % 4];
+                    bassPeriod = 673; // E3 driving pump
+                    harmonyPeriod = (rexSub % 2 == 0) ? 336 : 267; // E4 / G#4
+                }
+
+                isKick = (rexStep % 2 == 0) && rexSub < 2;
+                isSnare = (rexStep % 4 == 2) && rexSub < 3;
+                isHihat = (rexSub == 0 || rexSub == 3);
+            }
+            else
+            {
+                // Section 4: Virtuoso Cascade Arpeggio & Climax Turnaround (Steps 48..63)
+                int[] cascade = [ 84, 106, 126, 168, 212, 252, 336, 424 ]; // E6 down to C4
+                int cascadeIndex = ((rexStep - 48) * 3 + rexSub) % cascade.Length;
+                leadPeriod = cascade[cascadeIndex];
+
+                // Bass octave pulse
+                bassPeriod = (rexStep % 2 == 0) ? 1008 : 504; // A2 / A3
+
+                // Stereo complementary cascade in Channel C
+                int harmIndex = (cascadeIndex + 4) % cascade.Length;
+                harmonyPeriod = cascade[harmIndex];
+
+                // Escalating snare roll leading into loop restart
+                if (rexStep >= 60)
+                {
+                    isSnare = (rexSub < 2);
+                    isHihat = false;
+                }
+                else
+                {
+                    isKick = (rexStep % 4 == 0) && rexSub < 2;
+                    isSnare = (rexStep % 4 == 2) && rexSub < 3;
+                    isHihat = rexSub == 0;
+                }
+            }
+
+            // Write Tone Periods to AY Chip
+            chip.WriteRegister(0, (byte)(leadPeriod & 0xFF));
+            chip.WriteRegister(1, (byte)((leadPeriod >> 8) & 0x0F));
+
+            chip.WriteRegister(2, (byte)(bassPeriod & 0xFF));
+            chip.WriteRegister(3, (byte)((bassPeriod >> 8) & 0x0F));
+
+            chip.WriteRegister(4, (byte)(harmonyPeriod & 0xFF));
+            chip.WriteRegister(5, (byte)((harmonyPeriod >> 8) & 0x0F));
+
+            // Mixer & Noise configuration
+            if (isSnare)
+            {
+                chip.WriteRegister(6, 10);
+                chip.WriteRegister(7, 0x30); // Enable Tone A, B, C & Noise A
+                chip.WriteRegister(8, 15);
+            }
+            else if (isHihat)
+            {
+                chip.WriteRegister(6, 2);
+                chip.WriteRegister(7, 0x34); // Enable Tone A, B & Noise C
+                chip.WriteRegister(10, 10);
+            }
+            else if (isKick)
+            {
+                chip.WriteRegister(6, 16);
+                chip.WriteRegister(7, 0x31); // Tone B, C & Noise A
+                chip.WriteRegister(8, 15);
+            }
+            else
+            {
+                chip.WriteRegister(7, 0x38); // All three tone channels enabled, noise disabled
+                chip.WriteRegister(8, (byte)volLead);
+            }
+
+            chip.WriteRegister(9, (byte)volBass);
+            chip.WriteRegister(10, (byte)volHarm);
         }
         else if (trackName.Contains("Cybernoid", StringComparison.OrdinalIgnoreCase))
         {

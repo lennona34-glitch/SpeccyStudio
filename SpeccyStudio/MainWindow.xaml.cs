@@ -29,6 +29,8 @@ public partial class MainWindow : Window
     private ExolonEntity? _exolonClipboardEntity;
     private ExolonRoomProposal? _exolonProposal;
     private UniversalSpriteRoom? _universalRoom;
+    private List<UniversalSpriteRoom>? _universalRooms;
+    private int _universalRoomIndex;
     private string _universalCategoryFilter = "All";
     private UniversalSpriteEntity? _universalClipboardEntity;
     private System.Diagnostics.Process? _activeEmulatorProcess;
@@ -964,6 +966,8 @@ public partial class MainWindow : Window
             _levelLab = project;
             _exolonLab = null;
             _universalRoom = null;
+            _universalRooms = null;
+            _universalRoomIndex = 0;
             LevelUnavailablePanel.Visibility = Visibility.Collapsed;
             LevelEditorPanel.Visibility = Visibility.Visible;
             if (ExolonEditorPanel != null) ExolonEditorPanel.Visibility = Visibility.Collapsed;
@@ -993,6 +997,8 @@ public partial class MainWindow : Window
             _levelLab = null;
             _exolonLab = exolonProject;
             _universalRoom = null;
+            _universalRooms = null;
+            _universalRoomIndex = 0;
             LevelUnavailablePanel.Visibility = Visibility.Collapsed;
             LevelEditorPanel.Visibility = Visibility.Collapsed;
             if (ExolonEditorPanel != null) ExolonEditorPanel.Visibility = Visibility.Visible;
@@ -1008,7 +1014,9 @@ public partial class MainWindow : Window
         {
             _levelLab = null;
             _exolonLab = null;
-            _universalRoom = UniversalSpriteRoom.CreateRexRoom();
+            _universalRooms = UniversalSpriteRoom.CreateRexRooms();
+            _universalRoomIndex = 0;
+            _universalRoom = _universalRooms[0];
             LevelUnavailablePanel.Visibility = Visibility.Collapsed;
             LevelEditorPanel.Visibility = Visibility.Collapsed;
             if (ExolonEditorPanel != null) ExolonEditorPanel.Visibility = Visibility.Collapsed;
@@ -1018,13 +1026,16 @@ public partial class MainWindow : Window
             if (UniversalLevelFooter != null) UniversalLevelFooter.Visibility = Visibility.Visible;
             if (LevelNoGameOverlay != null) LevelNoGameOverlay.Visibility = Visibility.Collapsed;
 
+            PopulateUniversalRoomsDropdown();
             InitUniversalUI(_universalRoom);
         }
         else if (isMyth)
         {
             _levelLab = null;
             _exolonLab = null;
-            _universalRoom = UniversalSpriteRoom.CreateMythRoom();
+            _universalRooms = UniversalSpriteRoom.CreateMythRooms();
+            _universalRoomIndex = 0;
+            _universalRoom = _universalRooms[0];
             LevelUnavailablePanel.Visibility = Visibility.Collapsed;
             LevelEditorPanel.Visibility = Visibility.Collapsed;
             if (ExolonEditorPanel != null) ExolonEditorPanel.Visibility = Visibility.Collapsed;
@@ -1034,6 +1045,7 @@ public partial class MainWindow : Window
             if (UniversalLevelFooter != null) UniversalLevelFooter.Visibility = Visibility.Visible;
             if (LevelNoGameOverlay != null) LevelNoGameOverlay.Visibility = Visibility.Collapsed;
 
+            PopulateUniversalRoomsDropdown();
             InitUniversalUI(_universalRoom);
         }
         else
@@ -1041,6 +1053,8 @@ public partial class MainWindow : Window
             _levelLab = null;
             _exolonLab = null;
             _universalRoom = null;
+            _universalRooms = null;
+            _universalRoomIndex = 0;
             LevelUnavailablePanel.Visibility = Visibility.Visible;
             LevelEditorPanel.Visibility = Visibility.Collapsed;
             if (ExolonEditorPanel != null) ExolonEditorPanel.Visibility = Visibility.Collapsed;
@@ -3377,9 +3391,9 @@ public partial class MainWindow : Window
         ToolsTabs.SelectedItem = LevelLabTab;
 
         if (UniversalTitleText != null) UniversalTitleText.Text = $"{room.GameTitle} · Workshop";
-        if (UniversalMatchText != null) UniversalMatchText.Text = room.Subtitle;
+        if (UniversalMatchText != null) UniversalMatchText.Text = $"{room.RoomName} · {room.Subtitle}";
 
-        if (CanvasRoomTitleText != null) CanvasRoomTitleText.Text = $"{room.GameTitle}";
+        if (CanvasRoomTitleText != null) CanvasRoomTitleText.Text = $"{room.GameTitle} — {room.RoomName}";
         if (CanvasBudgetText != null) CanvasBudgetText.Text = $"{room.Entities.Count} active entities";
 
         MainLevelCanvas.SetUniversalRoom(room);
@@ -3394,7 +3408,51 @@ public partial class MainWindow : Window
         PopulateUniversalVisualCatalog(_universalCategoryFilter);
         RefreshUniversalEntitiesList();
         RefreshUniversalInRoomSpritesStrip();
-        Status($"{room.GameTitle} ready · {room.AvailableSprites.Count} authentic sprites in bank · click canvas to place");
+        Status($"{room.GameTitle} [{room.RoomName}] ready · {room.AvailableSprites.Count} authentic sprites in bank · click canvas to place");
+    }
+
+    private void PopulateUniversalRoomsDropdown()
+    {
+        if (UniversalRoomBox == null || _universalRooms == null) return;
+        UniversalRoomBox.SelectionChanged -= UniversalRoom_Changed;
+        UniversalRoomBox.Items.Clear();
+        for (int i = 0; i < _universalRooms.Count; i++)
+        {
+            var r = _universalRooms[i];
+            UniversalRoomBox.Items.Add($"Room {i}: {r.RoomName}");
+        }
+        UniversalRoomBox.SelectedIndex = Math.Clamp(_universalRoomIndex, 0, _universalRooms.Count - 1);
+        UniversalRoomBox.SelectionChanged += UniversalRoom_Changed;
+    }
+
+    private void UniversalRoom_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (UniversalRoomBox == null || _universalRooms == null) return;
+        int idx = UniversalRoomBox.SelectedIndex;
+        if (idx >= 0 && idx < _universalRooms.Count && idx != _universalRoomIndex)
+        {
+            _universalRoomIndex = idx;
+            _universalRoom = _universalRooms[idx];
+            InitUniversalUI(_universalRoom);
+        }
+    }
+
+    private void UniversalPrevRoom_Click(object sender, RoutedEventArgs e)
+    {
+        if (_universalRooms == null || _universalRooms.Count == 0 || UniversalRoomBox == null) return;
+        if (_universalRoomIndex > 0)
+        {
+            UniversalRoomBox.SelectedIndex = _universalRoomIndex - 1;
+        }
+    }
+
+    private void UniversalNextRoom_Click(object sender, RoutedEventArgs e)
+    {
+        if (_universalRooms == null || _universalRooms.Count == 0 || UniversalRoomBox == null) return;
+        if (_universalRoomIndex < _universalRooms.Count - 1)
+        {
+            UniversalRoomBox.SelectedIndex = _universalRoomIndex + 1;
+        }
     }
 
     private void SetActiveUniversalBrush(SpriteBankItem item)

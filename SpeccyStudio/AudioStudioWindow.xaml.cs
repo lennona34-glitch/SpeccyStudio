@@ -632,6 +632,26 @@ public partial class AudioStudioWindow : Window
         Task.Delay(350).ContinueWith(_ => SpeccyMidiOut.Instance.SendNoteOff(0, 69));
     }
 
+    private void MidiSolo_Click(object sender, RoutedEventArgs e)
+    {
+        bool isSolo = MidiSoloBtn.IsChecked == true;
+        _engine.MutePcmAudio = isSolo;
+        if (isSolo)
+        {
+            MidiSoloBtn.Content = "🎧 Solo MIDI Out [ON]";
+            MidiSoloBtn.Background = new SolidColorBrush(Color.FromRgb(0x13, 0x4E, 0x2E));
+            MidiSoloBtn.Foreground = new SolidColorBrush(Color.FromRgb(0x4E, 0xFA, 0x94));
+            StatusText.Text = "Solo MIDI Out: Internal PC audio muted (MIDI active)";
+        }
+        else
+        {
+            MidiSoloBtn.Content = "🎧 Solo MIDI Out";
+            MidiSoloBtn.Background = new SolidColorBrush(Color.FromRgb(0x1D, 0x2A, 0x42));
+            MidiSoloBtn.Foreground = new SolidColorBrush(Color.FromRgb(0x96, 0xA2, 0xB7));
+            StatusText.Text = "Internal PC audio unmuted";
+        }
+    }
+
     private void MidiPanic_Click(object sender, RoutedEventArgs e)
     {
         SpeccyMidiOut.Instance.SendAllNotesOff();

@@ -357,8 +357,9 @@
           <CheckBox x:Name="MidiPitchBendCheck" Content="Pitch Bend" IsChecked="True" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" FontSize="11" Click="MidiRouting_Changed" ToolTip="Emit real-time Pitch Bend for authentic chiptune vibrato and portamento"/>
         </StackPanel>
 
-        <!-- Test & Panic Controls -->
+        <!-- Test, Solo & Panic Controls -->
         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,0">
+          <ToggleButton x:Name="MidiSoloBtn" Content="🎧 Solo MIDI Out" Click="MidiSolo_Click" Padding="8,3" FontSize="11" Background="#1D2A42" Foreground="#96A2B7" Margin="0,0,6,0" ToolTip="Solo MIDI Out: Mutes internal PC audio while keeping 50Hz MIDI streaming active for your DAW / VST!"/>
           <Button Content="Test Note (440Hz)" Click="MidiTestNote_Click" Padding="8,3" FontSize="11" Background="#1A2D42" Foreground="#00D2FF" Margin="0,0,6,0" ToolTip="Send a test A4 Note On/Off to the active MIDI device"/>
           <Button Content="🚨 Panic" Click="MidiPanic_Click" Padding="8,3" FontSize="11" Background="#3D1E22" Foreground="#FA5A68" ToolTip="Stop all active notes and reset controllers"/>
         </StackPanel>

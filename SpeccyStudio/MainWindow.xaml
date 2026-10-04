@@ -849,6 +849,23 @@
                 <TextBlock x:Name="UniversalTitleText" Text="Rex · Level &amp; Sprite Workshop" FontSize="18" FontWeight="SemiBold"/>
                 <TextBlock x:Name="UniversalMatchText" Foreground="{StaticResource AccentBrush}" TextWrapping="Wrap" FontSize="10" Margin="0,3,0,6" Text="32 authentic native sprites · Richard Franke &amp; Neil Harris"/>
 
+                <!-- 0. Level Room / Sector Selector -->
+                <GroupBox Header="LEVEL ROOM / SECTOR SELECTOR">
+                  <StackPanel>
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                      </Grid.ColumnDefinitions>
+                      <ComboBox x:Name="UniversalRoomBox" SelectionChanged="UniversalRoom_Changed" ToolTip="Select Room / Sector"/>
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="6,0,0,0">
+                        <Button Content="◀ Prev" Click="UniversalPrevRoom_Click" Padding="6,3" FontSize="10" ToolTip="Previous Room"/>
+                        <Button Content="Next ▶" Click="UniversalNextRoom_Click" Padding="6,3" FontSize="10" Margin="3,0,0,0" ToolTip="Next Room"/>
+                      </StackPanel>
+                    </Grid>
+                  </StackPanel>
+                </GroupBox>
+
                 <!-- 1. Visual Sprite Palette -->
                 <GroupBox Header="VISUAL SPRITE PALETTE">
                   <StackPanel>
