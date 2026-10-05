@@ -99,6 +99,19 @@ public sealed class SpriteBank
 
     public void EnsureCybernoidTilesLoaded(CybernoidTileAtlas? atlas = null)
     {
+        if (!_loadedItemIds.Contains("CYB_SPR_01"))
+        {
+            // Add the 17 authentic Cecco sprites extracted directly from 0xC04B in ROM
+            foreach (var spr in CybernoidActorSpriteCatalog.GetAuthenticCybernoidSprites())
+            {
+                if (!_loadedItemIds.Contains(spr.Id))
+                {
+                    Items.Add(spr);
+                    _loadedItemIds.Add(spr.Id);
+                }
+            }
+        }
+
         if (_loadedItemIds.Contains("CYB_00")) return;
 
         atlas ??= TryLoadCybernoidAtlas();
