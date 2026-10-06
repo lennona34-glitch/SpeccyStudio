@@ -27,6 +27,7 @@ public partial class MainWindow : Window
     private bool _isSyncingRoomBoxes;
     private string _exolonCategoryFilter = "All";
     private ExolonEntity? _exolonClipboardEntity;
+    private byte? _cybernoidClipboardTile;
     private ExolonRoomProposal? _exolonProposal;
     private UniversalSpriteRoom? _universalRoom;
     private List<UniversalSpriteRoom>? _universalRooms;
@@ -70,11 +71,14 @@ public partial class MainWindow : Window
         MainLevelCanvas.TilePicked += (cell, tile) =>
         {
             MainLevelCanvas.ActiveTileId = tile;
+            _cybernoidClipboardTile = tile;
             LevelTileValueBox.Text = $"{tile:X2}";
             UpdateActiveTileUI();
             if (LevelRoomBox.SelectedItem is CybernoidRoom room) RenderRoomPalette(room);
             RenderTileAtlas();
-            Status($"Sampled tile ${tile:X2} from cell ({cell % 16}, {cell / 16})");
+            if (ToolPencilRadio != null) ToolPencilRadio.IsChecked = true;
+            CybernoidTileInfo info = CybernoidGameplayProfile.Describe(tile);
+            Status($"📋 Copied tile ${tile:X2} ({info.Name}) to brush · Left-click to paint · Ctrl+C/V to copy/paste");
         };
 
         MainLevelCanvas.CellSelected += (cell) =>
@@ -92,7 +96,7 @@ public partial class MainWindow : Window
         MainLevelCanvas.CellHovered += (cell, tile, role) =>
         {
             CybernoidTileInfo info = CybernoidGameplayProfile.Describe(tile);
-            Status($"Cell ({cell % 16}, {cell / 16}) · ${tile:X2} ({info.Name}) · Collision: {CollisionName(role)} · Tool: {MainLevelCanvas.ActiveTool}");
+            Status($"Cell ({cell % 16}, {cell / 16}) · ${tile:X2} ({info.Name}) · Collision: {CollisionName(role)} · [Right-click: Copy tile · Left-click: Paint]");
         };
 
         MainLevelCanvas.TilesModified += (beforeTiles) =>
@@ -156,6 +160,7 @@ public partial class MainWindow : Window
         {
             SetActiveExolonBrush(typeId);
             PopulateExolonVisualCatalog(_exolonCategoryFilter, ExolonSearchBox?.Text ?? "");
+            if (ToolPencilRadio != null) ToolPencilRadio.IsChecked = true;
         };
 
         MainLevelCanvas.UniversalSpritePlaced += (col, row, item) =>
@@ -187,6 +192,7 @@ public partial class MainWindow : Window
         {
             SetActiveUniversalBrush(item);
             PopulateUniversalVisualCatalog(_universalCategoryFilter, UniversalSearchBox?.Text ?? "");
+            if (ToolPencilRadio != null) ToolPencilRadio.IsChecked = true;
         };
 
         MainLevelCanvas.PastePreviewToggled += (enabled) =>
@@ -589,6 +595,109 @@ public partial class MainWindow : Window
 
         if (ViewLevelRadio?.IsChecked == true)
         {
+            if (_levelLab != null && LevelRoomBox?.SelectedItem is CybernoidRoom cybRoom)
+            {
+                // Delete or Backspace -> Clear hovered or selected cell to $00 (Empty)
+                if ((e.Key == Key.Delete || e.Key == Key.Back) && Keyboard.Modifiers == ModifierKeys.None)
+                {
+                    int targetCell = MainLevelCanvas?.HoverCellIndex >= 0
+                        ? MainLevelCanvas.HoverCellIndex
+                        : (MainLevelCanvas?.SelectedCellIndex ?? -1);
+
+                    if (targetCell >= 0 && targetCell < CybernoidLevelLabProject.TileCount)
+                    {
+                        if (cybRoom.Tiles[targetCell] != 0x00)
+                        {
+                            byte[] before = (byte[])cybRoom.Tiles.Clone();
+                            cybRoom.Tiles[targetCell] = 0x00;
+                            try
+                            {
+                                _levelLab.ApplyRoomTiles(cybRoom.Index, cybRoom.Tiles);
+                                _levelUndo.Push((cybRoom.Index, before));
+                                _levelRedo.Clear();
+                                UpdateUndoRedoState();
+                                RenderLevelGrid();
+                                MainLevelCanvas?.InvalidateVisual();
+                                Status($"Cleared cell ({targetCell % 16}, {targetCell / 16}) to $00 (Empty)");
+                            }
+                            catch (Exception ex)
+                            {
+                                Array.Copy(before, cybRoom.Tiles, before.Length);
+                                MainLevelCanvas?.InvalidateVisual();
+                                ShowError("Cannot clear cell", ex);
+                            }
+                        }
+                        e.Handled = true;
+                        return;
+                    }
+                }
+
+                // Ctrl+C -> Copy hovered or selected cell tile to clipboard & active brush
+                if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
+                {
+                    int targetCell = MainLevelCanvas?.HoverCellIndex >= 0
+                        ? MainLevelCanvas.HoverCellIndex
+                        : (MainLevelCanvas?.SelectedCellIndex ?? -1);
+
+                    if (targetCell >= 0 && targetCell < CybernoidLevelLabProject.TileCount)
+                    {
+                        byte tile = (MainLevelCanvas?.ProposalTiles ?? cybRoom.Tiles)[targetCell];
+                        _cybernoidClipboardTile = tile;
+                        if (MainLevelCanvas != null)
+                        {
+                            MainLevelCanvas.ActiveTileId = tile;
+                            MainLevelCanvas.SelectedCellIndex = targetCell;
+                        }
+                        LevelTileValueBox.Text = $"{tile:X2}";
+                        UpdateActiveTileUI();
+                        if (ToolPencilRadio != null) ToolPencilRadio.IsChecked = true;
+                        RenderRoomPalette(cybRoom);
+                        RenderTileAtlas();
+                        CybernoidTileInfo info = CybernoidGameplayProfile.Describe(tile);
+                        Status($"📋 Copied tile ${tile:X2} ({info.Name}) from cell ({targetCell % 16}, {targetCell / 16}) to brush & clipboard (Ctrl+V to paste)");
+                        e.Handled = true;
+                        return;
+                    }
+                }
+
+                // Ctrl+V -> Paste clipboard tile into hovered or selected cell
+                if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control)
+                {
+                    int targetCell = MainLevelCanvas?.HoverCellIndex >= 0
+                        ? MainLevelCanvas.HoverCellIndex
+                        : (MainLevelCanvas?.SelectedCellIndex ?? -1);
+
+                    if (targetCell >= 0 && targetCell < CybernoidLevelLabProject.TileCount)
+                    {
+                        byte tileToPaste = _cybernoidClipboardTile ?? MainLevelCanvas?.ActiveTileId ?? 0x21;
+                        byte[] before = (byte[])cybRoom.Tiles.Clone();
+                        if (cybRoom.Tiles[targetCell] != tileToPaste)
+                        {
+                            cybRoom.Tiles[targetCell] = tileToPaste;
+                            try
+                            {
+                                _levelLab.ApplyRoomTiles(cybRoom.Index, cybRoom.Tiles);
+                                _levelUndo.Push((cybRoom.Index, before));
+                                _levelRedo.Clear();
+                                UpdateUndoRedoState();
+                                RenderLevelGrid();
+                                MainLevelCanvas?.InvalidateVisual();
+                                CybernoidTileInfo info = CybernoidGameplayProfile.Describe(tileToPaste);
+                                Status($"📋 Pasted tile ${tileToPaste:X2} ({info.Name}) into cell ({targetCell % 16}, {targetCell / 16})");
+                            }
+                            catch (Exception ex)
+                            {
+                                Array.Copy(before, cybRoom.Tiles, before.Length);
+                                MainLevelCanvas?.InvalidateVisual();
+                                ShowError("Cannot paste tile", ex);
+                            }
+                        }
+                        e.Handled = true;
+                        return;
+                    }
+                }
+            }
+
             if (_exolonLab != null && ExolonRoomBox?.SelectedItem is ExolonRoom exRoom)
             {
                 // Delete or Backspace -> Delete selected entity

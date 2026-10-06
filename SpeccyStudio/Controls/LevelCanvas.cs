@@ -26,7 +26,6 @@ public sealed class LevelCanvas : FrameworkElement
     private const int TileCount = CybernoidLevelLabProject.TileCount;   // 160
 
     private bool _isMouseDown;
-    private bool _isRightButtonDrag;
     private int _dragStartCell = -1;
     private int _lastPaintedCell = -1;
     private byte[]? _strokeInitialTiles;
@@ -42,7 +41,17 @@ public sealed class LevelCanvas : FrameworkElement
     public HashSet<int>? ProposalChanges { get; set; }
 
     public byte ActiveTileId { get; set; } = 0x21; // Default to wall tile
-    public LevelTool ActiveTool { get; set; } = LevelTool.Pencil;
+    private LevelTool _activeTool = LevelTool.Pencil;
+    public LevelTool ActiveTool
+    {
+        get => _activeTool;
+        set
+        {
+            _activeTool = value;
+            UpdateCursor();
+            InvalidateVisual();
+        }
+    }
 
     public bool ShowArt { get; set; } = true;
     public bool ShowCollisionEdges { get; set; } = true;
@@ -164,7 +173,20 @@ public sealed class LevelCanvas : FrameworkElement
     {
         Focusable = true;
         ClipToBounds = true;
-        Cursor = Cursors.Cross;
+        UpdateCursor();
+    }
+
+    private void UpdateCursor()
+    {
+        Cursor = _activeTool switch
+        {
+            LevelTool.Pencil => Cursors.Cross,
+            LevelTool.Eraser => Cursors.No,
+            LevelTool.Eyedropper => Cursors.Hand,
+            LevelTool.FillBucket => Cursors.Arrow,
+            LevelTool.Rectangle => Cursors.Cross,
+            _ => Cursors.Arrow
+        };
     }
 
     public void InvalidateTileCache()
@@ -389,23 +411,55 @@ public sealed class LevelCanvas : FrameworkElement
             dc.DrawRectangle(null, selPen, selRect);
         }
 
-        // 5. Draw Hover Highlight & Tile Stamp Preview
+        // 5. Draw Hover Highlight & Tool Stamp Preview
         if (HoverCellIndex >= 0 && HoverCellIndex < TileCount && HoverCellIndex != SelectedCellIndex)
         {
             Rect hovRect = CellToRect(HoverCellIndex);
-            if (ShowPastePreview && ActiveTool == LevelTool.Pencil)
+
+            if (ActiveTool == LevelTool.Pencil)
             {
-                BitmapSource? bmp = _tileBitmaps[ActiveTileId] ?? GetTileBitmap(ActiveTileId);
-                if (bmp != null)
+                if (ShowPastePreview)
                 {
-                    dc.PushOpacity(0.65);
-                    dc.DrawImage(bmp, hovRect);
-                    dc.Pop();
+                    BitmapSource? bmp = _tileBitmaps[ActiveTileId] ?? GetTileBitmap(ActiveTileId);
+                    if (bmp != null)
+                    {
+                        dc.PushOpacity(0.40);
+                        dc.DrawImage(bmp, hovRect);
+                        dc.Pop();
+                    }
                 }
+                var stampPen = new Pen(new SolidColorBrush(Color.FromArgb(200, 53, 208, 186)), 1.5)
+                {
+                    DashStyle = DashStyles.Dash
+                };
+                stampPen.Freeze();
+                dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(25, 53, 208, 186)), stampPen, hovRect);
             }
-            var hovBrush = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255));
-            var hovPen = new Pen(new SolidColorBrush(Color.FromArgb(160, 255, 255, 255)), 1.5);
-            dc.DrawRectangle(hovBrush, hovPen, hovRect);
+            else if (ActiveTool == LevelTool.Eraser)
+            {
+                var erasePen = new Pen(new SolidColorBrush(Color.FromArgb(200, 255, 75, 75)), 1.5)
+                {
+                    DashStyle = DashStyles.Dash
+                };
+                erasePen.Freeze();
+                dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(30, 255, 75, 75)), erasePen, hovRect);
+            }
+            else if (ActiveTool == LevelTool.Eyedropper)
+            {
+                var pickPen = new Pen(new SolidColorBrush(Color.FromArgb(220, 255, 215, 0)), 1.5)
+                {
+                    DashStyle = DashStyles.Dash
+                };
+                pickPen.Freeze();
+                dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(30, 255, 215, 0)), pickPen, hovRect);
+            }
+            else
+            {
+                var hovBrush = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255));
+                var hovPen = new Pen(new SolidColorBrush(Color.FromArgb(160, 255, 255, 255)), 1.5);
+                hovPen.Freeze();
+                dc.DrawRectangle(hovBrush, hovPen, hovRect);
+            }
         }
 
         // 6. Draw Outer Room Border
@@ -942,6 +996,7 @@ public sealed class LevelCanvas : FrameworkElement
                     if (entity?.SpriteItem != null)
                     {
                         ActiveUniversalSprite = entity.SpriteItem;
+                        ActiveTool = LevelTool.Pencil;
                         UniversalSpritePicked?.Invoke(entity.SpriteItem);
                         InvalidateVisual();
                     }
@@ -1022,6 +1077,7 @@ public sealed class LevelCanvas : FrameworkElement
                     if (entity != null)
                     {
                         ActiveExolonTypeId = entity.TypeId;
+                        ActiveTool = LevelTool.Pencil;
                         ExolonPartPicked?.Invoke(entity.TypeId);
                         InvalidateVisual();
                     }
@@ -1065,12 +1121,24 @@ public sealed class LevelCanvas : FrameworkElement
         SelectedCellIndex = cell;
         CellSelected?.Invoke(cell);
 
-        // Alt+LeftClick or Eyedropper tool -> Pick tile
+        // Right-Click on any cell in Cybernoid mode: Instantly pick/copy that tile into active brush!
+        if (e.ChangedButton == MouseButton.Right)
+        {
+            byte tile = (ProposalTiles ?? Room.Tiles)[cell];
+            ActiveTileId = tile;
+            ActiveTool = LevelTool.Pencil;
+            TilePicked?.Invoke(cell, tile);
+            InvalidateVisual();
+            return;
+        }
+
+        // Alt+LeftClick or Eyedropper tool -> Pick tile and auto-switch to Pencil
         bool isAlt = Keyboard.IsKeyDown(Key.LeftAlt) || Keyboard.IsKeyDown(Key.RightAlt);
         if (isAlt || ActiveTool == LevelTool.Eyedropper)
         {
             byte tile = (ProposalTiles ?? Room.Tiles)[cell];
             ActiveTileId = tile;
+            ActiveTool = LevelTool.Pencil;
             TilePicked?.Invoke(cell, tile);
             InvalidateVisual();
             return;
@@ -1083,9 +1151,11 @@ public sealed class LevelCanvas : FrameworkElement
             return;
         }
 
+        // Only start a paint stroke if Left button is pressed
+        if (e.LeftButton != MouseButtonState.Pressed) return;
+
         // Start Stroke for Pencil, Eraser, or Rectangle
         _isMouseDown = true;
-        _isRightButtonDrag = e.RightButton == MouseButtonState.Pressed;
         _dragStartCell = cell;
         _lastPaintedCell = -1;
         _strokeInitialTiles = (byte[])Room.Tiles.Clone();
@@ -1099,7 +1169,7 @@ public sealed class LevelCanvas : FrameworkElement
         }
 
         // Paint immediate cell
-        byte paintTile = _isRightButtonDrag || ActiveTool == LevelTool.Eraser ? (byte)0 : ActiveTileId;
+        byte paintTile = ActiveTool == LevelTool.Eraser ? (byte)0 : ActiveTileId;
         PaintSingleCell(cell, paintTile);
     }
 
@@ -1264,7 +1334,7 @@ public sealed class LevelCanvas : FrameworkElement
 
             if (cell != _lastPaintedCell)
             {
-                byte paintTile = _isRightButtonDrag || ActiveTool == LevelTool.Eraser ? (byte)0 : ActiveTileId;
+                byte paintTile = ActiveTool == LevelTool.Eraser ? (byte)0 : ActiveTileId;
                 PaintSingleCell(cell, paintTile);
             }
         }
@@ -1325,7 +1395,7 @@ public sealed class LevelCanvas : FrameworkElement
 
         if (ActiveTool == LevelTool.Rectangle && _dragStartCell >= 0 && HoverCellIndex >= 0)
         {
-            byte paintTile = _isRightButtonDrag ? (byte)0 : ActiveTileId;
+            byte paintTile = ActiveTileId;
             FillRectangularArea(_dragStartCell, HoverCellIndex, paintTile);
         }
         else if (_strokeInitialTiles != null)

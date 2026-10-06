@@ -236,9 +236,9 @@
 
               <!-- Tools (Left) -->
               <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                <RadioButton x:Name="ToolPencilRadio" Content="✏ Pencil" GroupName="LevelTools" Style="{StaticResource ToolRadioButton}" IsChecked="True" Checked="Tool_Checked" ToolTip="Paint active tile (P)"/>
-                <RadioButton x:Name="ToolEraserRadio" Content="⌫ Eraser" GroupName="LevelTools" Style="{StaticResource ToolRadioButton}" Checked="Tool_Checked" ToolTip="Paint empty tile $00 (E / Right-drag)"/>
-                <RadioButton x:Name="ToolPickerRadio" Content="⌖ Picker" GroupName="LevelTools" Style="{StaticResource ToolRadioButton}" Checked="Tool_Checked" ToolTip="Sample tile from canvas (I / Alt+click)"/>
+                <RadioButton x:Name="ToolPencilRadio" Content="✏ Pencil" GroupName="LevelTools" Style="{StaticResource ToolRadioButton}" IsChecked="True" Checked="Tool_Checked" ToolTip="Paint active tile (P) · Right-click any cell to copy it into brush"/>
+                <RadioButton x:Name="ToolEraserRadio" Content="⌫ Eraser" GroupName="LevelTools" Style="{StaticResource ToolRadioButton}" Checked="Tool_Checked" ToolTip="Erase cell to $00 (E / Delete / Backspace)"/>
+                <RadioButton x:Name="ToolPickerRadio" Content="⌖ Picker" GroupName="LevelTools" Style="{StaticResource ToolRadioButton}" Checked="Tool_Checked" ToolTip="Sample tile from canvas (I / Right-click any cell / Alt+click)"/>
                 <RadioButton x:Name="ToolBucketRadio" Content="◼ Fill" GroupName="LevelTools" Style="{StaticResource ToolRadioButton}" Checked="Tool_Checked" ToolTip="Flood fill matching area (F)"/>
                 <RadioButton x:Name="ToolRectRadio" Content="▢ Box" GroupName="LevelTools" Style="{StaticResource ToolRadioButton}" Checked="Tool_Checked" ToolTip="Fill rectangular area (R)"/>
                 <Border Width="1" Height="16" Background="#2B3548" Margin="8,0,8,0"/>
@@ -254,7 +254,7 @@
                 <CheckBox x:Name="CanvasShowCollisionCheck" Content="Collision" IsChecked="True" Checked="LevelCanvasOption_Changed" Unchecked="LevelCanvasOption_Changed" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="11"/>
                 <CheckBox x:Name="CanvasShowMarkersCheck" Content="Markers" IsChecked="True" Checked="LevelCanvasOption_Changed" Unchecked="LevelCanvasOption_Changed" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="11"/>
                 <CheckBox x:Name="CanvasShowGridCheck" Content="Grid" IsChecked="True" Checked="LevelCanvasOption_Changed" Unchecked="LevelCanvasOption_Changed" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="11"/>
-                <CheckBox x:Name="CanvasShowPreviewCheck" Content="Preview" IsChecked="True" Checked="LevelCanvasOption_Changed" Unchecked="LevelCanvasOption_Changed" VerticalAlignment="Center" FontSize="11" ToolTip="Toggle ghost stamp/paste preview on canvas (Middle mouse button / Wheel click)"/>
+                <CheckBox x:Name="CanvasShowPreviewCheck" Content="Preview" IsChecked="True" Checked="LevelCanvasOption_Changed" Unchecked="LevelCanvasOption_Changed" VerticalAlignment="Center" FontSize="11" ToolTip="Toggle floating brush stamp preview under mouse cursor (Middle-click / Wheel)"/>
               </StackPanel>
             </Grid>
           </Grid>
@@ -289,7 +289,8 @@
             </Grid.ColumnDefinitions>
 
             <!-- Active Brush Card -->
-            <Border Grid.Column="0" Background="#111722" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="5" Padding="8,4" Margin="0,0,12,0">
+            <Border Grid.Column="0" Background="#111722" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="5" Padding="8,4" Margin="0,0,12,0"
+                    ToolTip="Active Brush · Left-click canvas to paint · Right-click any canvas cell to copy it · Ctrl+C / Ctrl+V to copy &amp; paste · Delete to clear">
               <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <Border Width="32" Height="32" Background="#06080D" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="3" Margin="0,0,8,0">
                   <Image x:Name="MainActiveTileImage" Width="32" Height="32" RenderOptions.BitmapScalingMode="NearestNeighbor"/>

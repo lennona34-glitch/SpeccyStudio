@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
@@ -1249,6 +1250,25 @@ internal static class Program
         }
 
         Console.WriteLine("DEBUG: Tim Follin chiptune, AY Memory Ripper, and PSG Engine verified successfully!");
+
+        // 9. Test Cybernoid LevelCanvas tool cursors & tile picking
+        Console.WriteLine("=== TESTING CYBERNOID LEVELCANVAS TOOL CURSORS & SAMPLING ===");
+        var canvas = new SpeccyStudio.Controls.LevelCanvas();
+        Assert(canvas.ActiveTool == SpeccyStudio.Controls.LevelTool.Pencil, "Default tool is Pencil");
+        Assert(canvas.Cursor == Cursors.Cross, "Pencil cursor is Cross");
+
+        canvas.ActiveTool = SpeccyStudio.Controls.LevelTool.Eraser;
+        Assert(canvas.Cursor == Cursors.No, "Eraser cursor is No");
+
+        canvas.ActiveTool = SpeccyStudio.Controls.LevelTool.Eyedropper;
+        Assert(canvas.Cursor == Cursors.Hand, "Eyedropper cursor is Hand");
+
+        canvas.ActiveTool = SpeccyStudio.Controls.LevelTool.FillBucket;
+        Assert(canvas.Cursor == Cursors.Arrow, "FillBucket cursor is Arrow");
+
+        canvas.ActiveTool = SpeccyStudio.Controls.LevelTool.Rectangle;
+        Assert(canvas.Cursor == Cursors.Cross, "Rectangle cursor is Cross");
+        Console.WriteLine("DEBUG: LevelCanvas tool-aware cursors verified successfully!");
     }
 
     private static void Assert(bool condition, string name) { if (!condition) throw new InvalidOperationException(name + " failed."); }
