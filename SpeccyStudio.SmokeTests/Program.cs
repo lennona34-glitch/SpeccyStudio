@@ -404,7 +404,7 @@ internal static class Program
         Assert(doc.Format == SpectrumFormat.Tap, "Exolon ZIP extracted as TAP");
         Assert(doc.ZipEntryName != null && doc.ZipEntryName.EndsWith(".tap", StringComparison.OrdinalIgnoreCase), "ZipEntryName recorded");
         Assert(doc.Screen != null, "Exolon loading screen present");
-        Assert(doc.Screen.Data.Length == SpectrumScreen.DataLength, "Authentic 6912 byte screen length");
+        Assert(doc.Screen!.Data.Length == SpectrumScreen.DataLength, "Authentic 6912 byte screen length");
 
 
 
@@ -712,16 +712,24 @@ internal static class Program
                 // 4. Test SpriteBank with Cybernoid
                 SpriteBank.Instance.EnsureCybernoidTilesLoaded(project.TileAtlas);
                 Assert(SpriteBank.Instance.Items.Count >= 256, "SpriteBank loaded Cybernoid tiles");
-                string mythPng = @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\Media\Screenshots\Myth - History in the Making.png";
-                if (File.Exists(mythPng))
+                // Generate authentic SCR files from pristine TOSEC pixel art screenshots
+                string screenshotsDir = @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\Media\Screenshots";
+                string[] games = ["Myth - History in the Making", "Rex", "Exolon"];
+                string[] targetNames = ["myth.scr", "rex.scr", "exolon.scr"];
+
+                for (int g = 0; g < games.Length; g++)
                 {
-                    var bmp = new BitmapImage(new Uri(mythPng));
-                    var scr = SpectrumScreen.FromImage(bmp);
-                    string destScr1 = @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Speccy Studio SOURCE\SpeccyStudio\Assets\myth.scr";
-                    string destScr2 = @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Speccy Studio\Assets\myth.scr";
-                    File.WriteAllBytes(destScr1, scr.Data);
-                    File.WriteAllBytes(destScr2, scr.Data);
-                    Console.WriteLine($"Generated myth.scr ({scr.Data.Length} bytes)");
+                    string pngPath = Path.Combine(screenshotsDir, $"{games[g]}.png");
+                    if (File.Exists(pngPath))
+                    {
+                        var bmp = new BitmapImage(new Uri(pngPath));
+                        var scr = SpectrumScreen.FromImage(bmp);
+                        string destScr1 = Path.Combine(@"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Speccy Studio SOURCE\SpeccyStudio\Assets", targetNames[g]);
+                        string destScr2 = Path.Combine(@"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Speccy Studio\Assets", targetNames[g]);
+                        File.WriteAllBytes(destScr1, scr.Data);
+                        File.WriteAllBytes(destScr2, scr.Data);
+                        Console.WriteLine($"Generated authentic {targetNames[g]} ({scr.Data.Length} bytes)");
+                    }
                 }
             }
         }
@@ -782,11 +790,11 @@ internal static class Program
         var mythItem = SpriteBank.Instance.Items.First(i => i.Id == "MYTH_01");
         var selectMethod = typeof(SpriteBankWindow).GetMethod("SelectCard", BindingFlags.Instance | BindingFlags.NonPublic)!;
         selectMethod.Invoke(bankWin, [rexItem]);
-        var previewImg = (System.Windows.Controls.Image)bankWin.FindName("SelectedPreviewImage");
+        var previewImg = (System.Windows.Controls.Image)bankWin!.FindName("SelectedPreviewImage")!;
         Assert(previewImg.Source != null, "Rex inspector preview source populated");
         selectMethod.Invoke(bankWin, [mythItem]);
         Assert(previewImg.Source != null, "Myth inspector preview source populated");
-        Console.WriteLine($"DEBUG: Myth inspector preview size: {previewImg.Source.Width}x{previewImg.Source.Height}");
+        Console.WriteLine($"DEBUG: Myth inspector preview size: {previewImg.Source!.Width}x{previewImg.Source!.Height}");
 
         // Test SpriteBankWindow opened from Exolon (cybernoidProject = null)
         var exolonBankWin = new SpriteBankWindow(null, null, 0x05);
@@ -829,10 +837,10 @@ internal static class Program
 
             var canvas = (SpeccyStudio.Controls.LevelCanvas)win.FindName("MainLevelCanvas");
             Assert(canvas.CurrentUniversalRoom != null, "Canvas has active UniversalRoom for Rex");
-            Assert(canvas.CurrentUniversalRoom.Entities.Count >= 8, $"Rex canvas has {canvas.CurrentUniversalRoom.Entities.Count} entities (pre-crafted layout)");
+            Assert(canvas.CurrentUniversalRoom!.Entities.Count >= 8, $"Rex canvas has {canvas.CurrentUniversalRoom!.Entities.Count} entities (pre-crafted layout)");
             var roomBox = (System.Windows.Controls.ComboBox)win.FindName("UniversalRoomBox");
             Assert(roomBox != null && roomBox.Items.Count == 4, $"Rex has 4 rooms in UniversalRoomBox (got {roomBox?.Items.Count})");
-            Console.WriteLine($"DEBUG: Rex Level Workshop verified with {canvas.CurrentUniversalRoom.Entities.Count} entities in {roomBox.Items.Count} rooms");
+            Console.WriteLine($"DEBUG: Rex Level Workshop verified with {canvas.CurrentUniversalRoom!.Entities.Count} entities in {roomBox!.Items.Count} rooms");
 
             var rootRex = (FrameworkElement)win.Content;
             rootRex.Width = 1200;
@@ -866,10 +874,10 @@ internal static class Program
 
             var canvas = (SpeccyStudio.Controls.LevelCanvas)win.FindName("MainLevelCanvas");
             Assert(canvas.CurrentUniversalRoom != null, "Canvas has active UniversalRoom for Myth");
-            Assert(canvas.CurrentUniversalRoom.Entities.Count >= 8, $"Myth canvas has {canvas.CurrentUniversalRoom.Entities.Count} entities (pre-crafted layout)");
+            Assert(canvas.CurrentUniversalRoom!.Entities.Count >= 8, $"Myth canvas has {canvas.CurrentUniversalRoom!.Entities.Count} entities (pre-crafted layout)");
             var roomBox = (System.Windows.Controls.ComboBox)win.FindName("UniversalRoomBox");
             Assert(roomBox != null && roomBox.Items.Count == 4, $"Myth has 4 rooms in UniversalRoomBox (got {roomBox?.Items.Count})");
-            Console.WriteLine($"DEBUG: Myth Level Workshop verified with {canvas.CurrentUniversalRoom.Entities.Count} entities in {roomBox.Items.Count} rooms");
+            Console.WriteLine($"DEBUG: Myth Level Workshop verified with {canvas.CurrentUniversalRoom!.Entities.Count} entities in {roomBox!.Items.Count} rooms");
 
             var rootMyth = (FrameworkElement)win.Content;
             rootMyth.Width = 1200;
@@ -1177,7 +1185,7 @@ internal static class Program
         var audioWin = new AudioStudioWindow();
         Assert(audioWin != null, "AudioStudioWindow initialized");
 
-        var rootAudio = (FrameworkElement)audioWin.Content;
+        var rootAudio = (FrameworkElement)audioWin!.Content!;
         rootAudio.Width = 1200;
         rootAudio.Height = 680;
         rootAudio.Measure(new Size(rootAudio.Width, rootAudio.Height));

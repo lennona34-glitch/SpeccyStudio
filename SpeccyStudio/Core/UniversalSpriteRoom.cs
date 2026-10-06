@@ -2,6 +2,7 @@ namespace SpeccyStudio.Core;
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Windows.Media.Imaging;
 
@@ -45,6 +46,49 @@ public sealed class UniversalSpriteRoom
         };
     }
 
+    private static BitmapSource? LoadScreen(string game, int roomIndex)
+    {
+        string fileName = game.Equals("Rex", StringComparison.OrdinalIgnoreCase)
+            ? $"sector_{roomIndex + 1:D2}.png"
+            : $"act_{roomIndex + 1:D2}.png";
+        string subDir = game.Equals("Rex", StringComparison.OrdinalIgnoreCase)
+            ? "RexScreens"
+            : "MythScreens";
+
+        string[] candidateDirs =
+        [
+            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", subDir),
+            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "Assets", subDir),
+            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "Speccy Studio", "Assets", subDir),
+            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "Speccy Studio SOURCE", "SpeccyStudio", "Assets", subDir),
+            @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Speccy Studio SOURCE\SpeccyStudio\Assets\" + subDir,
+            @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Speccy Studio\Assets\" + subDir
+        ];
+
+        foreach (var dir in candidateDirs)
+        {
+            try
+            {
+                var fullPath = Path.Combine(dir, fileName);
+                if (File.Exists(fullPath))
+                {
+                    var bi = new BitmapImage();
+                    bi.BeginInit();
+                    bi.UriSource = new Uri(Path.GetFullPath(fullPath), UriKind.Absolute);
+                    bi.CacheOption = BitmapCacheOption.OnLoad;
+                    bi.EndInit();
+                    bi.Freeze();
+                    return bi;
+                }
+            }
+            catch
+            {
+                // Continue to next candidate
+            }
+        }
+        return null;
+    }
+
     public static List<UniversalSpriteRoom> CreateRexRooms(BitmapSource? background = null)
     {
         var sprites = RexMythSpriteCatalog.GetRexSprites();
@@ -56,7 +100,7 @@ public sealed class UniversalSpriteRoom
             Subtitle = "32 authentic native sprites · Richard Franke & Neil Harris (Martech)",
             RoomIndex = 0,
             RoomName = "Sector 01: Surface Patrol (Drop Zone)",
-            BackgroundImage = background,
+            BackgroundImage = background ?? LoadScreen("Rex", 0),
             AvailableSprites = sprites,
             Entities =
             [
@@ -82,7 +126,7 @@ public sealed class UniversalSpriteRoom
             Subtitle = "32 authentic native sprites · Richard Franke & Neil Harris (Martech)",
             RoomIndex = 1,
             RoomName = "Sector 02: Laser Grid & Defense Corridor",
-            BackgroundImage = background,
+            BackgroundImage = background ?? LoadScreen("Rex", 1),
             AvailableSprites = sprites,
             Entities =
             [
@@ -108,7 +152,7 @@ public sealed class UniversalSpriteRoom
             Subtitle = "32 authentic native sprites · Richard Franke & Neil Harris (Martech)",
             RoomIndex = 2,
             RoomName = "Sector 03: Drone Foundry & Alien Spore Hatchery",
-            BackgroundImage = background,
+            BackgroundImage = background ?? LoadScreen("Rex", 2),
             AvailableSprites = sprites,
             Entities =
             [
@@ -135,7 +179,7 @@ public sealed class UniversalSpriteRoom
             Subtitle = "32 authentic native sprites · Richard Franke & Neil Harris (Martech)",
             RoomIndex = 3,
             RoomName = "Sector 04: Biomechanical Core & Reactor Chamber",
-            BackgroundImage = background,
+            BackgroundImage = background ?? LoadScreen("Rex", 3),
             AvailableSprites = sprites,
             Entities =
             [
@@ -168,7 +212,7 @@ public sealed class UniversalSpriteRoom
             Subtitle = "32 authentic native sprites · Bob Stevenson (System 3)",
             RoomIndex = 0,
             RoomName = "Act I: The River Styx & Gates of Hades",
-            BackgroundImage = background,
+            BackgroundImage = background ?? LoadScreen("Myth", 0),
             AvailableSprites = sprites,
             Entities =
             [
@@ -193,7 +237,7 @@ public sealed class UniversalSpriteRoom
             Subtitle = "32 authentic native sprites · Bob Stevenson (System 3)",
             RoomIndex = 1,
             RoomName = "Act II: The Crypt of the Undead",
-            BackgroundImage = background,
+            BackgroundImage = background ?? LoadScreen("Myth", 1),
             AvailableSprites = sprites,
             Entities =
             [
@@ -219,7 +263,7 @@ public sealed class UniversalSpriteRoom
             Subtitle = "32 authentic native sprites · Bob Stevenson (System 3)",
             RoomIndex = 2,
             RoomName = "Act III: Temple of Medusa (Gorgon's Lair)",
-            BackgroundImage = background,
+            BackgroundImage = background ?? LoadScreen("Myth", 2),
             AvailableSprites = sprites,
             Entities =
             [
@@ -245,7 +289,7 @@ public sealed class UniversalSpriteRoom
             Subtitle = "32 authentic native sprites · Bob Stevenson (System 3)",
             RoomIndex = 3,
             RoomName = "Act IV: Cavern of Hydra & Underworld Depths",
-            BackgroundImage = background,
+            BackgroundImage = background ?? LoadScreen("Myth", 3),
             AvailableSprites = sprites,
             Entities =
             [

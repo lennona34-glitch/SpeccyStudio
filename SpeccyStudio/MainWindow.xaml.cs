@@ -1184,6 +1184,24 @@ public partial class MainWindow : Window
     {
         if (_isSyncingRoomBoxes) return;
 
+        if (_universalRooms != null && _universalRooms.Count > 0)
+        {
+            if (sender == CanvasRoomBox && UniversalRoomBox != null && UniversalRoomBox.SelectedIndex != CanvasRoomBox.SelectedIndex)
+            {
+                _isSyncingRoomBoxes = true;
+                UniversalRoomBox.SelectedIndex = CanvasRoomBox.SelectedIndex;
+                _isSyncingRoomBoxes = false;
+            }
+            int idx = CanvasRoomBox?.SelectedIndex ?? -1;
+            if (idx >= 0 && idx < _universalRooms.Count && idx != _universalRoomIndex)
+            {
+                _universalRoomIndex = idx;
+                _universalRoom = _universalRooms[idx];
+                InitUniversalUI(_universalRoom);
+            }
+            return;
+        }
+
         if (_exolonLab != null)
         {
             if (sender == CanvasRoomBox && ExolonRoomBox != null && ExolonRoomBox.SelectedIndex != CanvasRoomBox.SelectedIndex)
@@ -1605,6 +1623,15 @@ public partial class MainWindow : Window
     private void LevelNavigate_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: string directionText }) return;
+
+        if (_universalRooms != null && _universalRooms.Count > 0)
+        {
+            if (directionText == "Left" && _universalRoomIndex > 0)
+                UniversalRoomBox.SelectedIndex = _universalRoomIndex - 1;
+            else if (directionText == "Right" && _universalRoomIndex < _universalRooms.Count - 1)
+                UniversalRoomBox.SelectedIndex = _universalRoomIndex + 1;
+            return;
+        }
 
         if (_exolonLab != null && ExolonRoomBox.SelectedItem is ExolonRoom exRoom)
         {
@@ -3513,6 +3540,11 @@ public partial class MainWindow : Window
 
         MainLevelCanvas.SetUniversalRoom(room);
 
+        if (CanvasLeftButton != null) CanvasLeftButton.IsEnabled = _universalRoomIndex > 0;
+        if (CanvasRightButton != null) CanvasRightButton.IsEnabled = _universalRooms != null && _universalRoomIndex < _universalRooms.Count - 1;
+        if (CanvasUpButton != null) CanvasUpButton.IsEnabled = false;
+        if (CanvasDownButton != null) CanvasDownButton.IsEnabled = false;
+
         // Pick first sprite as default brush
         var defaultSprite = room.AvailableSprites.FirstOrDefault();
         if (defaultSprite != null)
@@ -3528,21 +3560,43 @@ public partial class MainWindow : Window
 
     private void PopulateUniversalRoomsDropdown()
     {
-        if (UniversalRoomBox == null || _universalRooms == null) return;
-        UniversalRoomBox.SelectionChanged -= UniversalRoom_Changed;
-        UniversalRoomBox.Items.Clear();
-        for (int i = 0; i < _universalRooms.Count; i++)
+        if (_universalRooms == null) return;
+        if (UniversalRoomBox != null)
         {
-            var r = _universalRooms[i];
-            UniversalRoomBox.Items.Add($"Room {i}: {r.RoomName}");
+            UniversalRoomBox.SelectionChanged -= UniversalRoom_Changed;
+            UniversalRoomBox.Items.Clear();
+            for (int i = 0; i < _universalRooms.Count; i++)
+            {
+                var r = _universalRooms[i];
+                UniversalRoomBox.Items.Add($"Room {i}: {r.RoomName}");
+            }
+            UniversalRoomBox.SelectedIndex = Math.Clamp(_universalRoomIndex, 0, _universalRooms.Count - 1);
+            UniversalRoomBox.SelectionChanged += UniversalRoom_Changed;
         }
-        UniversalRoomBox.SelectedIndex = Math.Clamp(_universalRoomIndex, 0, _universalRooms.Count - 1);
-        UniversalRoomBox.SelectionChanged += UniversalRoom_Changed;
+
+        if (CanvasRoomBox != null)
+        {
+            _isSyncingRoomBoxes = true;
+            CanvasRoomBox.Items.Clear();
+            for (int i = 0; i < _universalRooms.Count; i++)
+            {
+                var r = _universalRooms[i];
+                CanvasRoomBox.Items.Add($"Room {i}: {r.RoomName}");
+            }
+            CanvasRoomBox.SelectedIndex = Math.Clamp(_universalRoomIndex, 0, _universalRooms.Count - 1);
+            _isSyncingRoomBoxes = false;
+        }
     }
 
     private void UniversalRoom_Changed(object sender, SelectionChangedEventArgs e)
     {
-        if (UniversalRoomBox == null || _universalRooms == null) return;
+        if (_isSyncingRoomBoxes || UniversalRoomBox == null || _universalRooms == null) return;
+        if (CanvasRoomBox != null && CanvasRoomBox.SelectedIndex != UniversalRoomBox.SelectedIndex)
+        {
+            _isSyncingRoomBoxes = true;
+            CanvasRoomBox.SelectedIndex = UniversalRoomBox.SelectedIndex;
+            _isSyncingRoomBoxes = false;
+        }
         int idx = UniversalRoomBox.SelectedIndex;
         if (idx >= 0 && idx < _universalRooms.Count && idx != _universalRoomIndex)
         {

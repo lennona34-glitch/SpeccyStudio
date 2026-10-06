@@ -562,34 +562,6 @@ public sealed class LevelCanvas : FrameworkElement
                 dc.DrawLine(bracketPen, new Point(ex, ey + eh), new Point(ex + arm, ey + eh));
                 dc.DrawLine(bracketPen, new Point(ex + ew - arm, ey + eh), new Point(ex + ew, ey + eh));
                 dc.DrawLine(bracketPen, new Point(ex + ew, ey + eh), new Point(ex + ew, ey + eh - arm));
-
-                if (ShowMarkers)
-                {
-                    string glyph = entity.Category switch
-                    {
-                        "Characters" => "👤",
-                        "Enemies" => "⚔",
-                        "Hazards" => "⚡",
-                        "Interactive" => "★",
-                        "Platforms" => "〓",
-                        _ => "✦"
-                    };
-                    double badgeSize = Math.Max(12.0, 14.0 * (scale / 4.0));
-                    Rect badgeRect = new Rect(ex + 1, ey + 1, badgeSize, badgeSize);
-                    var badgeBrush = new SolidColorBrush(Color.FromArgb(220, color.R, color.G, color.B));
-                    badgeBrush.Freeze();
-                    dc.DrawRoundedRectangle(badgeBrush, null, badgeRect, 2, 2);
-
-                    var glyphText = new FormattedText(
-                        glyph,
-                        CultureInfo.InvariantCulture,
-                        FlowDirection.LeftToRight,
-                        new Typeface("Segoe UI Symbol"),
-                        Math.Max(8.0, badgeSize * 0.72),
-                        Brushes.White,
-                        1.0);
-                    dc.DrawText(glyphText, new Point(badgeRect.Left + (badgeSize - glyphText.Width) / 2.0, badgeRect.Top + (badgeSize - glyphText.Height) / 2.0));
-                }
             }
         }
 
@@ -629,7 +601,21 @@ public sealed class LevelCanvas : FrameworkElement
         // 1. Draw screen background (Authentic ZX Spectrum Black Playfield)
         dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(0, 0, 0)), null, new Rect(ox, oy, rw, rh));
 
-        // 2. Draw all Room Entities dynamically from CurrentExolonRoom.Entities or ProposalExolonEntities
+        // 2. Draw Exolon background playfield art (terrain, platforms, stars)
+        if (ShowArt && ExolonScreenImage != null)
+        {
+            try
+            {
+                var crop = new CroppedBitmap(ExolonScreenImage, new Int32Rect(0, 0, Math.Min(256, ExolonScreenImage.PixelWidth), Math.Min(176, ExolonScreenImage.PixelHeight)));
+                dc.DrawImage(crop, new Rect(ox, oy, rw, rh));
+            }
+            catch
+            {
+                dc.DrawImage(ExolonScreenImage, new Rect(ox, oy, rw, rh));
+            }
+        }
+
+        // 3. Draw all Room Entities dynamically from CurrentExolonRoom.Entities or ProposalExolonEntities
         var entitiesToRender = ProposalExolonEntities ?? CurrentExolonRoom?.Entities;
         if (entitiesToRender != null)
         {
@@ -644,18 +630,6 @@ public sealed class LevelCanvas : FrameworkElement
                     double eh = sprite.PixelHeight * scale;
                     dc.DrawImage(sprite, new Rect(ex, ey, ew, eh));
                 }
-            }
-        }
-        else if (ExolonScreenImage != null)
-        {
-            try
-            {
-                var crop = new CroppedBitmap(ExolonScreenImage, new Int32Rect(0, 0, Math.Min(256, ExolonScreenImage.PixelWidth), Math.Min(176, ExolonScreenImage.PixelHeight)));
-                dc.DrawImage(crop, new Rect(ox, oy, rw, rh));
-            }
-            catch
-            {
-                dc.DrawImage(ExolonScreenImage, new Rect(ox, oy, rw, rh));
             }
         }
 
@@ -828,7 +802,7 @@ public sealed class LevelCanvas : FrameworkElement
 
     public RenderTargetBitmap CaptureRoomBitmap(int scale = 4)
     {
-        int baseH = CurrentExolonRoom != null ? 176 : 160;
+        int baseH = CurrentExolonRoom != null ? 176 : (CurrentUniversalRoom != null ? 192 : 160);
         int pixelW = 256 * scale;
         int pixelH = baseH * scale;
         var rtb = new RenderTargetBitmap(pixelW, pixelH, 96, 96, PixelFormats.Pbgra32);
@@ -836,26 +810,64 @@ public sealed class LevelCanvas : FrameworkElement
         using (var dc = dv.RenderOpen())
         {
             RenderOptions.SetBitmapScalingMode(dv, BitmapScalingMode.NearestNeighbor);
-            if (CurrentExolonRoom?.Entities != null)
+            if (CurrentUniversalRoom != null)
             {
-                dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(0, 0, 0)), null, new Rect(0, 0, pixelW, pixelH));
-                foreach (var entity in CurrentExolonRoom.Entities)
+                if (CurrentUniversalRoom.BackgroundImage != null)
                 {
-                    var sprite = ExolonSpriteAtlas.GetSprite(entity.TypeId);
-                    if (sprite != null)
+                    dc.DrawImage(CurrentUniversalRoom.BackgroundImage, new Rect(0, 0, pixelW, pixelH));
+                }
+                else
+                {
+                    dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(0, 0, 0)), null, new Rect(0, 0, pixelW, pixelH));
+                }
+
+                if (CurrentUniversalRoom.Entities != null)
+                {
+                    foreach (var entity in CurrentUniversalRoom.Entities)
                     {
-                        double ex = entity.Col * 8.0 * scale;
-                        double ey = entity.Row * 8.0 * scale;
-                        double ew = sprite.PixelWidth * scale;
-                        double eh = sprite.PixelHeight * scale;
-                        dc.DrawImage(sprite, new Rect(ex, ey, ew, eh));
+                        var spriteBmp = entity.SpriteItem?.RenderBitmapSource();
+                        if (spriteBmp != null)
+                        {
+                            double ex = entity.Col * 8.0 * scale;
+                            double ey = entity.Row * 8.0 * scale;
+                            double ew = entity.WidthCells * 8.0 * scale;
+                            double eh = entity.HeightCells * 8.0 * scale;
+                            dc.DrawImage(spriteBmp, new Rect(ex, ey, ew, eh));
+                        }
                     }
                 }
             }
-            else if (CurrentExolonRoom != null && ExolonScreenImage != null)
+            else if (CurrentExolonRoom != null)
             {
-                var crop = new CroppedBitmap(ExolonScreenImage, new Int32Rect(0, 0, Math.Min(256, ExolonScreenImage.PixelWidth), Math.Min(176, ExolonScreenImage.PixelHeight)));
-                dc.DrawImage(crop, new Rect(0, 0, pixelW, pixelH));
+                dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(0, 0, 0)), null, new Rect(0, 0, pixelW, pixelH));
+                if (ExolonScreenImage != null)
+                {
+                    try
+                    {
+                        var crop = new CroppedBitmap(ExolonScreenImage, new Int32Rect(0, 0, Math.Min(256, ExolonScreenImage.PixelWidth), Math.Min(176, ExolonScreenImage.PixelHeight)));
+                        dc.DrawImage(crop, new Rect(0, 0, pixelW, pixelH));
+                    }
+                    catch
+                    {
+                        dc.DrawImage(ExolonScreenImage, new Rect(0, 0, pixelW, pixelH));
+                    }
+                }
+
+                if (CurrentExolonRoom.Entities != null)
+                {
+                    foreach (var entity in CurrentExolonRoom.Entities)
+                    {
+                        var sprite = ExolonSpriteAtlas.GetSprite(entity.TypeId);
+                        if (sprite != null)
+                        {
+                            double ex = entity.Col * 8.0 * scale;
+                            double ey = entity.Row * 8.0 * scale;
+                            double ew = sprite.PixelWidth * scale;
+                            double eh = sprite.PixelHeight * scale;
+                            dc.DrawImage(sprite, new Rect(ex, ey, ew, eh));
+                        }
+                    }
+                }
             }
             else if (Room != null && (Atlas ?? Project?.TileAtlas) is { } atlas)
             {

@@ -147,6 +147,18 @@ public static class SpectrumFileParser
             }
         }
 
+        bool isRex = path.Contains("rex", StringComparison.OrdinalIgnoreCase) ||
+                     assets.Any(a => a.Name.Contains("rex", StringComparison.OrdinalIgnoreCase));
+        if (isRex)
+        {
+            var rexScreen = TryLoadRexScr();
+            if (rexScreen is not null)
+            {
+                companionScreen = rexScreen;
+                assets.Add(new AssetEntry("Screen", "Authentic Rex Loading Screen (SCR)", 0, SpectrumScreen.DataLength));
+            }
+        }
+
         return new SpectrumDocument(path, SpectrumFormat.Tap, bytes, screenOffset, assets,
             $"TAP tape · {index - 1} block(s)" +
             (screenOffset is not null ? " · editable screen found" :
@@ -293,6 +305,18 @@ public static class SpectrumFileParser
             }
         }
 
+        bool isRex = path.Contains("rex", StringComparison.OrdinalIgnoreCase) ||
+                     assets.Any(a => a.Name.Contains("rex", StringComparison.OrdinalIgnoreCase));
+        if (isRex)
+        {
+            var rexScreen = TryLoadRexScr();
+            if (rexScreen is not null)
+            {
+                companionScreen = rexScreen;
+                assets.Add(new AssetEntry("Screen", "Authentic Rex Loading Screen (SCR)", 0, SpectrumScreen.DataLength));
+            }
+        }
+
         return new SpectrumDocument(path, SpectrumFormat.Tzx, bytes, screenOffset, assets,
             "TZX tape image" +
             (screenOffset is not null ? " · editable standard-speed screen found" :
@@ -359,6 +383,35 @@ public static class SpectrumFileParser
         return null;
     }
 
+    private static SpectrumScreen? TryLoadRexScr()
+    {
+        string[] candidates = new[]
+        {
+            Path.Combine(AppContext.BaseDirectory, "Assets", "rex.scr"),
+            Path.Combine(AppContext.BaseDirectory, "Assets", "RexScreens", "rex.scr"),
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Assets", "rex.scr"),
+            @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Speccy Studio\Assets\rex.scr",
+            @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Speccy Studio SOURCE\SpeccyStudio\Assets\rex.scr",
+            @"C:\Users\adria\Desktop\rex.scr"
+        };
+        foreach (var c in candidates)
+        {
+            if (File.Exists(c))
+            {
+                try
+                {
+                    byte[] b = File.ReadAllBytes(c);
+                    if (b.Length >= SpectrumScreen.DataLength)
+                    {
+                        return new SpectrumScreen(b.AsSpan(0, SpectrumScreen.DataLength).ToArray());
+                    }
+                }
+                catch { }
+            }
+        }
+        return null;
+    }
+
     private static SpectrumDocument ParseSna(string path, byte[] bytes)
     {
         if (bytes.Length < 27 + 49152)
@@ -371,14 +424,28 @@ public static class SpectrumFileParser
             new("Memory", "Visible 48K RAM", 27, 49152)
         };
         SpectrumScreen? companionScreen = null;
-        if (path.Contains("myth", StringComparison.OrdinalIgnoreCase))
+        string? screenLabel = null;
+        if (path.Contains("rex", StringComparison.OrdinalIgnoreCase))
+        {
+            companionScreen = TryLoadRexScr();
+            screenLabel = "Authentic Rex Loading Screen (SCR)";
+        }
+        else if (path.Contains("myth", StringComparison.OrdinalIgnoreCase))
         {
             companionScreen = TryLoadMythScr();
-            if (companionScreen is not null)
-            {
-                assets.Add(new AssetEntry("Screen", "Authentic Myth Loading Screen (SCR)", 0, SpectrumScreen.DataLength));
-            }
+            screenLabel = "Authentic Myth Loading Screen (SCR)";
         }
+        else if (path.Contains("exolon", StringComparison.OrdinalIgnoreCase))
+        {
+            companionScreen = TryLoadExolonScr();
+            screenLabel = "Authentic Exolon Loading Screen (SCR)";
+        }
+
+        if (companionScreen is not null && screenLabel is not null)
+        {
+            assets.Add(new AssetEntry("Screen", screenLabel, 0, SpectrumScreen.DataLength));
+        }
+
         return new SpectrumDocument(path, SpectrumFormat.Sna, bytes, 27,
             assets,
             $"{model} SNA snapshot · screen mapped at RAM 0x4000",
@@ -388,11 +455,25 @@ public static class SpectrumFileParser
     private static SpectrumDocument ParseZ80(string path, byte[] input)
     {
         if (input.Length < 30) throw new InvalidDataException("Z80 snapshot header is incomplete.");
+        bool isRex = path.Contains("rex", StringComparison.OrdinalIgnoreCase);
         bool isMyth = path.Contains("myth", StringComparison.OrdinalIgnoreCase);
+        bool isExolon = path.Contains("exolon", StringComparison.OrdinalIgnoreCase);
         SpectrumScreen? companionScreen = null;
-        if (isMyth)
+        string? screenLabel = null;
+        if (isRex)
+        {
+            companionScreen = TryLoadRexScr();
+            screenLabel = "Authentic Rex Loading Screen (SCR)";
+        }
+        else if (isMyth)
         {
             companionScreen = TryLoadMythScr();
+            screenLabel = "Authentic Myth Loading Screen (SCR)";
+        }
+        else if (isExolon)
+        {
+            companionScreen = TryLoadExolonScr();
+            screenLabel = "Authentic Exolon Loading Screen (SCR)";
         }
 
         int pc = ReadU16(input, 6);
@@ -411,9 +492,9 @@ public static class SpectrumFileParser
                 new("Screen", "RAM 0x4000 loading screen", 30, SpectrumScreen.DataLength),
                 new("Memory", "Normalized uncompressed 48K RAM", 30, 49152)
             };
-            if (companionScreen is not null)
+            if (companionScreen is not null && screenLabel is not null)
             {
-                assets1.Add(new AssetEntry("Screen", "Authentic Myth Loading Screen (SCR)", 0, SpectrumScreen.DataLength));
+                assets1.Add(new AssetEntry("Screen", screenLabel, 0, SpectrumScreen.DataLength));
             }
             return new SpectrumDocument(path, SpectrumFormat.Z80, normalized, 30,
                 assets1,
@@ -454,9 +535,9 @@ public static class SpectrumFileParser
         var normalizedBytes = output.ToArray();
         if (screenOffset is null)
             throw new InvalidDataException("The Z80 snapshot has no page 8 (the normal screen bank). Shadow-screen bank 7 is preserved but not selected.");
-        if (companionScreen is not null)
+        if (companionScreen is not null && screenLabel is not null)
         {
-            assets.Add(new AssetEntry("Screen", "Authentic Myth Loading Screen (SCR)", 0, SpectrumScreen.DataLength));
+            assets.Add(new AssetEntry("Screen", screenLabel, 0, SpectrumScreen.DataLength));
         }
         return new SpectrumDocument(path, SpectrumFormat.Z80, normalizedBytes, screenOffset, assets,
             "Z80 v2/v3 48K/128K snapshot · RAM pages normalized to uncompressed blocks when saved",

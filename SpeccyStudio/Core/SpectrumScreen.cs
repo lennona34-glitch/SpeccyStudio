@@ -170,51 +170,140 @@ public sealed class SpectrumScreen
         return stream.ToArray();
     }
 
+    private static readonly (byte R, byte G, byte B)[] SpeccyPaletteRgb =
+    [
+        (0, 0, 0), (0, 0, 192), (192, 0, 0), (192, 0, 192), (0, 192, 0), (0, 192, 192), (192, 192, 0), (192, 192, 192),
+        (0, 0, 0), (0, 0, 255), (255, 0, 0), (255, 0, 255), (0, 255, 0), (0, 255, 255), (255, 255, 0), (255, 255, 255)
+    ];
+
+    public static int MatchSpectrumColor(byte r, byte g, byte b)
+    {
+        int bestIdx = 0;
+        int bestDist = int.MaxValue;
+        for (int i = 0; i < 16; i++)
+        {
+            var p = SpeccyPaletteRgb[i];
+            int dr = r - p.R, dg = g - p.G, db = b - p.B;
+            int dist = dr * dr * 3 + dg * dg * 4 + db * db * 2;
+            if (dist < bestDist)
+            {
+                bestDist = dist;
+                bestIdx = i;
+                if (dist == 0) break;
+            }
+        }
+        return bestIdx;
+    }
+
     public static SpectrumScreen FromImage(BitmapSource source)
     {
-        BitmapSource normalized = Resize(source, Width, Height, BitmapScalingMode.HighQuality);
+        BitmapSource normalized;
+        if (source.PixelWidth == Width && source.PixelHeight == Height && source.Format == PixelFormats.Bgra32)
+        {
+            normalized = source;
+        }
+        else if (source.PixelWidth == Width && source.PixelHeight == Height)
+        {
+            normalized = new FormatConvertedBitmap(source, PixelFormats.Bgra32, null, 0);
+        }
+        else
+        {
+            normalized = Resize(source, Width, Height, BitmapScalingMode.NearestNeighbor);
+        }
+
         int stride = Width * 4;
         var pixels = new byte[stride * Height];
         normalized.CopyPixels(pixels, stride, 0);
         var output = new byte[DataLength];
 
         for (int cellY = 0; cellY < 24; cellY++)
-        for (int cellX = 0; cellX < 32; cellX++)
         {
-            long bestError = long.MaxValue;
-            int bestInk = 7, bestPaper = 0, bestBright = 0;
-            for (int bright = 0; bright <= 1; bright++)
-            for (int ink = 0; ink < 8; ink++)
-            for (int paper = 0; paper < 8; paper++)
+            for (int cellX = 0; cellX < 32; cellX++)
             {
-                Color ci = Palette[ink + bright * 8];
-                Color cp = Palette[paper + bright * 8];
-                long error = 0;
-                for (int py = 0; py < 8; py++)
-                for (int px = 0; px < 8; px++)
-                {
-                    int p = (cellY * 8 + py) * stride + (cellX * 8 + px) * 4;
-                    int di = Distance(pixels[p + 2], pixels[p + 1], pixels[p], ci);
-                    int dp = Distance(pixels[p + 2], pixels[p + 1], pixels[p], cp);
-                    error += Math.Min(di, dp);
-                }
-                if (error < bestError)
-                {
-                    bestError = error; bestInk = ink; bestPaper = paper; bestBright = bright;
-                }
-            }
+                int[] counts = new int[16];
+                int[,] cellMap = new int[8, 8];
+                bool cellHasBright = false;
 
-            output[BitmapLength + cellY * 32 + cellX] = (byte)(bestInk | bestPaper << 3 | bestBright << 6);
-            Color selectedInk = Palette[bestInk + bestBright * 8];
-            Color selectedPaper = Palette[bestPaper + bestBright * 8];
-            for (int py = 0; py < 8; py++)
-            for (int px = 0; px < 8; px++)
-            {
-                int x = cellX * 8 + px, y = cellY * 8 + py;
-                int p = y * stride + x * 4;
-                if (Distance(pixels[p + 2], pixels[p + 1], pixels[p], selectedInk) <=
-                    Distance(pixels[p + 2], pixels[p + 1], pixels[p], selectedPaper))
-                    output[BitmapOffset(x, y)] |= (byte)(0x80 >> (x & 7));
+                for (int py = 0; py < 8; py++)
+                {
+                    for (int px = 0; px < 8; px++)
+                    {
+                        int p = (cellY * 8 + py) * stride + (cellX * 8 + px) * 4;
+                        byte b = pixels[p];
+                        byte g = pixels[p + 1];
+                        byte r = pixels[p + 2];
+                        int colIdx = MatchSpectrumColor(r, g, b);
+                        cellMap[py, px] = colIdx;
+                        counts[colIdx]++;
+                        if (colIdx >= 8 && (colIdx & 7) != 0) cellHasBright = true;
+                    }
+                }
+
+                // Identify the two most frequent colors
+                int primary = 0;
+                int secondary = 0;
+                int max1 = -1, max2 = -1;
+                for (int i = 0; i < 16; i++)
+                {
+                    if (counts[i] > max1)
+                    {
+                        max2 = max1;
+                        secondary = primary;
+                        max1 = counts[i];
+                        primary = i;
+                    }
+                    else if (counts[i] > max2)
+                    {
+                        max2 = counts[i];
+                        secondary = i;
+                    }
+                }
+                if (max2 <= 0) secondary = primary;
+
+                int brightBit = cellHasBright ? 1 : ((primary >= 8 || secondary >= 8) ? 1 : 0);
+                int ink = secondary & 7;
+                int paper = primary & 7;
+
+                // Prefer black paper (background) if either color is black
+                if (ink == 0 && paper != 0)
+                {
+                    (ink, paper) = (paper, ink);
+                }
+
+                byte attr = (byte)((brightBit << 6) | (paper << 3) | ink);
+                output[BitmapLength + cellY * 32 + cellX] = attr;
+
+                int selectedInkPal = ink + brightBit * 8;
+                int selectedPaperPal = paper + brightBit * 8;
+                var inkColor = SpeccyPaletteRgb[selectedInkPal];
+                var paperColor = SpeccyPaletteRgb[selectedPaperPal];
+
+                for (int py = 0; py < 8; py++)
+                {
+                    int y = cellY * 8 + py;
+                    int lineOffset = BitmapOffset(cellX * 8, y);
+                    byte lineByte = 0;
+
+                    for (int px = 0; px < 8; px++)
+                    {
+                        int p = y * stride + (cellX * 8 + px) * 4;
+                        byte b = pixels[p];
+                        byte g = pixels[p + 1];
+                        byte r = pixels[p + 2];
+
+                        int drI = r - inkColor.R, dgI = g - inkColor.G, dbI = b - inkColor.B;
+                        int distInk = drI * drI + dgI * dgI + dbI * dbI;
+
+                        int drP = r - paperColor.R, dgP = g - paperColor.G, dbP = b - paperColor.B;
+                        int distPaper = drP * drP + dgP * dgP + dbP * dbP;
+
+                        if (ink != paper && distInk <= distPaper)
+                        {
+                            lineByte |= (byte)(0x80 >> px);
+                        }
+                    }
+                    output[lineOffset] = lineByte;
+                }
             }
         }
         return new SpectrumScreen(output);
