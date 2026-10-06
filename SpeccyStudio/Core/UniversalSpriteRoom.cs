@@ -104,18 +104,15 @@ public sealed class UniversalSpriteRoom
             AvailableSprites = sprites,
             Entities =
             [
-                CreateEntity(sprites, "REX_01", 2, 18),  // Rex Cyber Warrior (Idle)
-                CreateEntity(sprites, "REX_0E", 6, 17),  // Metallic Tech Platform
-                CreateEntity(sprites, "REX_0E", 10, 14), // Metallic Tech Platform
-                CreateEntity(sprites, "REX_0E", 14, 11), // Metallic Tech Platform
-                CreateEntity(sprites, "REX_0C", 14, 9),  // Power Cell Upgrade
-                CreateEntity(sprites, "REX_04", 8, 15),  // Energy Shield Bubble
-                CreateEntity(sprites, "REX_05", 12, 5),  // Seeker Drone (Saucer)
-                CreateEntity(sprites, "REX_05", 24, 4),  // Seeker Drone (Saucer)
-                CreateEntity(sprites, "REX_0A", 18, 12), // Proximity Mine
-                CreateEntity(sprites, "REX_08", 22, 19), // Heavy Ground Cannon
-                CreateEntity(sprites, "REX_0D", 0, 15),  // Biomechanical Conduit Column
-                CreateEntity(sprites, "REX_0D", 0, 19)   // Biomechanical Conduit Column
+                CreateEntity(sprites, "REX_01", 20, 15), // Rex Cyber Warrior (Idle on landing pod)
+                CreateEntity(sprites, "REX_05", 10, 8),   // Seeker Drone (Saucer)
+                CreateEntity(sprites, "REX_05", 24, 7),   // Seeker Drone (Saucer)
+                CreateEntity(sprites, "REX_0B", 14, 11),  // Hover Sentry Eyeball
+                CreateEntity(sprites, "REX_0A", 6, 17),   // Proximity Mine
+                CreateEntity(sprites, "REX_04", 2, 17),   // Energy Shield Bubble
+                CreateEntity(sprites, "REX_0C", 28, 11),  // Power Cell Upgrade
+                CreateEntity(sprites, "REX_06", 12, 19),  // Mechanical Spider Walker
+                CreateEntity(sprites, "REX_08", 26, 19)   // Heavy Ground Cannon
             ]
         };
 
@@ -216,17 +213,14 @@ public sealed class UniversalSpriteRoom
             AvailableSprites = sprites,
             Entities =
             [
-                CreateEntity(sprites, "MYTH_01", 3, 17),  // Myth Hero (Conan)
-                CreateEntity(sprites, "MYTH_04", 14, 17), // Hades Skeleton Warrior
-                CreateEntity(sprites, "MYTH_04", 24, 17), // Hades Skeleton Warrior
-                CreateEntity(sprites, "MYTH_05", 9, 19),  // Skeleton Clawing from Earth
-                CreateEntity(sprites, "MYTH_05", 19, 19), // Skeleton Clawing from Earth
-                CreateEntity(sprites, "MYTH_08", 27, 18), // Hellhound / Cerberus
-                CreateEntity(sprites, "MYTH_0A", 6, 9),   // Sacrificial Wall Torch
-                CreateEntity(sprites, "MYTH_0A", 18, 9),  // Sacrificial Wall Torch
-                CreateEntity(sprites, "MYTH_0F", 11, 20), // Subterranean Lava Chasm
-                CreateEntity(sprites, "MYTH_0F", 13, 20), // Subterranean Lava Chasm
-                CreateEntity(sprites, "MYTH_0E", 16, 18)  // Ancient Greek Amphora / Urn
+                CreateEntity(sprites, "MYTH_01", 3, 18),  // Conan Hero (Barbarian)
+                CreateEntity(sprites, "MYTH_04", 10, 18), // Hades Skeleton Warrior
+                CreateEntity(sprites, "MYTH_05", 16, 19), // Skeleton Clawing from Earth
+                CreateEntity(sprites, "MYTH_08", 26, 18), // Hellhound / Cerberus
+                CreateEntity(sprites, "MYTH_0E", 12, 20), // Ancient Greek Amphora / Urn
+                CreateEntity(sprites, "MYTH_0A", 6, 10),  // Sacrificial Wall Torch
+                CreateEntity(sprites, "MYTH_0A", 18, 10), // Sacrificial Wall Torch
+                CreateEntity(sprites, "MYTH_06", 20, 7)   // Harpy Flying Demon
             ]
         };
 

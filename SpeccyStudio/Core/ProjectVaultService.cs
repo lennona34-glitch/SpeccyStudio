@@ -77,27 +77,24 @@ public sealed class ProjectVaultService
                 CopyFirstFound(exoSources, exoDest);
             }
 
-            // Preset 3: Rex (1988) [128K]
+            // Preset 3: Rex (1988) [Part 1 / 128K]
             string rexDest = Path.Combine(_projectsDir, "Rex (1988) [128K].zip");
-            if (!File.Exists(rexDest))
-            {
-                string[] rexSources =
-                [
-                    @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[Z80]\Rex (1988)(Martech Games)[128K].zip"
-                ];
-                CopyFirstFound(rexSources, rexDest);
-            }
+            string[] rexSources =
+            [
+                @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[Z80]\Rex (1988)(Martech Games)(Part 1 of 2).zip",
+                @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[TAP]\Rex (1988)(Martech Games)(Side A).zip",
+                @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[Z80]\Rex (1988)(Martech Games)[128K].zip"
+            ];
+            CopyFirstFound(rexSources, rexDest);
 
             // Preset 4: Myth (1989) [128K]
             string mythDest = Path.Combine(_projectsDir, "Myth (1989) [128K].zip");
-            if (!File.Exists(mythDest))
-            {
-                string[] mythSources =
-                [
-                    @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[Z80]\Myth - History in the Making (1989)(System 3 Software).zip"
-                ];
-                CopyFirstFound(mythSources, mythDest);
-            }
+            string[] mythSources =
+            [
+                @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[TAP]\Myth - History in the Making (1989)(System 3 Software).zip",
+                @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[Z80]\Myth - History in the Making (1989)(System 3 Software).zip"
+            ];
+            CopyFirstFound(mythSources, mythDest);
         }
         catch (Exception ex)
         {
