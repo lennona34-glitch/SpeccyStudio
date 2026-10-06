@@ -813,14 +813,20 @@ internal static class Program
         var rexRooms = UniversalSpriteRoom.CreateRexRooms();
         Assert(rexRooms.Count == 4, $"Rex has 4 authentic pre-built rooms (got {rexRooms.Count})");
         var rexRoom = UniversalSpriteRoom.CreateRexRoom();
-        Assert(rexRoom.Entities.Count >= 8, $"Rex default room has {rexRoom.Entities.Count} entities (pre-crafted layout)");
+        Assert(rexRoom.Entities.Count == 0, $"Rex default room starts pristine with 0 entities (got {rexRoom.Entities.Count})");
         Assert(rexRoom.AvailableSprites.Count == 32, "Rex room has 32 available sprites");
 
         var mythRooms = UniversalSpriteRoom.CreateMythRooms();
         Assert(mythRooms.Count == 4, $"Myth has 4 authentic pre-built rooms (got {mythRooms.Count})");
         var mythRoom = UniversalSpriteRoom.CreateMythRoom();
-        Assert(mythRoom.Entities.Count >= 8, $"Myth default room has {mythRoom.Entities.Count} entities (pre-crafted layout)");
+        Assert(mythRoom.Entities.Count == 0, $"Myth default room starts pristine with 0 entities (got {mythRoom.Entities.Count})");
         Assert(mythRoom.AvailableSprites.Count == 32, "Myth room has 32 available sprites");
+
+        // Verify dynamic entity placement
+        var testEntity = UniversalSpriteRoom.CreateEntity(mythRoom.AvailableSprites, "MYTH_01", 10, 10);
+        mythRoom.Entities.Add(testEntity);
+        Assert(mythRoom.Entities.Count == 1, "Placing entity dynamically in Myth room succeeds");
+        mythRoom.Entities.Clear();
 
         // 11. Test MainWindow loading of Rex and Myth
         string? rexPath = projects.FirstOrDefault(p => p.GameType == "Rex")?.FilePath;
@@ -837,7 +843,7 @@ internal static class Program
 
             var canvas = (SpeccyStudio.Controls.LevelCanvas)win.FindName("MainLevelCanvas");
             Assert(canvas.CurrentUniversalRoom != null, "Canvas has active UniversalRoom for Rex");
-            Assert(canvas.CurrentUniversalRoom!.Entities.Count >= 8, $"Rex canvas has {canvas.CurrentUniversalRoom!.Entities.Count} entities (pre-crafted layout)");
+            Assert(canvas.CurrentUniversalRoom!.Entities.Count == 0, $"Rex canvas has pristine playfield with 0 active entities (got {canvas.CurrentUniversalRoom!.Entities.Count})");
             var roomBox = (System.Windows.Controls.ComboBox)win.FindName("UniversalRoomBox");
             Assert(roomBox != null && roomBox.Items.Count == 4, $"Rex has 4 rooms in UniversalRoomBox (got {roomBox?.Items.Count})");
             Console.WriteLine($"DEBUG: Rex Level Workshop verified with {canvas.CurrentUniversalRoom!.Entities.Count} entities in {roomBox!.Items.Count} rooms");
@@ -874,7 +880,7 @@ internal static class Program
 
             var canvas = (SpeccyStudio.Controls.LevelCanvas)win.FindName("MainLevelCanvas");
             Assert(canvas.CurrentUniversalRoom != null, "Canvas has active UniversalRoom for Myth");
-            Assert(canvas.CurrentUniversalRoom!.Entities.Count >= 8, $"Myth canvas has {canvas.CurrentUniversalRoom!.Entities.Count} entities (pre-crafted layout)");
+            Assert(canvas.CurrentUniversalRoom!.Entities.Count == 0, $"Myth canvas has pristine playfield with 0 active entities (got {canvas.CurrentUniversalRoom!.Entities.Count})");
             var roomBox = (System.Windows.Controls.ComboBox)win.FindName("UniversalRoomBox");
             Assert(roomBox != null && roomBox.Items.Count == 4, $"Myth has 4 rooms in UniversalRoomBox (got {roomBox?.Items.Count})");
             Console.WriteLine($"DEBUG: Myth Level Workshop verified with {canvas.CurrentUniversalRoom!.Entities.Count} entities in {roomBox!.Items.Count} rooms");

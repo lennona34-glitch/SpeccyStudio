@@ -30,7 +30,7 @@ public sealed class UniversalSpriteRoom
     public BitmapSource? BackgroundImage { get; set; }
     public IReadOnlyList<SpriteBankItem> AvailableSprites { get; set; } = [];
 
-    private static UniversalSpriteEntity CreateEntity(IReadOnlyList<SpriteBankItem> sprites, string id, int col, int row)
+    public static UniversalSpriteEntity CreateEntity(IReadOnlyList<SpriteBankItem> sprites, string id, int col, int row)
     {
         var item = sprites.FirstOrDefault(s => s.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
         return new UniversalSpriteEntity
@@ -102,18 +102,7 @@ public sealed class UniversalSpriteRoom
             RoomName = "Sector 01: Surface Patrol (Drop Zone)",
             BackgroundImage = background ?? LoadScreen("Rex", 0),
             AvailableSprites = sprites,
-            Entities =
-            [
-                CreateEntity(sprites, "REX_01", 20, 15), // Rex Cyber Warrior (Idle on landing pod)
-                CreateEntity(sprites, "REX_05", 10, 8),   // Seeker Drone (Saucer)
-                CreateEntity(sprites, "REX_05", 24, 7),   // Seeker Drone (Saucer)
-                CreateEntity(sprites, "REX_0B", 14, 11),  // Hover Sentry Eyeball
-                CreateEntity(sprites, "REX_0A", 6, 17),   // Proximity Mine
-                CreateEntity(sprites, "REX_04", 2, 17),   // Energy Shield Bubble
-                CreateEntity(sprites, "REX_0C", 28, 11),  // Power Cell Upgrade
-                CreateEntity(sprites, "REX_06", 12, 19),  // Mechanical Spider Walker
-                CreateEntity(sprites, "REX_08", 26, 19)   // Heavy Ground Cannon
-            ]
+            Entities = []
         };
 
         // Room 1: Sector 02 - Laser Grid & Defense Corridor
@@ -125,21 +114,7 @@ public sealed class UniversalSpriteRoom
             RoomName = "Sector 02: Laser Grid & Defense Corridor",
             BackgroundImage = background ?? LoadScreen("Rex", 1),
             AvailableSprites = sprites,
-            Entities =
-            [
-                CreateEntity(sprites, "REX_02", 2, 18),  // Rex - Plasma Blast Stance
-                CreateEntity(sprites, "REX_07", 8, 1),   // Ceiling Laser Turret
-                CreateEntity(sprites, "REX_07", 18, 1),  // Ceiling Laser Turret
-                CreateEntity(sprites, "REX_07", 26, 1),  // Ceiling Laser Turret
-                CreateEntity(sprites, "REX_0E", 8, 12),  // Metallic Tech Platform
-                CreateEntity(sprites, "REX_0E", 18, 10), // Metallic Tech Platform
-                CreateEntity(sprites, "REX_0F", 12, 15), // High-Voltage Laser Fence
-                CreateEntity(sprites, "REX_0F", 22, 15), // High-Voltage Laser Fence
-                CreateEntity(sprites, "REX_06", 6, 19),  // Mechanical Spider Walker
-                CreateEntity(sprites, "REX_06", 16, 19), // Mechanical Spider Walker
-                CreateEntity(sprites, "REX_0B", 14, 6),  // Hover Sentry Eyeball
-                CreateEntity(sprites, "REX_0C", 28, 12)  // Power Cell Upgrade
-            ]
+            Entities = []
         };
 
         // Room 2: Sector 03 - Drone Foundry & Alien Spore Hatchery
@@ -151,22 +126,7 @@ public sealed class UniversalSpriteRoom
             RoomName = "Sector 03: Drone Foundry & Alien Spore Hatchery",
             BackgroundImage = background ?? LoadScreen("Rex", 2),
             AvailableSprites = sprites,
-            Entities =
-            [
-                CreateEntity(sprites, "REX_03", 14, 10), // Rex - Jet Thruster Jump
-                CreateEntity(sprites, "REX_09", 4, 19),  // Bio-Spore Alien Hatch
-                CreateEntity(sprites, "REX_09", 24, 19), // Bio-Spore Alien Hatch
-                CreateEntity(sprites, "REX_05", 8, 6),   // Seeker Drone (Saucer)
-                CreateEntity(sprites, "REX_05", 20, 5),  // Seeker Drone (Saucer)
-                CreateEntity(sprites, "REX_06", 18, 19), // Mechanical Spider Walker
-                CreateEntity(sprites, "REX_0A", 10, 11), // Proximity Mine
-                CreateEntity(sprites, "REX_0A", 18, 11), // Proximity Mine
-                CreateEntity(sprites, "REX_0E", 10, 14), // Metallic Tech Platform
-                CreateEntity(sprites, "REX_0E", 18, 14), // Metallic Tech Platform
-                CreateEntity(sprites, "REX_0D", 0, 8),   // Biomechanical Conduit Column
-                CreateEntity(sprites, "REX_0D", 30, 8),  // Biomechanical Conduit Column
-                CreateEntity(sprites, "REX_0C", 14, 7)   // Power Cell Upgrade
-            ]
+            Entities = []
         };
 
         // Room 3: Sector 04 - Biomechanical Core & Reactor Chamber
@@ -178,21 +138,7 @@ public sealed class UniversalSpriteRoom
             RoomName = "Sector 04: Biomechanical Core & Reactor Chamber",
             BackgroundImage = background ?? LoadScreen("Rex", 3),
             AvailableSprites = sprites,
-            Entities =
-            [
-                CreateEntity(sprites, "REX_01", 6, 18),  // Rex Cyber Warrior (Idle)
-                CreateEntity(sprites, "REX_08", 22, 19), // Heavy Ground Cannon
-                CreateEntity(sprites, "REX_07", 14, 1),  // Ceiling Laser Turret
-                CreateEntity(sprites, "REX_0F", 10, 14), // High-Voltage Laser Fence
-                CreateEntity(sprites, "REX_0F", 18, 14), // High-Voltage Laser Fence
-                CreateEntity(sprites, "REX_0B", 8, 6),   // Hover Sentry Eyeball
-                CreateEntity(sprites, "REX_0B", 20, 6),  // Hover Sentry Eyeball
-                CreateEntity(sprites, "REX_04", 14, 15), // Energy Shield Bubble
-                CreateEntity(sprites, "REX_0C", 14, 12), // Power Cell Upgrade
-                CreateEntity(sprites, "REX_0D", 2, 14),  // Biomechanical Conduit Column
-                CreateEntity(sprites, "REX_0D", 28, 14), // Biomechanical Conduit Column
-                CreateEntity(sprites, "REX_0E", 14, 17)  // Metallic Tech Platform
-            ]
+            Entities = []
         };
 
         return [room0, room1, room2, room3];
@@ -211,17 +157,7 @@ public sealed class UniversalSpriteRoom
             RoomName = "Act I: The River Styx & Gates of Hades",
             BackgroundImage = background ?? LoadScreen("Myth", 0),
             AvailableSprites = sprites,
-            Entities =
-            [
-                CreateEntity(sprites, "MYTH_01", 3, 18),  // Conan Hero (Barbarian)
-                CreateEntity(sprites, "MYTH_04", 10, 18), // Hades Skeleton Warrior
-                CreateEntity(sprites, "MYTH_05", 16, 19), // Skeleton Clawing from Earth
-                CreateEntity(sprites, "MYTH_08", 26, 18), // Hellhound / Cerberus
-                CreateEntity(sprites, "MYTH_0E", 12, 20), // Ancient Greek Amphora / Urn
-                CreateEntity(sprites, "MYTH_0A", 6, 10),  // Sacrificial Wall Torch
-                CreateEntity(sprites, "MYTH_0A", 18, 10), // Sacrificial Wall Torch
-                CreateEntity(sprites, "MYTH_06", 20, 7)   // Harpy Flying Demon
-            ]
+            Entities = []
         };
 
         // Room 1: Act II - The Crypt of the Undead
@@ -233,21 +169,7 @@ public sealed class UniversalSpriteRoom
             RoomName = "Act II: The Crypt of the Undead",
             BackgroundImage = background ?? LoadScreen("Myth", 1),
             AvailableSprites = sprites,
-            Entities =
-            [
-                CreateEntity(sprites, "MYTH_02", 4, 17),  // Myth Hero - Broadsword Slash
-                CreateEntity(sprites, "MYTH_06", 10, 5),  // Harpy Flying Demon
-                CreateEntity(sprites, "MYTH_06", 22, 4),  // Harpy Flying Demon
-                CreateEntity(sprites, "MYTH_04", 12, 17), // Hades Skeleton Warrior
-                CreateEntity(sprites, "MYTH_04", 24, 17), // Hades Skeleton Warrior
-                CreateEntity(sprites, "MYTH_05", 18, 19), // Skeleton Clawing from Earth
-                CreateEntity(sprites, "MYTH_0D", 2, 9),   // Gargoyle Crypt Fountain
-                CreateEntity(sprites, "MYTH_0D", 28, 9),  // Gargoyle Crypt Fountain
-                CreateEntity(sprites, "MYTH_0B", 15, 8),  // Grecian Marble Pillar Top
-                CreateEntity(sprites, "MYTH_0C", 15, 16), // Grecian Marble Pillar Base
-                CreateEntity(sprites, "MYTH_0A", 8, 10),  // Sacrificial Wall Torch
-                CreateEntity(sprites, "MYTH_0E", 20, 18)  // Ancient Greek Amphora / Urn
-            ]
+            Entities = []
         };
 
         // Room 2: Act III - Temple of Medusa (Gorgon's Lair)
@@ -259,21 +181,7 @@ public sealed class UniversalSpriteRoom
             RoomName = "Act III: Temple of Medusa (Gorgon's Lair)",
             BackgroundImage = background ?? LoadScreen("Myth", 2),
             AvailableSprites = sprites,
-            Entities =
-            [
-                CreateEntity(sprites, "MYTH_03", 4, 17),  // Myth Hero - Double Battleaxe
-                CreateEntity(sprites, "MYTH_07", 22, 7),  // Medusa Head (Gorgon)
-                CreateEntity(sprites, "MYTH_08", 12, 18), // Hellhound / Cerberus
-                CreateEntity(sprites, "MYTH_08", 26, 18), // Hellhound / Cerberus
-                CreateEntity(sprites, "MYTH_06", 15, 4),  // Harpy Flying Demon
-                CreateEntity(sprites, "MYTH_0B", 8, 8),   // Grecian Marble Pillar Top
-                CreateEntity(sprites, "MYTH_0C", 8, 16),  // Grecian Marble Pillar Base
-                CreateEntity(sprites, "MYTH_0B", 18, 8),  // Grecian Marble Pillar Top
-                CreateEntity(sprites, "MYTH_0C", 18, 16), // Grecian Marble Pillar Base
-                CreateEntity(sprites, "MYTH_0A", 2, 8),   // Sacrificial Wall Torch
-                CreateEntity(sprites, "MYTH_0A", 28, 8),  // Sacrificial Wall Torch
-                CreateEntity(sprites, "MYTH_0E", 14, 18)  // Ancient Greek Amphora / Urn
-            ]
+            Entities = []
         };
 
         // Room 3: Act IV - Cavern of Hydra & Underworld Depths
@@ -285,21 +193,7 @@ public sealed class UniversalSpriteRoom
             RoomName = "Act IV: Cavern of Hydra & Underworld Depths",
             BackgroundImage = background ?? LoadScreen("Myth", 3),
             AvailableSprites = sprites,
-            Entities =
-            [
-                CreateEntity(sprites, "MYTH_01", 3, 17),  // Myth Hero (Conan)
-                CreateEntity(sprites, "MYTH_09", 22, 14), // Hydra Venomous Head
-                CreateEntity(sprites, "MYTH_09", 26, 12), // Hydra Venomous Head
-                CreateEntity(sprites, "MYTH_0F", 8, 20),  // Subterranean Lava Chasm
-                CreateEntity(sprites, "MYTH_0F", 10, 20), // Subterranean Lava Chasm
-                CreateEntity(sprites, "MYTH_0F", 18, 20), // Subterranean Lava Chasm
-                CreateEntity(sprites, "MYTH_06", 14, 5),  // Harpy Flying Demon
-                CreateEntity(sprites, "MYTH_05", 6, 19),  // Skeleton Clawing from Earth
-                CreateEntity(sprites, "MYTH_04", 12, 17), // Hades Skeleton Warrior
-                CreateEntity(sprites, "MYTH_0D", 16, 10), // Gargoyle Crypt Fountain
-                CreateEntity(sprites, "MYTH_0A", 4, 10),  // Sacrificial Wall Torch
-                CreateEntity(sprites, "MYTH_0E", 28, 17)  // Ancient Greek Amphora / Urn
-            ]
+            Entities = []
         };
 
         return [room0, room1, room2, room3];
