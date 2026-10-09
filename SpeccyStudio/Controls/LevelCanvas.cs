@@ -601,34 +601,35 @@ public sealed class LevelCanvas : FrameworkElement
         // 1. Draw screen background (Authentic ZX Spectrum Black Playfield)
         dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(0, 0, 0)), null, new Rect(ox, oy, rw, rh));
 
-        // 2. Draw Exolon background playfield art (terrain, platforms, stars)
-        if (ShowArt && ExolonScreenImage != null)
-        {
-            try
-            {
-                var crop = new CroppedBitmap(ExolonScreenImage, new Int32Rect(0, 0, Math.Min(256, ExolonScreenImage.PixelWidth), Math.Min(176, ExolonScreenImage.PixelHeight)));
-                dc.DrawImage(crop, new Rect(ox, oy, rw, rh));
-            }
-            catch
-            {
-                dc.DrawImage(ExolonScreenImage, new Rect(ox, oy, rw, rh));
-            }
-        }
-
-        // 3. Draw all Room Entities dynamically from CurrentExolonRoom.Entities or ProposalExolonEntities
+        // 2. Draw Exolon dynamic entities (or fallback to static screen image if room has no entities)
         var entitiesToRender = ProposalExolonEntities ?? CurrentExolonRoom?.Entities;
-        if (entitiesToRender != null)
+        if (ShowArt)
         {
-            foreach (var entity in entitiesToRender)
+            if (entitiesToRender != null && entitiesToRender.Count > 0)
             {
-                var sprite = ExolonSpriteAtlas.GetSprite(entity.TypeId);
-                if (sprite != null)
+                foreach (var entity in entitiesToRender)
                 {
-                    double ex = ox + (entity.Col * 8.0 * scale);
-                    double ey = oy + (entity.Row * 8.0 * scale);
-                    double ew = sprite.PixelWidth * scale;
-                    double eh = sprite.PixelHeight * scale;
-                    dc.DrawImage(sprite, new Rect(ex, ey, ew, eh));
+                    var sprite = ExolonSpriteAtlas.GetSprite(entity.TypeId);
+                    if (sprite != null)
+                    {
+                        double ex = ox + (entity.Col * 8.0 * scale);
+                        double ey = oy + (entity.Row * 8.0 * scale);
+                        double ew = sprite.PixelWidth * scale;
+                        double eh = sprite.PixelHeight * scale;
+                        dc.DrawImage(sprite, new Rect(ex, ey, ew, eh));
+                    }
+                }
+            }
+            else if (ExolonScreenImage != null)
+            {
+                try
+                {
+                    var crop = new CroppedBitmap(ExolonScreenImage, new Int32Rect(0, 0, Math.Min(256, ExolonScreenImage.PixelWidth), Math.Min(176, ExolonScreenImage.PixelHeight)));
+                    dc.DrawImage(crop, new Rect(ox, oy, rw, rh));
+                }
+                catch
+                {
+                    dc.DrawImage(ExolonScreenImage, new Rect(ox, oy, rw, rh));
                 }
             }
         }
@@ -840,20 +841,7 @@ public sealed class LevelCanvas : FrameworkElement
             else if (CurrentExolonRoom != null)
             {
                 dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(0, 0, 0)), null, new Rect(0, 0, pixelW, pixelH));
-                if (ExolonScreenImage != null)
-                {
-                    try
-                    {
-                        var crop = new CroppedBitmap(ExolonScreenImage, new Int32Rect(0, 0, Math.Min(256, ExolonScreenImage.PixelWidth), Math.Min(176, ExolonScreenImage.PixelHeight)));
-                        dc.DrawImage(crop, new Rect(0, 0, pixelW, pixelH));
-                    }
-                    catch
-                    {
-                        dc.DrawImage(ExolonScreenImage, new Rect(0, 0, pixelW, pixelH));
-                    }
-                }
-
-                if (CurrentExolonRoom.Entities != null)
+                if (CurrentExolonRoom.Entities != null && CurrentExolonRoom.Entities.Count > 0)
                 {
                     foreach (var entity in CurrentExolonRoom.Entities)
                     {
@@ -866,6 +854,18 @@ public sealed class LevelCanvas : FrameworkElement
                             double eh = sprite.PixelHeight * scale;
                             dc.DrawImage(sprite, new Rect(ex, ey, ew, eh));
                         }
+                    }
+                }
+                else if (ExolonScreenImage != null)
+                {
+                    try
+                    {
+                        var crop = new CroppedBitmap(ExolonScreenImage, new Int32Rect(0, 0, Math.Min(256, ExolonScreenImage.PixelWidth), Math.Min(176, ExolonScreenImage.PixelHeight)));
+                        dc.DrawImage(crop, new Rect(0, 0, pixelW, pixelH));
+                    }
+                    catch
+                    {
+                        dc.DrawImage(ExolonScreenImage, new Rect(0, 0, pixelW, pixelH));
                     }
                 }
             }

@@ -211,7 +211,7 @@
 
               <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                 <Button x:Name="CanvasLeftButton" Content="◀" ToolTip="Step West (Left Room)" Width="28" Height="26" Padding="0" Tag="Left" Click="LevelNavigate_Click"/>
-                <ComboBox x:Name="CanvasRoomBox" SelectionChanged="LevelRoom_Changed" Width="135" Margin="4,0" ToolTip="Select Room"/>
+                <ComboBox x:Name="CanvasRoomBox" SelectionChanged="LevelRoom_Changed" Width="160" Margin="4,0" ToolTip="Select Room"/>
                 <Button x:Name="CanvasRightButton" Content="▶" ToolTip="Step East (Right Room)" Width="28" Height="26" Padding="0" Tag="Right" Click="LevelNavigate_Click"/>
                 <Button x:Name="CanvasUpButton" Content="▲" ToolTip="Step North (Upper Room)" Width="28" Height="26" Padding="0" Tag="Up" Margin="3,0,0,0" Click="LevelNavigate_Click"/>
                 <Button x:Name="CanvasDownButton" Content="▼" ToolTip="Step South (Lower Room)" Width="28" Height="26" Padding="0" Tag="Down" Margin="3,0,0,0" Click="LevelNavigate_Click"/>
