@@ -105,37 +105,37 @@ public sealed class UniversalSpriteRoom
             Entities = []
         };
 
-        // Room 1: Sector 02 - Laser Grid & Defense Corridor
+        // Room 1: Sector 02 - Laser Grid & Reactor Shafts
         var room1 = new UniversalSpriteRoom
         {
             GameTitle = "Rex (1988) [128K]",
             Subtitle = "32 authentic native sprites · Richard Franke & Neil Harris (Martech)",
             RoomIndex = 1,
-            RoomName = "Sector 02: Laser Grid & Defense Corridor",
+            RoomName = "Sector 02: Laser Grid & Reactor Shafts",
             BackgroundImage = background ?? LoadScreen("Rex", 1),
             AvailableSprites = sprites,
             Entities = []
         };
 
-        // Room 2: Sector 03 - Drone Foundry & Alien Spore Hatchery
+        // Room 2: Sector 03 - Upper Alien Hive & Spore Hatchery
         var room2 = new UniversalSpriteRoom
         {
             GameTitle = "Rex (1988) [128K]",
             Subtitle = "32 authentic native sprites · Richard Franke & Neil Harris (Martech)",
             RoomIndex = 2,
-            RoomName = "Sector 03: Drone Foundry & Alien Spore Hatchery",
+            RoomName = "Sector 03: Upper Alien Hive & Spore Hatchery",
             BackgroundImage = background ?? LoadScreen("Rex", 2),
             AvailableSprites = sprites,
             Entities = []
         };
 
-        // Room 3: Sector 04 - Biomechanical Core & Reactor Chamber
+        // Room 3: Sector 04 - Biomechanical Core & Launch Pad
         var room3 = new UniversalSpriteRoom
         {
             GameTitle = "Rex (1988) [128K]",
             Subtitle = "32 authentic native sprites · Richard Franke & Neil Harris (Martech)",
             RoomIndex = 3,
-            RoomName = "Sector 04: Biomechanical Core & Reactor Chamber",
+            RoomName = "Sector 04: Biomechanical Core & Launch Pad",
             BackgroundImage = background ?? LoadScreen("Rex", 3),
             AvailableSprites = sprites,
             Entities = []
@@ -148,49 +148,49 @@ public sealed class UniversalSpriteRoom
     {
         var sprites = RexMythSpriteCatalog.GetMythSprites();
 
-        // Room 0: Act I - The River Styx & Gates of Hades
+        // Room 0: Act I - Hades: The River Styx & Underworld
         var room0 = new UniversalSpriteRoom
         {
             GameTitle = "Myth: History in the Making (1989) [128K]",
             Subtitle = "32 authentic native sprites · Bob Stevenson (System 3)",
             RoomIndex = 0,
-            RoomName = "Act I: The River Styx & Gates of Hades",
+            RoomName = "Act I: Hades — The River Styx & Underworld",
             BackgroundImage = background ?? LoadScreen("Myth", 0),
             AvailableSprites = sprites,
             Entities = []
         };
 
-        // Room 1: Act II - The Crypt of the Undead
+        // Room 1: Act II - Greece 400 BC: The Parthenon Temple
         var room1 = new UniversalSpriteRoom
         {
             GameTitle = "Myth: History in the Making (1989) [128K]",
             Subtitle = "32 authentic native sprites · Bob Stevenson (System 3)",
             RoomIndex = 1,
-            RoomName = "Act II: The Crypt of the Undead",
+            RoomName = "Act II: Greece 400 BC — The Parthenon Temple",
             BackgroundImage = background ?? LoadScreen("Myth", 1),
             AvailableSprites = sprites,
             Entities = []
         };
 
-        // Room 2: Act III - Temple of Medusa (Gorgon's Lair)
+        // Room 2: Act III - Scandinavia 500 AD: The Viking Longship
         var room2 = new UniversalSpriteRoom
         {
             GameTitle = "Myth: History in the Making (1989) [128K]",
             Subtitle = "32 authentic native sprites · Bob Stevenson (System 3)",
             RoomIndex = 2,
-            RoomName = "Act III: Temple of Medusa (Gorgon's Lair)",
+            RoomName = "Act III: Scandinavia 500 AD — The Viking Longship",
             BackgroundImage = background ?? LoadScreen("Myth", 2),
             AvailableSprites = sprites,
             Entities = []
         };
 
-        // Room 3: Act IV - Cavern of Hydra & Underworld Depths
+        // Room 3: Act IV - Egypt 3000 BC: The Great Pyramid of Giza
         var room3 = new UniversalSpriteRoom
         {
             GameTitle = "Myth: History in the Making (1989) [128K]",
             Subtitle = "32 authentic native sprites · Bob Stevenson (System 3)",
             RoomIndex = 3,
-            RoomName = "Act IV: Cavern of Hydra & Underworld Depths",
+            RoomName = "Act IV: Egypt 3000 BC — The Great Pyramid of Giza",
             BackgroundImage = background ?? LoadScreen("Myth", 3),
             AvailableSprites = sprites,
             Entities = []

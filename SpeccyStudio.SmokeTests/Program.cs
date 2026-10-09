@@ -812,12 +812,22 @@ internal static class Program
 
         var rexRooms = UniversalSpriteRoom.CreateRexRooms();
         Assert(rexRooms.Count == 4, $"Rex has 4 authentic pre-built rooms (got {rexRooms.Count})");
+        foreach (var r in rexRooms)
+        {
+            Assert(r.BackgroundImage != null, $"Rex room {r.RoomIndex} [{r.RoomName}] has background image");
+            Assert(r.BackgroundImage!.PixelWidth == 256 && r.BackgroundImage!.PixelHeight == 192, $"Rex room {r.RoomIndex} background is 256x192");
+        }
         var rexRoom = UniversalSpriteRoom.CreateRexRoom();
         Assert(rexRoom.Entities.Count == 0, $"Rex default room starts pristine with 0 entities (got {rexRoom.Entities.Count})");
         Assert(rexRoom.AvailableSprites.Count == 32, "Rex room has 32 available sprites");
 
         var mythRooms = UniversalSpriteRoom.CreateMythRooms();
         Assert(mythRooms.Count == 4, $"Myth has 4 authentic pre-built rooms (got {mythRooms.Count})");
+        foreach (var r in mythRooms)
+        {
+            Assert(r.BackgroundImage != null, $"Myth room {r.RoomIndex} [{r.RoomName}] has background image");
+            Assert(r.BackgroundImage!.PixelWidth == 256 && r.BackgroundImage!.PixelHeight == 192, $"Myth room {r.RoomIndex} background is 256x192");
+        }
         var mythRoom = UniversalSpriteRoom.CreateMythRoom();
         Assert(mythRoom.Entities.Count == 0, $"Myth default room starts pristine with 0 entities (got {mythRoom.Entities.Count})");
         Assert(mythRoom.AvailableSprites.Count == 32, "Myth room has 32 available sprites");
@@ -897,6 +907,19 @@ internal static class Program
             encMyth.Frames.Add(BitmapFrame.Create(rtbMyth));
             string mythShot = @"C:\Users\adria\.gemini\antigravity\brain\aafadb66-5ecd-48af-adb0-8675ca0b7a6c\speccy-studio-myth-level-workshop.png";
             using (var str = File.Create(mythShot)) { encMyth.Save(str); }
+
+            // Also test Room 2 (the room user reported in screenshot)
+            roomBox!.SelectedIndex = 2;
+            rootMyth.UpdateLayout();
+            var rtbMyth2 = new RenderTargetBitmap((int)rootMyth.Width, (int)rootMyth.Height, 96, 96, PixelFormats.Pbgra32);
+            rtbMyth2.Render(rootMyth);
+            var encMyth2 = new PngBitmapEncoder();
+            encMyth2.Frames.Add(BitmapFrame.Create(rtbMyth2));
+            string mythShot2 = @"C:\Users\adria\.gemini\antigravity\brain\aafadb66-5ecd-48af-adb0-8675ca0b7a6c\speccy-studio-myth-room2-workshop.png";
+            using (var str = File.Create(mythShot2)) { encMyth2.Save(str); }
+            Assert(canvas.CurrentUniversalRoom!.RoomName.Contains("Scandinavia"), "Room 2 is Scandinavia 500 AD");
+            Assert(canvas.CurrentUniversalRoom!.BackgroundImage != null, "Room 2 has authentic background image");
+
             win.Close();
         }
 
