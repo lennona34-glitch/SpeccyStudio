@@ -44,10 +44,12 @@ public partial class SpriteBankWindow : Window
             InjectCybernoidBtn.Content = $"📥 Inject into Tile ${_activeTileOrType:X2} (Cybernoid II)";
             InjectCybernoidBtn.ToolTip = $"Write this graphic directly into Cybernoid II's tile atlas at slot ${_activeTileOrType:X2}";
             InjectCybernoidBtn.IsEnabled = true;
+            InjectCybernoidBtn.Visibility = Visibility.Visible;
         }
         else
         {
             InjectCybernoidBtn.IsEnabled = false;
+            InjectCybernoidBtn.Visibility = Visibility.Collapsed;
         }
 
         _isInitialized = true;
@@ -207,6 +209,7 @@ public partial class SpriteBankWindow : Window
 
         InjectCybernoidBtn.IsEnabled = _cybernoidProject != null;
         CopyBrushBtn.IsEnabled = true;
+        if (CopyToClipboardBtn != null) CopyToClipboardBtn.IsEnabled = true;
         ExportPngBtn.IsEnabled = true;
 
         // Refresh border highlights
@@ -300,9 +303,55 @@ public partial class SpriteBankWindow : Window
         }
     }
 
+    protected override void OnPreviewKeyDown(KeyEventArgs e)
+    {
+        base.OnPreviewKeyDown(e);
+        if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control && _selectedItem != null)
+        {
+            CopySelectedItemToClipboard();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Enter && _selectedItem != null)
+        {
+            CopyBrush_Click(this, new RoutedEventArgs());
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            Close();
+            e.Handled = true;
+        }
+    }
+
+    private void CopyToClipboard_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedItem == null) return;
+        CopySelectedItemToClipboard();
+    }
+
+    private void CopySelectedItemToClipboard()
+    {
+        if (_selectedItem == null) return;
+        try
+        {
+            var bmp = _selectedItem.RenderBitmapSource();
+            Clipboard.SetImage(bmp);
+            System.Media.SystemSounds.Asterisk.Play();
+        }
+        catch { }
+        ItemChosenForBrush?.Invoke(_selectedItem);
+        StatusText.Text = $"📋 Copied '{_selectedItem.Name}' ({_selectedItem.Id}) to clipboard and active brush!";
+    }
+
     private void CopyBrush_Click(object sender, RoutedEventArgs e)
     {
         if (_selectedItem == null) return;
+        try
+        {
+            var bmp = _selectedItem.RenderBitmapSource();
+            Clipboard.SetImage(bmp);
+        }
+        catch { }
         ItemChosenForBrush?.Invoke(_selectedItem);
         DialogResult = true;
         Close();

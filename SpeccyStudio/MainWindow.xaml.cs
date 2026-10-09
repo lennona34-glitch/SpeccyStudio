@@ -531,9 +531,12 @@ public partial class MainWindow : Window
             byte.TryParse(hex, System.Globalization.NumberStyles.HexNumber, null, out byte tile))
         {
             MainLevelCanvas.ActiveTileId = tile;
+            _cybernoidClipboardTile = tile;
             LevelTileValueBox.Text = $"{tile:X2}";
             UpdateActiveTileUI();
             if (ToolPencilRadio != null) ToolPencilRadio.IsChecked = true;
+            if (LevelRoomBox?.SelectedItem is CybernoidRoom r) RenderRoomPalette(r);
+            RenderTileAtlas();
             CybernoidTileInfo info = CybernoidGameplayProfile.Describe(tile);
             Status($"Stamp ready: ${tile:X2} ({info.Name}) · click/drag on canvas to place");
         }
@@ -1351,8 +1354,13 @@ public partial class MainWindow : Window
             if (byte.TryParse(value, System.Globalization.NumberStyles.HexNumber, null, out byte tile))
             {
                 MainLevelCanvas.ActiveTileId = tile;
+                _cybernoidClipboardTile = tile;
                 UpdateActiveTileUI();
                 if (ToolPencilRadio != null) ToolPencilRadio.IsChecked = true;
+                if (LevelRoomBox?.SelectedItem is CybernoidRoom r) RenderRoomPalette(r);
+                RenderTileAtlas();
+                CybernoidTileInfo info = CybernoidGameplayProfile.Describe(tile);
+                Status($"Preset tile ${tile:X2} ({info.Name}) selected");
             }
         }
     }
@@ -1401,6 +1409,7 @@ public partial class MainWindow : Window
                 btn.Click += (s, e) =>
                 {
                     MainLevelCanvas.ActiveTileId = tile;
+                    _cybernoidClipboardTile = tile;
                     LevelTileValueBox.Text = $"{tile:X2}";
                     UpdateActiveTileUI();
                     if (ToolPencilRadio != null) ToolPencilRadio.IsChecked = true;
@@ -1429,6 +1438,7 @@ public partial class MainWindow : Window
         if (sender is Button { Tag: byte tile })
         {
             MainLevelCanvas.ActiveTileId = tile;
+            _cybernoidClipboardTile = tile;
             LevelTileValueBox.Text = $"{tile:X2}";
             UpdateActiveTileUI();
             if (ToolPencilRadio != null) ToolPencilRadio.IsChecked = true;
@@ -1531,6 +1541,7 @@ public partial class MainWindow : Window
             button.Click += (s, e) =>
             {
                 MainLevelCanvas.ActiveTileId = tile;
+                _cybernoidClipboardTile = tile;
                 LevelTileValueBox.Text = $"{tile:X2}";
                 UpdateActiveTileUI();
                 if (ToolPencilRadio != null) ToolPencilRadio.IsChecked = true;
@@ -2203,11 +2214,44 @@ public partial class MainWindow : Window
 
     private void ApplySpriteToActiveBrush(SpriteBankItem item)
     {
-        if (_levelLab != null)
+        if (item == null) return;
+
+        try
         {
-            if (item.Id.StartsWith("CYB_", StringComparison.OrdinalIgnoreCase) && byte.TryParse(item.Id[4..], System.Globalization.NumberStyles.HexNumber, null, out byte tid))
+            var bmp = item.RenderBitmapSource();
+            Clipboard.SetImage(bmp);
+        }
+        catch { }
+
+        if (_universalRoom != null)
+        {
+            SetActiveUniversalBrush(item);
+            _universalClipboardEntity = new UniversalSpriteEntity
+            {
+                SpriteId = item.Id,
+                Name = item.Name,
+                Category = item.Category,
+                WidthCells = item.WidthCells,
+                HeightCells = item.HeightCells,
+                SpriteItem = item
+            };
+
+            if (ToolPencilRadio != null) ToolPencilRadio.IsChecked = true;
+            if (ViewLevelRadio != null) ViewLevelRadio.IsChecked = true;
+            if (ToolsTabs != null && LevelLabTab != null) ToolsTabs.SelectedItem = LevelLabTab;
+            PopulateUniversalVisualCatalog(_universalCategoryFilter, UniversalSearchBox?.Text ?? "");
+            RefreshUniversalInRoomSpritesStrip();
+            MainLevelCanvas?.Focus();
+            Status($"🎨 Copied '{item.Name}' ({item.Id}) to brush & clipboard — click or drag on canvas to place sprite!");
+        }
+        else if (_levelLab != null)
+        {
+            if (item.Id.StartsWith("CYB_", StringComparison.OrdinalIgnoreCase) &&
+                !item.Id.StartsWith("CYB_SPR_", StringComparison.OrdinalIgnoreCase) &&
+                byte.TryParse(item.Id[4..], System.Globalization.NumberStyles.HexNumber, null, out byte tid))
             {
                 MainLevelCanvas!.ActiveTileId = tid;
+                _cybernoidClipboardTile = tid;
                 LevelTileValueBox.Text = $"{tid:X2}";
                 UpdateActiveTileUI();
                 if (LevelRoomBox?.SelectedItem is CybernoidRoom r) RenderRoomPalette(r);
@@ -2216,9 +2260,19 @@ public partial class MainWindow : Window
             }
             else
             {
-                // Cross-game sprite injection into active tile slot!
-                byte targetSlot = MainLevelCanvas?.ActiveTileId ?? 0x21;
-                SpriteBank.Instance.InjectTileIntoCybernoid(_levelLab, targetSlot, item);
+                byte targetSlot;
+                if (TryGetNativeActorMarkerTile(item, out byte markerTile))
+                {
+                    targetSlot = markerTile;
+                }
+                else
+                {
+                    targetSlot = AllocateOrFindSpriteTileSlot(_levelLab, item);
+                }
+
+                MainLevelCanvas!.ActiveTileId = targetSlot;
+                _cybernoidClipboardTile = targetSlot;
+                LevelTileValueBox.Text = $"{targetSlot:X2}";
                 _document?.MarkDirty();
                 if (SaveButton != null) SaveButton.IsEnabled = true;
                 if (SaveAsButton != null) SaveAsButton.IsEnabled = true;
@@ -2227,11 +2281,12 @@ public partial class MainWindow : Window
                 RenderTileAtlas();
                 if (LevelRoomBox?.SelectedItem is CybernoidRoom r) RenderRoomPalette(r);
                 UpdateActiveTileUI();
-                Status($"🎨 Injected and selected '{item.Name}' into Cybernoid tile ${targetSlot:X2} — ready to paint/paste!");
+                Status($"🎨 Copied and loaded '{item.Name}' into Cybernoid tile ${targetSlot:X2} brush — ready to paint on canvas!");
             }
 
             if (ToolPencilRadio != null) ToolPencilRadio.IsChecked = true;
             if (ViewLevelRadio != null) ViewLevelRadio.IsChecked = true;
+            if (ToolsTabs != null && LevelLabTab != null) ToolsTabs.SelectedItem = LevelLabTab;
             MainLevelCanvas?.Focus();
         }
         else if (_exolonLab != null)
@@ -2264,12 +2319,76 @@ public partial class MainWindow : Window
                 }
             }
 
+            _exolonClipboardEntity = new ExolonEntity(0, 0, typeId);
+
             PopulateExolonVisualCatalog(_exolonCategoryFilter, ExolonSearchBox?.Text ?? "");
             if (ToolPencilRadio != null) ToolPencilRadio.IsChecked = true;
             if (ViewLevelRadio != null) ViewLevelRadio.IsChecked = true;
+            if (ToolsTabs != null && LevelLabTab != null) ToolsTabs.SelectedItem = LevelLabTab;
             MainLevelCanvas?.Focus();
             Status($"🎨 Active brush set to '{item.Name}' (${typeId:X2}) — ready to place on Exolon level canvas!");
         }
+    }
+
+    private static bool TryGetNativeActorMarkerTile(SpriteBankItem item, out byte markerTile)
+    {
+        markerTile = 0;
+        if (item.Id.Equals("CYB_SPR_03", StringComparison.OrdinalIgnoreCase)) { markerTile = 0xFA; return true; } // Turret Up
+        if (item.Id.Equals("CYB_SPR_04", StringComparison.OrdinalIgnoreCase)) { markerTile = 0xFB; return true; } // Turret Left
+        if (item.Id.Equals("CYB_SPR_05", StringComparison.OrdinalIgnoreCase)) { markerTile = 0xF8; return true; } // Turret Down
+        if (item.Id.Equals("CYB_SPR_06", StringComparison.OrdinalIgnoreCase)) { markerTile = 0xF9; return true; } // Turret Right
+        if (item.Id.Equals("CYB_SPR_07", StringComparison.OrdinalIgnoreCase)) { markerTile = 0xE4; return true; } // Patrol Drone
+        if (item.Id.Equals("CYB_SPR_08", StringComparison.OrdinalIgnoreCase)) { markerTile = 0xE5; return true; } // Armored Saucer
+        if (item.Id.Equals("CYB_SPR_13", StringComparison.OrdinalIgnoreCase)) { markerTile = 0xF0; return true; } // 4-Point Star Mine
+        if (item.Id.Equals("CYB_SPR_14", StringComparison.OrdinalIgnoreCase)) { markerTile = 0xEC; return true; } // Bulkhead Radar Dome
+        if (item.Id.Equals("CYB_SPR_15", StringComparison.OrdinalIgnoreCase)) { markerTile = 0xF2; return true; } // Pinwheel Rolling Mine
+        if (item.Id.Equals("CYB_SPR_16", StringComparison.OrdinalIgnoreCase)) { markerTile = 0xE7; return true; } // Biomechanical Rotating Core
+        return false;
+    }
+
+    private byte AllocateOrFindSpriteTileSlot(CybernoidLevelLabProject project, SpriteBankItem item)
+    {
+        // 1. Check if an identical 32-byte bitmap already exists in the atlas
+        for (int i = 0; i < 256; i++)
+        {
+            var existing = project.TileAtlas.Get((byte)i);
+            if (existing.Bitmap.Length == 32 && item.Bitmap.Length >= 32 &&
+                existing.Bitmap.AsSpan(0, 32).SequenceEqual(item.Bitmap.AsSpan(0, 32)))
+            {
+                return (byte)i;
+            }
+        }
+
+        // 2. Find an unused tile ID below 0xE2 (markers start at 0xE2)
+        var usedInCurrentRoom = new HashSet<byte>();
+        if (LevelRoomBox?.SelectedItem is CybernoidRoom room)
+        {
+            foreach (var t in room.Tiles) usedInCurrentRoom.Add(t);
+        }
+
+        for (int i = 0x20; i < 0xE2; i++)
+        {
+            byte candidate = (byte)i;
+            if (!usedInCurrentRoom.Contains(candidate))
+            {
+                SpriteBank.Instance.InjectTileIntoCybernoid(project, candidate, item);
+                return candidate;
+            }
+        }
+
+        for (int i = 1; i < 0xFF; i++)
+        {
+            byte candidate = (byte)i;
+            if (!usedInCurrentRoom.Contains(candidate))
+            {
+                SpriteBank.Instance.InjectTileIntoCybernoid(project, candidate, item);
+                return candidate;
+            }
+        }
+
+        byte fallback = 0x21;
+        SpriteBank.Instance.InjectTileIntoCybernoid(project, fallback, item);
+        return fallback;
     }
 
     private void OpenRomRipper(int? initialAddress = null)
@@ -2813,6 +2932,7 @@ public partial class MainWindow : Window
         ExolonEntitiesList.ItemsSource = room.Entities;
         ExolonInspectorPanel.IsEnabled = false;
         ExolonDeleteEntityButton.IsEnabled = false;
+        if (ExolonCopyEntityButton != null) ExolonCopyEntityButton.IsEnabled = false;
         ExolonAddEntityButton.IsEnabled = room.EncodedLength + 3 <= room.Capacity;
 
         RefreshExolonInRoomPartsStrip(room);
@@ -2829,6 +2949,7 @@ public partial class MainWindow : Window
 
         ExolonInspectorPanel.IsEnabled = true;
         ExolonDeleteEntityButton.IsEnabled = true;
+        if (ExolonCopyEntityButton != null) ExolonCopyEntityButton.IsEnabled = true;
 
         ExolonRowBox.Text = entity.Row.ToString();
         ExolonColBox.Text = entity.Col.ToString();
@@ -2853,6 +2974,25 @@ public partial class MainWindow : Window
         {
             ExolonInspectorPanel.IsEnabled = false;
             ExolonDeleteEntityButton.IsEnabled = false;
+            if (ExolonCopyEntityButton != null) ExolonCopyEntityButton.IsEnabled = false;
+        }
+    }
+
+    private void ExolonCopyEntity_Click(object sender, RoutedEventArgs e)
+    {
+        if (ExolonEntitiesList.SelectedItem is ExolonEntity entity)
+        {
+            _exolonClipboardEntity = entity;
+            SetActiveExolonBrush(entity.TypeId);
+            try
+            {
+                var bmp = ExolonSpriteAtlas.GetSprite(entity.TypeId);
+                if (bmp != null) Clipboard.SetImage(bmp);
+            }
+            catch { }
+            if (ToolPencilRadio != null) ToolPencilRadio.IsChecked = true;
+            MainLevelCanvas?.Focus();
+            Status($"📋 Copied entity {entity.Name} (${entity.TypeId:X2}) to brush & clipboard");
         }
     }
 
@@ -3732,7 +3872,20 @@ public partial class MainWindow : Window
             button.Click += (s, e) =>
             {
                 SetActiveUniversalBrush(capturedItem);
+                _universalClipboardEntity = new UniversalSpriteEntity
+                {
+                    SpriteId = capturedItem.Id,
+                    Name = capturedItem.Name,
+                    Category = capturedItem.Category,
+                    WidthCells = capturedItem.WidthCells,
+                    HeightCells = capturedItem.HeightCells,
+                    SpriteItem = capturedItem
+                };
+                try { Clipboard.SetImage(capturedItem.RenderBitmapSource()); } catch { }
+                if (ToolPencilRadio != null) ToolPencilRadio.IsChecked = true;
                 PopulateUniversalVisualCatalog(_universalCategoryFilter, UniversalSearchBox?.Text ?? "");
+                RefreshUniversalInRoomSpritesStrip();
+                MainLevelCanvas?.Focus();
             };
 
             UniversalVisualCatalogPanel.Children.Add(button);
@@ -3798,6 +3951,7 @@ public partial class MainWindow : Window
         {
             UniversalInspectorPanel.IsEnabled = true;
             UniversalDeleteEntityButton.IsEnabled = true;
+            if (UniversalCopyEntityButton != null) UniversalCopyEntityButton.IsEnabled = true;
             UniversalColBox.Text = entity.Col.ToString();
             UniversalRowBox.Text = entity.Row.ToString();
             UniversalSelectedSpriteDetails.Text = $"{entity.SpriteId} · {entity.Name} ({entity.Category}) · {entity.WidthCells}×{entity.HeightCells} cells";
@@ -3811,6 +3965,7 @@ public partial class MainWindow : Window
         {
             UniversalInspectorPanel.IsEnabled = false;
             UniversalDeleteEntityButton.IsEnabled = false;
+            if (UniversalCopyEntityButton != null) UniversalCopyEntityButton.IsEnabled = false;
             UniversalSelectedSpriteDetails.Text = "Select an entity on canvas to move or edit";
             UniversalEntitiesList.SelectedItem = null;
         }
@@ -3859,6 +4014,21 @@ public partial class MainWindow : Window
         if (UniversalEntitiesList.SelectedItem is UniversalSpriteEntity entity)
         {
             DeleteUniversalEntity(entity);
+        }
+    }
+
+    private void UniversalCopyEntity_Click(object sender, RoutedEventArgs e)
+    {
+        if (UniversalEntitiesList.SelectedItem is UniversalSpriteEntity entity && entity.SpriteItem != null)
+        {
+            _universalClipboardEntity = entity;
+            SetActiveUniversalBrush(entity.SpriteItem);
+            try { Clipboard.SetImage(entity.SpriteItem.RenderBitmapSource()); } catch { }
+            if (ToolPencilRadio != null) ToolPencilRadio.IsChecked = true;
+            RefreshUniversalInRoomSpritesStrip();
+            PopulateUniversalVisualCatalog(_universalCategoryFilter, UniversalSearchBox?.Text ?? "");
+            MainLevelCanvas?.Focus();
+            Status($"📋 Copied entity {entity.Name} ({entity.SpriteId}) to brush & clipboard");
         }
     }
 
@@ -3959,8 +4129,20 @@ public partial class MainWindow : Window
             btn.Click += (s, e) =>
             {
                 SetActiveUniversalBrush(capturedItem);
+                _universalClipboardEntity = new UniversalSpriteEntity
+                {
+                    SpriteId = capturedItem.Id,
+                    Name = capturedItem.Name,
+                    Category = capturedItem.Category,
+                    WidthCells = capturedItem.WidthCells,
+                    HeightCells = capturedItem.HeightCells,
+                    SpriteItem = capturedItem
+                };
+                try { Clipboard.SetImage(capturedItem.RenderBitmapSource()); } catch { }
+                if (ToolPencilRadio != null) ToolPencilRadio.IsChecked = true;
                 RefreshUniversalInRoomSpritesStrip();
                 PopulateUniversalVisualCatalog(_universalCategoryFilter, UniversalSearchBox?.Text ?? "");
+                MainLevelCanvas?.Focus();
             };
 
             UniversalQuickSpritesPanel.Children.Add(btn);

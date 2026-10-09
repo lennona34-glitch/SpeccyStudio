@@ -780,6 +780,7 @@
 
                     <WrapPanel Margin="0,6,0,0">
                       <Button x:Name="ExolonAddEntityButton" Content="➕ Add Entity" Click="ExolonAddEntity_Click" Padding="6,3" FontSize="10"/>
+                      <Button x:Name="ExolonCopyEntityButton" Content="📋 Copy Entity" Click="ExolonCopyEntity_Click" IsEnabled="False" Padding="6,3" FontSize="10" Margin="4,0,0,0" ToolTip="Copy selected entity to brush &amp; clipboard"/>
                       <Button x:Name="ExolonDeleteEntityButton" Content="✖ Delete" Click="ExolonDeleteEntity_Click" IsEnabled="False" Padding="6,3" FontSize="10" Margin="4,0,0,0"/>
                     </WrapPanel>
                   </StackPanel>
@@ -909,6 +910,7 @@
 
                     <WrapPanel Margin="0,6,0,0">
                       <Button x:Name="UniversalAddEntityButton" Content="➕ Stamp at Center" Click="UniversalAddEntity_Click" Padding="6,3" FontSize="10"/>
+                      <Button x:Name="UniversalCopyEntityButton" Content="📋 Copy Entity" Click="UniversalCopyEntity_Click" IsEnabled="False" Padding="6,3" FontSize="10" Margin="4,0,0,0" ToolTip="Copy selected sprite entity to brush &amp; clipboard"/>
                       <Button x:Name="UniversalDeleteEntityButton" Content="✖ Delete" Click="UniversalDeleteEntity_Click" IsEnabled="False" Padding="6,3" FontSize="10" Margin="4,0,0,0"/>
                       <Button Content="Clear All" Click="UniversalClearEntities_Click" Padding="6,3" FontSize="10" Margin="4,0,0,0"/>
                     </WrapPanel>

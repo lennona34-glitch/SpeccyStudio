@@ -1082,6 +1082,88 @@ internal static class Program
             enc.Save(str);
             Console.WriteLine($"Saved updated ROM Ripper visual screenshot: {ripperScreenshotPath}");
         }
+
+        // 16. Verify Sprite Bank Copy & Active Brush Isolation (No stuck Visual Tile Atlas)
+        {
+            Console.WriteLine("DEBUG: Verifying Sprite Bank copy & brush synchronization...");
+            if (cybProject != null)
+            {
+                var cybWin = new MainWindow();
+                var loadMethod = typeof(MainWindow).GetMethod("LoadFile", BindingFlags.Instance | BindingFlags.NonPublic)!;
+                loadMethod.Invoke(cybWin, [cybTapPath]);
+                var canvas = (SpeccyStudio.Controls.LevelCanvas)cybWin.FindName("MainLevelCanvas");
+                var applyBrush = typeof(MainWindow).GetMethod("ApplySpriteToActiveBrush", BindingFlags.Instance | BindingFlags.NonPublic)!;
+
+                // Set active tile to $21 (Wall)
+                canvas.ActiveTileId = 0x21;
+                byte[] wallArtBefore = (byte[])cybProject.TileAtlas.Get(0x21).Bitmap.Clone();
+
+                // Case A: Pick CYB_SPR_03 (Tracking Turret Up) -> Must map to native actor marker tile 0xFA, leaving tile $21 intact!
+                var sprTurret = SpriteBank.Instance.Items.First(i => i.Id == "CYB_SPR_03");
+                applyBrush.Invoke(cybWin, [sprTurret]);
+                Assert(canvas.ActiveTileId == 0xFA, $"Cybernoid actor sprite CYB_SPR_03 mapped to native marker tile $FA (got ${canvas.ActiveTileId:X2})");
+                byte[] wallArtAfter = cybProject.TileAtlas.Get(0x21).Bitmap;
+                Assert(wallArtAfter.SequenceEqual(wallArtBefore), "Tile $21 from Visual Tile Atlas is NOT corrupted when copying actor sprite");
+
+                // Case B: Pick cross-game alien sprite REX_01 -> Must allocate a free slot without overwriting tile $21!
+                var rexSpr = SpriteBank.Instance.Items.First(i => i.Id == "REX_01");
+                applyBrush.Invoke(cybWin, [rexSpr]);
+                Assert(canvas.ActiveTileId != 0x21, $"Allocated dedicated tile slot ${canvas.ActiveTileId:X2} for cross-game sprite REX_01");
+                Assert(cybProject.TileAtlas.Get(0x21).Bitmap.SequenceEqual(wallArtBefore), "Tile $21 remains intact after cross-game sprite injection");
+            }
+
+            // Case C: Rex Level Workshop -> Copying sprite updates ActiveUniversalSprite cleanly
+            string? rexProjPath = projects.FirstOrDefault(p => p.GameType == "Rex")?.FilePath;
+            if (rexProjPath != null && File.Exists(rexProjPath))
+            {
+                var rexWin = new MainWindow();
+                var loadMethod = typeof(MainWindow).GetMethod("LoadFile", BindingFlags.Instance | BindingFlags.NonPublic)!;
+                loadMethod.Invoke(rexWin, [rexProjPath]);
+                var canvas = (SpeccyStudio.Controls.LevelCanvas)rexWin.FindName("MainLevelCanvas");
+                var applyBrush = typeof(MainWindow).GetMethod("ApplySpriteToActiveBrush", BindingFlags.Instance | BindingFlags.NonPublic)!;
+
+                var rexSpr2 = SpriteBank.Instance.Items.First(i => i.Id == "REX_02");
+                applyBrush.Invoke(rexWin, [rexSpr2]);
+                Assert(canvas.ActiveUniversalSprite?.Id == "REX_02", $"Rex canvas active brush updated to REX_02 (got {canvas.ActiveUniversalSprite?.Id})");
+
+                var brushIdText = (System.Windows.Controls.TextBlock)rexWin.FindName("UniversalActiveBrushId");
+                Assert(brushIdText.Text == "REX_02", $"Active brush UI card shows REX_02 (got {brushIdText.Text})");
+
+                // Place entity on canvas
+                int initialEntities = canvas.CurrentUniversalRoom!.Entities.Count;
+                var placeMethod = typeof(MainWindow).GetMethod("PlaceUniversalEntity", BindingFlags.Instance | BindingFlags.NonPublic, null, [typeof(int), typeof(int), typeof(SpriteBankItem)], null)!;
+                placeMethod.Invoke(rexWin, [10, 10, rexSpr2]);
+                Assert(canvas.CurrentUniversalRoom.Entities.Count == initialEntities + 1, "Entity placed on canvas with copied brush");
+                Assert(canvas.CurrentUniversalRoom.Entities.Last().SpriteId == "REX_02", "Placed entity has REX_02 sprite ID");
+
+                // Test copying entity via UniversalCopyEntity_Click
+                var list = (System.Windows.Controls.ListBox)rexWin.FindName("UniversalEntitiesList");
+                list.SelectedItem = canvas.CurrentUniversalRoom.Entities.Last();
+                var copyEntityBtn = (System.Windows.Controls.Button)rexWin.FindName("UniversalCopyEntityButton");
+                Assert(copyEntityBtn.IsEnabled, "UniversalCopyEntityButton is enabled when entity is selected");
+                var copyEntityMethod = typeof(MainWindow).GetMethod("UniversalCopyEntity_Click", BindingFlags.Instance | BindingFlags.NonPublic)!;
+                copyEntityMethod.Invoke(rexWin, [copyEntityBtn, new RoutedEventArgs()]);
+                Assert(canvas.ActiveUniversalSprite?.Id == "REX_02", "Active brush remains REX_02 after copying entity");
+            }
+
+            // Case D: SpriteBankWindow Copy to Clipboard & Key handling
+            {
+                var sbWin = new SpriteBankWindow(cybProject, null, 0x21);
+                var copyBtn = (System.Windows.Controls.Button)sbWin.FindName("CopyToClipboardBtn");
+                Assert(copyBtn != null, "CopyToClipboardBtn exists in SpriteBankWindow");
+                var rexItemForBank = SpriteBank.Instance.Items.First(i => i.Id == "REX_01");
+                var sbSelectMethod = typeof(SpriteBankWindow).GetMethod("SelectCard", BindingFlags.Instance | BindingFlags.NonPublic)!;
+                sbSelectMethod.Invoke(sbWin, [rexItemForBank]);
+                Assert(copyBtn!.IsEnabled, "CopyToClipboardBtn is enabled when sprite card is selected");
+
+                SpriteBankItem? chosen = null;
+                sbWin.ItemChosenForBrush += it => chosen = it;
+                var copyMethod = typeof(SpriteBankWindow).GetMethod("CopyToClipboard_Click", BindingFlags.Instance | BindingFlags.NonPublic)!;
+                copyMethod.Invoke(sbWin, [copyBtn, new RoutedEventArgs()]);
+                Assert(chosen?.Id == "REX_01", "ItemChosenForBrush event fired on CopyToClipboard_Click");
+            }
+            Console.WriteLine("DEBUG: Verified Sprite Bank copy and brush synchronization in Cybernoid and Rex!");
+        }
     }
 
     private static byte[] MakeScreen(byte value) { var result = new byte[SpectrumScreen.DataLength]; Array.Fill(result, value); return result; }

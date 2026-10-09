@@ -129,6 +129,7 @@
           <!-- Action Buttons -->
           <StackPanel Grid.Row="3">
             <Button x:Name="CopyBrushBtn" Content="📋 Pick &amp; Paint in Level (Close)" Click="CopyBrush_Click" Style="{StaticResource PrimaryButton}" Margin="0,0,0,6" IsEnabled="False" ToolTip="Copy this sprite to active pencil brush and close to paint on canvas immediately"/>
+            <Button x:Name="CopyToClipboardBtn" Content="📋 Copy to Clipboard (Ctrl+C)" Click="CopyToClipboard_Click" Margin="0,0,0,6" IsEnabled="False" ToolTip="Copy sprite image to Windows clipboard and update active level brush"/>
             <Button x:Name="InjectCybernoidBtn" Content="📥 Inject into Active Tile (Cybernoid II)" Click="InjectCybernoid_Click" Margin="0,0,0,6" IsEnabled="False" ToolTip="Write this graphic directly into Cybernoid II's tile atlas"/>
             <Button x:Name="ExportPngBtn" Content="📸 Export Sprite PNG" Click="ExportPng_Click" Margin="0,0,0,6" IsEnabled="False" ToolTip="Save pixel-perfect PNG image"/>
             <Grid Margin="0,4,0,0">
