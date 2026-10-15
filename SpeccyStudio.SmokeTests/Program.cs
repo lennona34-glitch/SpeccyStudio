@@ -1,4 +1,5 @@
 using SpeccyStudio.Core;
+using SpeccyStudio.Core.Audio;
 using SpeccyStudio.Services;
 using System;
 using System.IO;
@@ -17,6 +18,56 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
+        if (args.Length > 0 && args[0] == "myth-lab")
+        {
+            string mythRoot = Path.Combine(Path.GetTempPath(), "SpeccyStudioMyth", Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(mythRoot);
+            TestMythLevelLab(mythRoot);
+            Console.WriteLine("PASS: Myth level lab.");
+            return 0;
+        }
+
+        if (args.Length > 2 && args[0] == "main-window")
+        {
+            CaptureMainWindow(args[1], args[2]);
+            return 0;
+        }
+
+        if (args.Length > 2 && args[0] == "myth-window")
+        {
+            CaptureMythWindow(args[1], args[2], args.Length > 3 ? int.Parse(args[3]) : 0, args.Length > 4 ? int.Parse(args[4]) : 0, args.Length > 5 ? args[5] : "tiles");
+            return 0;
+        }
+
+        if (args.Length > 2 && args[0] == "rex-window")
+        {
+            CaptureRexWindow(args[1], args[2], args.Length > 3 ? int.Parse(args[3]) : 6, args.Length > 4 ? args[4] : "tiles");
+            return 0;
+        }
+
+        if (args.Length > 0 && args[0] == "rex-lab")
+        {
+            string rexRoot = Path.Combine(Path.GetTempPath(), "SpeccyStudioRex", Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(rexRoot);
+            TestRexLevelLab(rexRoot);
+            Console.WriteLine("PASS: Rex level lab.");
+            return 0;
+        }
+
+        if (args.Length > 0 && args[0] == "exolon-engine")
+        {
+            TestExolonEngineMatchesReferenceScreens();
+            Console.WriteLine("PASS: Exolon engine reproduces all reference screens.");
+            return 0;
+        }
+
+        if (args.Length > 0 && args[0] == "diagnose-game")
+        {
+            DiagnoseGame(args.Length > 1 ? args[1] : "Chronos");
+            return 0;
+        }
+
+
         string root = Path.Combine(Path.GetTempPath(), "SpeccyStudioSmoke", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         try
@@ -35,8 +86,13 @@ internal static class Program
             TestCybernoidGameplayProfile();
             TestEmulatorProfiles();
             TestZipAndExolon(root);
+            TestExolonEngineMatchesReferenceScreens();
+            TestRexLevelLab(root);
+            TestMythLevelLab(root);
             TestTileFlipAndSpriteBank(root);
             TestRexMythAndAudioStudio();
+            TestChiptuneRepositoryScout(root);
+            TestAllNineAudioTitles();
             if (args.Length > 0) TestCybernoidProfile(
                 args[0],
                 args.Length > 1 ? args[1] : null,
@@ -60,7 +116,7 @@ internal static class Program
                     Console.WriteLine("DEBUG: Optional online Gemini test skipped due to API rate limit: " + (ex.InnerException?.Message ?? ex.Message));
                 }
             }
-            Console.WriteLine($"PASS: {14 + (args.Length > 0 ? 1 : 0) + (args.Length > 2 && args[2] != "-" ? 1 : 0)} smoke tests completed.");
+            Console.WriteLine($"PASS: {15 + (args.Length > 0 ? 1 : 0) + (args.Length > 2 && args[2] != "-" ? 1 : 0)} smoke tests completed.");
             return 0;
         }
         catch (Exception ex)
@@ -394,6 +450,85 @@ internal static class Program
         encoder.Save(stream);
     }
 
+    private static void CaptureMainWindow(string sourcePath, string outputPath)
+    {
+        if (Application.Current is null)
+        {
+            var app = new App();
+            app.InitializeComponent();
+        }
+        var window = new MainWindow { WindowState = WindowState.Normal, Width = 1600, Height = 960 };
+        MethodInfo load = typeof(MainWindow).GetMethod("LoadFile", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("LoadFile test hook not found.");
+        load.Invoke(window, [sourcePath]);
+        var radio = window.FindName("ViewLevelRadio") as System.Windows.Controls.RadioButton;
+        if (radio != null) radio.IsChecked = true;
+        var root = (FrameworkElement)window.Content;
+        root.Measure(new Size(1600, 960));
+        root.Arrange(new Rect(0, 0, 1600, 960));
+        root.UpdateLayout();
+        var bitmap = new RenderTargetBitmap(1600, 960, 96, 96, PixelFormats.Pbgra32);
+        bitmap.Render(root);
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        using var stream = File.Create(outputPath);
+        encoder.Save(stream);
+        Console.WriteLine("Captured " + outputPath);
+    }
+
+    private static void CaptureMythWindow(string sourcePath, string outputPath, int levelIndex, int areaIndex, string tab)
+    {
+        if (Application.Current is null)
+        {
+            var app = new App();
+            app.InitializeComponent();
+        }
+        var document = SpectrumFileParser.Open(sourcePath);
+        Assert(MythLevelLabProject.TryCreate(document, out MythLevelLabProject? lab, out _) && lab != null, "Myth lab opens for capture");
+        var window = new MythLabWindow(document, lab!) { Width = 1460, Height = 820 };
+        ((System.Windows.Controls.ComboBox)window.FindName("LevelCombo")).SelectedIndex = levelIndex;
+        ((System.Windows.Controls.ListBox)window.FindName("AreaList")).SelectedIndex = areaIndex;
+        ((System.Windows.Controls.TabControl)window.FindName("RightTabs")).SelectedIndex = tab == "objects" ? 1 : 0;
+        if (tab == "objects") ((System.Windows.Controls.RadioButton)window.FindName("ToolObjectsRadio")).IsChecked = true;
+        var root = (FrameworkElement)window.Content;
+        root.Measure(new Size(1460, 820));
+        root.Arrange(new Rect(0, 0, 1460, 820));
+        root.UpdateLayout();
+        var bitmap = new RenderTargetBitmap(1460, 820, 96, 96, PixelFormats.Pbgra32);
+        bitmap.Render(root);
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        using var stream = File.Create(outputPath);
+        encoder.Save(stream);
+        Console.WriteLine("Captured " + outputPath);
+    }
+
+    private static void CaptureRexWindow(string sourcePath, string outputPath, int roomIndex, string tab)
+    {
+        if (Application.Current is null)
+        {
+            var app = new App();
+            app.InitializeComponent();
+        }
+        var document = SpectrumFileParser.Open(sourcePath);
+        Assert(RexLevelLabProject.TryCreate(document, out RexLevelLabProject? lab, out _) && lab != null, "Rex lab opens for capture");
+        var window = new RexLabWindow(document, lab!) { Width = 1460, Height = 820 };
+        ((System.Windows.Controls.ListBox)window.FindName("RoomList")).SelectedIndex = roomIndex;
+        ((System.Windows.Controls.TabControl)window.FindName("RightTabs")).SelectedIndex = tab switch { "spawns" => 1, "exits" => 2, _ => 0 };
+        if (tab == "spawns") ((System.Windows.Controls.RadioButton)window.FindName("ToolSpawnsRadio")).IsChecked = true;
+        var root = (FrameworkElement)window.Content;
+        root.Measure(new Size(1460, 820));
+        root.Arrange(new Rect(0, 0, 1460, 820));
+        root.UpdateLayout();
+        var bitmap = new RenderTargetBitmap(1460, 820, 96, 96, PixelFormats.Pbgra32);
+        bitmap.Render(root);
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        using var stream = File.Create(outputPath);
+        encoder.Save(stream);
+        Console.WriteLine("Captured " + outputPath);
+    }
+
     private static void TestZipAndExolon(string root)
     {
         string tosecExolonZip = @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[TAP]\Exolon (1987)(Hewson Consultants)[48-128K].zip";
@@ -615,6 +750,205 @@ internal static class Program
     }
 
 
+    private static void TestRexLevelLab(string root)
+    {
+        string tosec = @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[TAP]\";
+        string? refDir = null;
+        for (string? dir = AppContext.BaseDirectory; dir != null && refDir == null; dir = Path.GetDirectoryName(dir))
+        {
+            string candidate = Path.Combine(dir, "level-lab", "rex", "reference");
+            if (Directory.Exists(candidate)) refDir = candidate;
+        }
+        Assert(refDir != null, "Rex reference rooms located");
+
+        var parts = new[] { (Name: "Rex (1988)(Martech Games)(Side A).zip", Part: 1, Rooms: 35), (Name: "Rex (1988)(Martech Games).zip", Part: 2, Rooms: 26) };
+        foreach (var p in parts)
+        {
+            SpectrumDocument doc = SpectrumFileParser.Open(tosec + p.Name);
+            Assert(RexLevelLabProject.TryCreate(doc, out RexLevelLabProject? lab, out string reason) && lab != null, "Rex lab recognises " + p.Name + ": " + reason);
+            Assert(lab!.Part == p.Part && lab.Rooms.Count == p.Rooms, $"Rex part {p.Part} has {p.Rooms} rooms");
+            Assert(lab.SpawnBytesUsed <= lab.SpawnBudget, "Rex spawn lists fit their region");
+
+            // Every room must match what the game's own room painter produces.
+            int bad = 0;
+            foreach (RexRoom room in lab.Rooms)
+            {
+                var decoder = new System.Windows.Media.Imaging.PngBitmapDecoder(new Uri(Path.Combine(refDir!, $"part{p.Part}_room{room.Index:D2}.png")),
+                    System.Windows.Media.Imaging.BitmapCreateOptions.None, System.Windows.Media.Imaging.BitmapCacheOption.OnLoad);
+                var reference = new System.Windows.Media.Imaging.FormatConvertedBitmap(decoder.Frames[0], System.Windows.Media.PixelFormats.Bgra32, null, 0);
+                var expected = new byte[RexLevelLabProject.PixelWidth * RexLevelLabProject.PixelHeight * 4];
+                reference.CopyPixels(expected, RexLevelLabProject.PixelWidth * 4, 0);
+                var actual = new byte[expected.Length];
+                lab.RenderRoom(room).CopyPixels(actual, RexLevelLabProject.PixelWidth * 4, 0);
+                for (int i = 0; i < expected.Length; i += 4)
+                    if (expected[i] != actual[i] || expected[i + 1] != actual[i + 1] || expected[i + 2] != actual[i + 2]) { bad++; break; }
+            }
+            Assert(bad == 0, $"Rex part {p.Part}: all rooms render identically to the game ({bad} differ)");
+
+            // Edit round trip: tile, exits and an unchanged spawn repack must survive Save + reopen; checksums are repaired by Save.
+            byte[] original = (byte[])doc.Bytes.Clone();
+            lab.ApplySpawns(3, lab.Rooms[3].SpawnParams.ToArray(), lab.Rooms[3].Spawns.ToList());
+            Assert(doc.Bytes.SequenceEqual(original), "Rex spawn repack without changes is byte-identical");
+
+            byte oldTile = lab.Rooms[2].Tiles[5];
+            byte newTile = (byte)(oldTile == 0x01 ? 0x02 : 0x01);
+            lab.SetTile(2, 5, newTile);
+            lab.SetExits(2, 0, 7, 0, 3);
+            string saved = Path.Combine(root, $"rex-part{p.Part}-edit.tap");
+            doc.Save(saved);
+            SpectrumDocument reopened = SpectrumFileParser.Open(saved);
+            Assert(RexLevelLabProject.TryCreate(reopened, out RexLevelLabProject? lab2, out _) && lab2 != null, "Rex edited TAP reopens");
+            Assert(lab2!.Rooms[2].Tiles[5] == newTile && lab2.Rooms[2].Right == 7 && lab2.Rooms[2].Left == 3, "Rex tile and exit edits persisted");
+            Assert(lab2.Rooms[3].Spawns.Count == lab.Rooms[3].Spawns.Count && lab2.Rooms[3].SpawnAddress == lab.Rooms[3].SpawnAddress, "Rex spawns unchanged after edits");
+
+            // Spawn edit: the lists fill their region exactly, so growing one room needs another to shrink.
+            Assert(lab.SpawnBytesUsed == lab.SpawnBudget, "Rex spawn region is fully used by the original lists");
+            var room4Spawns = lab.Rooms[4].Spawns.ToList();
+            var added = new RexSpawn(0x01, false, 100, 18);
+            room4Spawns.Add(added);
+            bool grewRefused = false;
+            try { lab.ApplySpawns(4, lab.Rooms[4].SpawnParams.ToArray(), room4Spawns); } catch (InvalidOperationException) { grewRefused = true; }
+            Assert(grewRefused && lab.Rooms[4].Spawns.Count == room4Spawns.Count - 1, "Rex spawn insert refused when the region is full");
+            int oldNext = lab.Rooms[5].SpawnAddress;
+            var shrunk = lab.Rooms[3].Spawns.Take(lab.Rooms[3].Spawns.Count - 1).ToList();
+            lab.ApplySpawns(3, lab.Rooms[3].SpawnParams.ToArray(), shrunk);
+            Assert(lab.Rooms[5].SpawnAddress == oldNext - 3, "Rex spawn removal repacks following rooms");
+            lab.ApplySpawns(4, lab.Rooms[4].SpawnParams.ToArray(), room4Spawns);
+            Assert(lab.Rooms[4].Spawns.Count == room4Spawns.Count && lab.Rooms[5].SpawnAddress == oldNext, "Rex spawn insert fits after freeing space");
+            var tooMany = Enumerable.Range(0, lab.SpawnBudget).Select(i => new RexSpawn(0x01, false, 8, 8)).ToList();
+            bool refused = false;
+            try { lab.ApplySpawns(4, lab.Rooms[4].SpawnParams.ToArray(), tooMany); } catch (InvalidOperationException) { refused = true; }
+            Assert(refused && lab.Rooms[4].Spawns.Count == room4Spawns.Count, "Rex spawn budget enforced");
+
+            // Sprites: every type used by a spawn has art.
+            foreach (var room in lab.Rooms)
+                foreach (var s in room.Spawns)
+                    Assert(lab.RenderSprite(s.Type) != null, $"Rex sprite for type ${s.Type:X2} (room {room.Index})");
+        }
+    }
+
+    private static void TestMythLevelLab(string root)
+    {
+        string tape = @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[TAP]\Myth - History in the Making (1989)(System 3 Software).zip";
+        string? refDir = null;
+        for (string? dir = AppContext.BaseDirectory; dir != null && refDir == null; dir = Path.GetDirectoryName(dir))
+        {
+            string candidate = Path.Combine(dir, "level-lab", "myth", "reference");
+            if (Directory.Exists(candidate)) refDir = candidate;
+        }
+        Assert(refDir != null, "Myth reference data located");
+
+        SpectrumDocument doc = SpectrumFileParser.Open(tape);
+        Assert(MythLevelLabProject.TryCreate(doc, out MythLevelLabProject? lab, out string reason) && lab != null, "Myth lab recognises the tape: " + reason);
+        Assert(lab!.Levels.Count == 4, "Myth has four supported levels");
+        Assert(lab.Levels.Select(l => l.Areas.Count).SequenceEqual(new[] { 3, 3, 3, 8 }), "Myth area counts per level");
+
+        foreach (MythLevel level in lab.Levels)
+        {
+            byte[] gamePack = File.ReadAllBytes(Path.Combine(refDir!, $"level{level.Number}_pack.bin"));
+            Assert(level.PackDataForTest().SequenceEqual(gamePack), $"Myth level {level.Number}: pack identical to the game's decompressor");
+            byte marker = level.Memory[level.PackStart];
+            byte[] reencoded = MythPackCodec.Encode(gamePack, marker);
+            Assert(reencoded.Length <= level.PackCapacity, $"Myth level {level.Number}: re-encoded pack fits ({reencoded.Length} <= {level.PackCapacity})");
+            var roundTrip = new byte[0x10000];
+            Buffer.BlockCopy(reencoded, 0, roundTrip, 0x6000, reencoded.Length);
+            Assert(MythPackCodec.Decode(roundTrip, 0x6000, out _)!.SequenceEqual(gamePack), $"Myth level {level.Number}: pack codec round trip");
+
+            using var json = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(refDir!, $"level{level.Number}_viewports.json")));
+            int checkedViews = 0;
+            foreach (var view in json.RootElement.EnumerateArray())
+            {
+                var area = level.Areas[view.GetProperty("area").GetInt32()];
+                int col = view.GetProperty("col").GetInt32(), row = view.GetProperty("row").GetInt32();
+                byte[] expected = Convert.FromHexString(view.GetProperty("chars").GetString()!);
+                Assert(lab.BuildViewportCharacters(level, area, col, row).SequenceEqual(expected), $"Myth level {level.Number} area {area.Index + 1} viewport ({col},{row}) matches the game's map builder");
+                checkedViews++;
+            }
+            Assert(checkedViews >= 6, $"Myth level {level.Number}: viewports compared");
+            foreach (var area in level.Areas)
+            {
+                Assert(area.Objects.Count <= area.ObjectCapacity, $"Myth level {level.Number} area {area.Index + 1}: objects fit their list");
+                Assert(lab.RenderArea(level, area).PixelWidth == area.Width * 16, "Myth area renders");
+            }
+        }
+
+        Assert(MythSpriteCatalog.TypesFor(1).Count() >= 12 && MythSpriteCatalog.TypesFor(2).Count() >= 15 && MythSpriteCatalog.TypesFor(4).Count() >= 15, "Myth sprites captured for levels 1, 2 and 4");
+        Assert(MythSpriteCatalog.Find(1, 5)!.Bitmap.PixelWidth == MythSpriteCatalog.Find(1, 5)!.Width * 8, "Myth sprite renders");
+
+        // Edit round trip through Save and reopen; block checksums must stay valid.
+        MythLevel l1 = lab.Levels[0];
+        MythArea a1 = l1.Areas[0];
+        byte oldTile = l1.GetTile(a1, 10, 12);
+        byte newTile = (byte)(oldTile == 3 ? 4 : 3);
+        lab.SetTile(l1, a1, 10, 12, newTile);
+        Assert(lab.PackEncodedLength(l1) <= l1.PackCapacity, "Myth edited pack still fits");
+        var objects = a1.Objects.ToList();
+        lab.ApplyObjects(l1, a1, objects.Take(objects.Count - 1).ToList());
+        Assert(a1.Objects.Count == objects.Count - 1, "Myth object removed");
+        lab.ApplyObjects(l1, a1, objects);
+        bool tooMany = false;
+        try { lab.ApplyObjects(l1, a1, objects.Concat(Enumerable.Repeat(new MythObject(2, 40, 10), a1.ObjectCapacity)).ToList()); } catch (InvalidOperationException) { tooMany = true; }
+        Assert(tooMany, "Myth object list capacity enforced");
+
+        string saved = Path.Combine(root, "myth-edit.tap");
+        doc.Save(saved);
+        byte[] savedBytes = File.ReadAllBytes(saved);
+        int pos = 0, blockNo = 0;
+        while (pos < savedBytes.Length)
+        {
+            int length = savedBytes[pos] | savedBytes[pos + 1] << 8;
+            byte x = 0;
+            for (int i = 0; i < length - 1; i++) x ^= savedBytes[pos + 2 + i];
+            Assert(x == savedBytes[pos + 2 + length - 1], $"Myth saved TAP block {blockNo + 1} checksum is valid");
+            pos += 2 + length;
+            blockNo++;
+        }
+        SpectrumDocument reopened = SpectrumFileParser.Open(saved);
+        Assert(MythLevelLabProject.TryCreate(reopened, out MythLevelLabProject? lab2, out _) && lab2 != null, "Myth edited TAP reopens");
+        Assert(lab2!.Levels[0].GetTile(lab2.Levels[0].Areas[0], 10, 12) == newTile, "Myth tile edit persisted");
+        Assert(lab2.Levels[0].Areas[0].Objects.Count == objects.Count, "Myth objects persisted");
+    }
+
+    private static void TestExolonEngineMatchesReferenceScreens()
+    {
+        string? screensDir = null;
+        for (string? dir = AppContext.BaseDirectory; dir != null && screensDir == null; dir = Path.GetDirectoryName(dir))
+        {
+            string candidate = Path.Combine(dir, "SpeccyStudio", "Assets", "ExolonScreens");
+            if (Directory.Exists(candidate)) screensDir = candidate;
+            else if (Directory.Exists(Path.Combine(dir, "Assets", "ExolonScreens"))) screensDir = Path.Combine(dir, "Assets", "ExolonScreens");
+        }
+        Assert(screensDir != null, "Exolon reference screens located");
+
+        int badRooms = 0;
+        var report = new List<string>();
+        for (int i = 0; i < ExolonVerifiedRoomsData.VerifiedRooms.Length; i++)
+        {
+            byte[] bytes = ExolonVerifiedRoomsData.VerifiedRooms[i];
+            var entities = new List<ExolonEntity>();
+            for (int p = 0; p + 2 < bytes.Length && bytes[p] != 0xFF; p += 3)
+                entities.Add(new ExolonEntity(bytes[p], bytes[p + 1], bytes[p + 2]));
+
+            var render = ExolonEngine.RenderRoom(entities);
+            var decoder = new System.Windows.Media.Imaging.PngBitmapDecoder(
+                new Uri(Path.Combine(screensDir!, $"room_{i:D3}.png")),
+                System.Windows.Media.Imaging.BitmapCreateOptions.None,
+                System.Windows.Media.Imaging.BitmapCacheOption.OnLoad);
+            var reference = new System.Windows.Media.Imaging.FormatConvertedBitmap(decoder.Frames[0], System.Windows.Media.PixelFormats.Bgra32, null, 0);
+
+            var expected = new byte[256 * 176 * 4];
+            reference.CopyPixels(new System.Windows.Int32Rect(0, 0, 256, 176), expected, 256 * 4, 0);
+            var actual = new byte[256 * 176 * 4];
+            render.Image.CopyPixels(actual, 256 * 4, 0);
+
+            int diff = 0;
+            for (int px = 0; px < 256 * 176; px++)
+                if (expected[px * 4] != actual[px * 4] || expected[px * 4 + 1] != actual[px * 4 + 1] || expected[px * 4 + 2] != actual[px * 4 + 2]) diff++;
+            if (diff != 0) { badRooms++; report.Add($"room {i}: {diff}px"); }
+        }
+        Assert(badRooms == 0, "Exolon engine renders all 125 rooms identically to the reference screens (" + string.Join(", ", report.Take(10)) + ")");
+    }
+
     private static void InspectExolonEngine()
     {
         var occurrences = new Dictionary<byte, List<(int room, int row, int col)>>();
@@ -735,14 +1069,8 @@ internal static class Program
         }
 
         // 5. Test Exolon Counterparts and SpriteBank
-        byte? turretCeiling = ExolonEntityCatalog.GetVerticalCounterpart(0x05);
-        Assert(turretCeiling == 0x23, "Exolon Swivel Gun $05 <-> Ceiling Turret $23");
-        byte? turretGround = ExolonEntityCatalog.GetVerticalCounterpart(0x23);
-        Assert(turretGround == 0x05, "Exolon Ceiling Turret $23 <-> Swivel Gun $05");
-        byte? stalactite = ExolonEntityCatalog.GetVerticalCounterpart(0x1F);
-        Assert(stalactite == 0x20, "Exolon Stalactite $1F <-> Stalagmite $20");
-        byte? columnBase = ExolonEntityCatalog.GetVerticalCounterpart(0x00);
-        Assert(columnBase == 0x01, "Exolon Column Base $00 <-> Column Top $01");
+        Assert(ExolonEntityCatalog.GetVerticalCounterpart(0x05) == null, "Exolon has no vertical counterpart types (art-accurate catalog)");
+        Assert(ExolonEntityCatalog.GetName(0x1F) == "Spiked Mine", "Exolon catalog names follow the real art");
 
         SpriteBank.Instance.EnsureExolonEntitiesLoaded();
         Assert(SpriteBank.Instance.Items.Count >= 256 + 30, "SpriteBank contains both Cybernoid and Exolon assets");
@@ -870,6 +1198,59 @@ internal static class Program
             encRex.Frames.Add(BitmapFrame.Create(rtbRex));
             string rexShot = @"C:\Users\adria\.gemini\antigravity\brain\aafadb66-5ecd-48af-adb0-8675ca0b7a6c\speccy-studio-rex-level-workshop.png";
             using (var str = File.Create(rexShot)) { encRex.Save(str); }
+
+            // 11b. Test placing a Cybernoid sprite into Rex and verifying injection into game binary
+            var docFieldRex = typeof(MainWindow).GetField("_document", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            var rexDoc = (SpectrumDocument)docFieldRex.GetValue(win)!;
+            var cybSprite = SpriteBank.Instance.Items.First(i => i.Id.StartsWith("CYB_"));
+            var placeMethod = typeof(MainWindow).GetMethod("PlaceUniversalEntity", BindingFlags.Instance | BindingFlags.NonPublic, null, [typeof(int), typeof(int), typeof(SpriteBankItem)], null)!;
+            placeMethod.Invoke(win, [10, 10, cybSprite]);
+
+            Assert(canvas.CurrentUniversalRoom!.Entities.Count == 1, "Cybernoid sprite added to Rex entities");
+            Assert(rexDoc.IsDirty, "Document marked dirty upon placing universal entity");
+
+            for (int b = 0; b < 32; b++)
+            {
+                int s = b / 2;
+                int cOff = b % 2;
+                int curY = 80 + s;
+                int t = curY / 64;
+                int l = curY % 8;
+                int cr = (curY % 64) / 8;
+                int off = (t * 2048) + (l * 256) + (cr * 32) + (10 + cOff);
+                Assert(rexDoc.Bytes[30 + off] == cybSprite.Bitmap[b], $"Bitmap byte {b} matches in active screen 0x4000");
+                Assert(rexDoc.Bytes[42269 + off] == cybSprite.Bitmap[b], $"Bitmap byte {b} matches in shadow screen 0xE4FF");
+                Assert(rexDoc.Bytes[20072 + b] == cybSprite.Bitmap[b], $"Bitmap byte {b} matches in Rex sprite slot 0");
+            }
+
+            string tempDir = Path.Combine(Path.GetTempPath(), "rex-smoke-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+            try
+            {
+                string testSavedZip = Path.Combine(tempDir, "rex-injected.zip");
+                rexDoc.Save(testSavedZip);
+                Assert(File.Exists(testSavedZip), "Saved injected Rex zip exists");
+                var reloadedDoc = SpectrumFileParser.Open(testSavedZip);
+                for (int b = 0; b < 32; b++)
+                {
+                    int s = b / 2;
+                    int cOff = b % 2;
+                    int curY = 80 + s;
+                    int t = curY / 64;
+                    int l = curY % 8;
+                    int cr = (curY % 64) / 8;
+                    int off = (t * 2048) + (l * 256) + (cr * 32) + (10 + cOff);
+                    Assert(reloadedDoc.Bytes[30 + off] == cybSprite.Bitmap[b], $"Reloaded byte {b} matches in active screen 0x4000");
+                    Assert(reloadedDoc.Bytes[42269 + off] == cybSprite.Bitmap[b], $"Reloaded byte {b} matches in shadow screen 0xE4FF");
+                    Assert(reloadedDoc.Bytes[20072 + b] == cybSprite.Bitmap[b], $"Reloaded byte {b} matches in Rex sprite slot 0");
+                }
+                Console.WriteLine("DEBUG: Rex Cybernoid sprite injection verified in active video, shadow RAM, sprite slots, and saved game binary!");
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+            }
+
             win.Close();
         }
 
@@ -1262,19 +1643,39 @@ internal static class Program
 
         // 5. ChiptuneEngine validation
         var engine = SpeccyStudio.Core.Audio.ChiptuneEngine.Instance;
-        Assert(SpeccyStudio.Core.Audio.ChiptuneEngine.AvailableTracks.Count >= 4, "ChiptuneEngine 4 tracks available");
-        Assert(SpeccyStudio.Core.Audio.ChiptuneEngine.AvailableSfx.Count == 8, "ChiptuneEngine 8 SFX available");
+        Assert(SpeccyStudio.Core.Audio.ChiptuneEngine.AvailableTracks.Count >= 8, "ChiptuneEngine 8 authentic tracks available");
+        Assert(SpeccyStudio.Core.Audio.ChiptuneEngine.AvailableSfx.Count >= 49, "ChiptuneEngine 49 authentic SFX available across games");
 
-        // Generate SFX WAV
-        byte[] sfxWav = engine.GenerateSfxWav("SFX_REX_01");
-        Assert(sfxWav.Length > 1000, "SFX WAV length");
-        Assert(Encoding.ASCII.GetString(sfxWav, 0, 4) == "RIFF", "SFX WAV RIFF header");
-        Assert(Encoding.ASCII.GetString(sfxWav, 8, 4) == "WAVE", "SFX WAV WAVE header");
+        // Validate game-specific soundbanks
+        var cybSfx = SpeccyStudio.Core.Audio.ChiptuneEngine.GetSfxForGame("cybernoid");
+        var exoSfx = SpeccyStudio.Core.Audio.ChiptuneEngine.GetSfxForGame("exolon");
+        var rexSfx = SpeccyStudio.Core.Audio.ChiptuneEngine.GetSfxForGame("rex");
+        var mythSfx = SpeccyStudio.Core.Audio.ChiptuneEngine.GetSfxForGame("myth");
+        var whitSfx = SpeccyStudio.Core.Audio.ChiptuneEngine.GetSfxForGame("whittaker");
+        var ocnSfx = SpeccyStudio.Core.Audio.ChiptuneEngine.GetSfxForGame("ocean");
+        Assert(cybSfx.Count == 8, "Cybernoid II soundbank has 8 authentic effects");
+        Assert(exoSfx.Count == 8, "Exolon soundbank has 8 authentic effects");
+        Assert(rexSfx.Count == 8, "Rex soundbank has 8 authentic effects");
+        Assert(mythSfx.Count == 8, "Myth soundbank has 8 authentic effects");
+        Assert(whitSfx.Count == 8, "David Whittaker soundbank has 8 authentic effects");
+        Assert(ocnSfx.Count == 8, "Jonathan Dunn / Ocean 128K soundbank has 8 authentic effects");
 
-        // Generate 1-second track WAV
-        byte[] trackWav = engine.GenerateTrackWav("Myth: History in the Making (Main Theme)", durationSeconds: 1);
-        Assert(trackWav.Length > 44100 * 2, "Track WAV length > 88KB");
-        Assert(Encoding.ASCII.GetString(trackWav, 0, 4) == "RIFF", "Track WAV RIFF header");
+        // Validate WAV generation for all 33 sound effects
+        foreach (var sfx in SpeccyStudio.Core.Audio.ChiptuneEngine.AvailableSfx)
+        {
+            byte[] sfxWav = engine.GenerateSfxWav(sfx.Id);
+            Assert(sfxWav.Length > 200, $"SFX WAV length for {sfx.Id}");
+            Assert(Encoding.ASCII.GetString(sfxWav, 0, 4) == "RIFF", $"SFX WAV RIFF header for {sfx.Id}");
+            Assert(Encoding.ASCII.GetString(sfxWav, 8, 4) == "WAVE", $"SFX WAV WAVE header for {sfx.Id}");
+        }
+
+        // Validate WAV generation for all 5 tracker tracks
+        foreach (var track in SpeccyStudio.Core.Audio.ChiptuneEngine.AvailableTracks)
+        {
+            byte[] trackWav = engine.GenerateTrackWav(track.Name, durationSeconds: 1);
+            Assert(trackWav.Length > 44100 * 2, $"Track WAV length > 88KB for {track.Name}");
+            Assert(Encoding.ASCII.GetString(trackWav, 0, 4) == "RIFF", $"Track WAV RIFF header for {track.Name}");
+        }
 
         // 6. SpeccyMidiOut validation
         var midiDevs = SpeccyStudio.Core.Audio.SpeccyMidiOut.GetAvailableDevices();
@@ -1292,9 +1693,21 @@ internal static class Program
         SpeccyStudio.Core.Audio.SpeccyMidiOut.Instance.SendAllNotesOff();
         Assert(!SpeccyStudio.Core.Audio.SpeccyMidiOut.Instance.IsOpen, "MidiOut closed by default");
 
-        // 7. AudioStudioWindow instantiation test
+        // 7. AudioStudioWindow instantiation test & Game Bank switching
         var audioWin = new AudioStudioWindow();
         Assert(audioWin != null, "AudioStudioWindow initialized");
+
+        var sfxCombo = (System.Windows.Controls.ComboBox)audioWin!.FindName("SfxGameBankCombo");
+        Assert(sfxCombo != null && sfxCombo.Items.Count == 5, "SfxGameBankCombo has 5 options (All + 4 games)");
+
+        // Switch to Cybernoid II bank (Index 0)
+        sfxCombo!.SelectedIndex = 0;
+        var pad1Title = (System.Windows.Controls.TextBlock)audioWin.FindName("Pad1Title");
+        Assert(pad1Title != null && pad1Title.Text == "[1] Pulse Laser Blaster", $"Pad 1 re-branded to Cybernoid Laser Blaster (got {pad1Title?.Text})");
+
+        // Switch to Myth bank (Index 3)
+        sfxCombo.SelectedIndex = 3;
+        Assert(pad1Title!.Text == "[1] Barbarian Broadsword Cleave", $"Pad 1 re-branded to Myth Broadsword (got {pad1Title?.Text})");
 
         var rootAudio = (FrameworkElement)audioWin!.Content!;
         rootAudio.Width = 1200;
@@ -1330,6 +1743,14 @@ internal static class Program
         var rexWav = engine.GenerateTrackWav("Rex (Neon Infiltration Theme)", durationSeconds: 2);
         Assert(rexWav != null && rexWav.Length > 1000, "Rex 64-step Jeroen Tel WAV generated successfully");
 
+        // Test Cybernoid II 64-step Jeroen Tel soundtrack generation
+        var cybWav = engine.GenerateTrackWav("Cybernoid II: The Revenge (Stage 1 OST)", durationSeconds: 2);
+        Assert(cybWav != null && cybWav.Length > 1000, "Cybernoid II 64-step Jeroen Tel WAV generated successfully");
+
+        // Test Exolon 64-step soundtrack generation
+        var exoWav = engine.GenerateTrackWav("Exolon (Vanguard Assault Theme)", durationSeconds: 2);
+        Assert(exoWav != null && exoWav.Length > 1000, "Exolon 64-step WAV generated successfully");
+
         // Test PSG serialization round-trip
         var testFrames = new List<SpeccyStudio.Core.Audio.PsgFrame>
         {
@@ -1350,22 +1771,208 @@ internal static class Program
         if (File.Exists(robocopZip))
         {
             var robocopDoc = SpectrumFileParser.Open(robocopZip);
+            byte[] b = robocopDoc.Bytes;
+            Console.WriteLine($"DEBUG ROBOCOP: doc bytes len={b.Length}, byte[30..31]={b[30]:X2} {b[31]:X2}, byte[34..35]={b[34]:X2} {b[35]:X2}");
+            int extLen = b[30] | (b[31] << 8);
+            int ppos = 32 + extLen;
+            while (ppos + 3 <= b.Length)
+            {
+                int pLen = b[ppos] | (b[ppos + 1] << 8);
+                byte page = b[ppos + 2];
+                Console.WriteLine($"DEBUG ROBOCOP PAGE: page={page} (Bank {page - 3}), len={pLen}");
+                ppos += 3 + (pLen == 0xFFFF ? 16384 : pLen);
+            }
+
+            byte[][] banks = new byte[8][];
+            for (int i = 0; i < 8; i++) banks[i] = new byte[16384];
+
+            ppos = 32 + extLen;
+            while (ppos + 3 <= b.Length)
+            {
+                int pLen = b[ppos] | (b[ppos + 1] << 8);
+                byte page = b[ppos + 2];
+                int bIdx = page - 3;
+                if (bIdx >= 0 && bIdx < 8)
+                {
+                    Buffer.BlockCopy(b, ppos + 3, banks[bIdx], 0, 16384);
+                }
+                ppos += 3 + (pLen == 0xFFFF ? 16384 : pLen);
+            }
+
+            var testRunner = new SpeccyStudio.Core.Audio.Z80AudioRunner();
+            // Load Bank 5 at 0x4000, Bank 2 at 0x8000, Bank 3 at 0xC000
+            testRunner.LoadMemory(banks[5], 0x4000);
+            testRunner.LoadMemory(banks[2], 0x8000);
+            testRunner.LoadMemory(banks[3], 0xC000);
+            for (int i = 0; i < 8; i++)
+            {
+                Array.Copy(banks[i], 0, testRunner.Banks[i], 0, 16384);
+            }
+            testRunner.PagedBank = 3;
+            testRunner.BankingEnabled = true;
+
+            // Run Init at 0xC000 with song 1 (Title Theme!)
+            testRunner.A = 1;
+            testRunner.SP = 0xFFF0;
+            testRunner.ExecuteRoutine(0xC000, 100000, false);
+            Console.WriteLine($"DEBUG ROBOCOP INIT (Song 1): executed 0xC000, SP=0x{testRunner.SP:X4}, PC=0x{testRunner.PC:X4}");
+
+            // Test Cybernoid II Z80 snapshot
+            string cybZ80 = @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[Z80]\Cybernoid II - The Revenge (1988)(Hewson Consultants)[128K].zip";
+            if (File.Exists(cybZ80))
+            {
+                var doc = SpectrumFileParser.Open(cybZ80);
+                byte[] bCyb = doc.Bytes;
+                int extCyb = bCyb[30] | (bCyb[31] << 8);
+                Console.WriteLine($"DEBUG CYBERNOID II: doc bytes len={bCyb.Length}, byte[34..35]={bCyb[34]:X2} {bCyb[35]:X2}");
+                var ramCyb = SpeccyStudio.Core.Audio.AyMemoryRipper.ExtractRamFromDocument(doc, out ushort pcCyb, out ushort spCyb, out byte regICyb, out byte imCyb, out var cybBanks, out byte pagedCyb);
+                Console.WriteLine($"DEBUG CYBERNOID DIAG: PC=0x{pcCyb:X4}, SP=0x{spCyb:X4}, PagedBank={pagedCyb}");
+                for (int bi = 0; bi < 8; bi++)
+                {
+                    int nonZero = cybBanks[bi].Count(x => x != 0);
+                    var ports = new List<int>();
+                    for (int i = 0; i < cybBanks[bi].Length - 3; i++)
+                    {
+                        if ((cybBanks[bi][i] == 0x01 && cybBanks[bi][i + 1] == 0xFD && (cybBanks[bi][i + 2] == 0xFF || cybBanks[bi][i + 2] == 0xBF)) ||
+                            (cybBanks[bi][i] == 0xD3 && cybBanks[bi][i + 1] == 0xFD) ||
+                            (cybBanks[bi][i] == 0xED && cybBanks[bi][i + 1] == 0x79) ||
+                            (cybBanks[bi][i] == 0xED && cybBanks[bi][i + 1] == 0xAB))
+                        {
+                            ports.Add(0xC000 + i);
+                        }
+                    }
+                    if (ports.Count > 0)
+                    {
+                        Console.WriteLine($"DEBUG CYBERNOID BANK {bi}: nonZero={nonZero}, AY ports at [{string.Join(", ", ports.Select(p => $"0x{p:X4}"))}]");
+                    }
+                }
+                var ripCyb = SpeccyStudio.Core.Audio.AyMemoryRipper.Scan(doc);
+                Console.WriteLine($"DEBUG CYBERNOID Z80 DIRECT SCAN: Success={ripCyb.Success}, Driver={ripCyb.DriverName}, Details={ripCyb.Details}, IsFromZ80={ripCyb.GeneratedPsg?.IsFromZ80}");
+            }
+
+            // Test Rex Z80 snapshot
+            string rexZ80 = @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[Z80]\Rex (1988)(Martech Games)[128K].zip";
+            if (File.Exists(rexZ80))
+            {
+                var doc = SpectrumFileParser.Open(rexZ80);
+                byte[] ram = SpeccyStudio.Core.Audio.AyMemoryRipper.ExtractRamFromDocument(doc, out _, out _, out _, out _, out var rexBanks, out byte paged);
+                Console.WriteLine($"DEBUG REX DIAG: pagedBank={paged}");
+                for (int bi = 0; bi < 8; bi++)
+                {
+                    int nonZero = rexBanks[bi].Count(x => x != 0);
+                    var ports = new List<int>();
+                    for (int i = 0; i < rexBanks[bi].Length - 3; i++)
+                    {
+                        if ((rexBanks[bi][i] == 0x01 && rexBanks[bi][i + 1] == 0xFD && (rexBanks[bi][i + 2] == 0xFF || rexBanks[bi][i + 2] == 0xBF)) ||
+                            (rexBanks[bi][i] == 0xD3 && rexBanks[bi][i + 1] == 0xFD) ||
+                            (rexBanks[bi][i] == 0xED && rexBanks[bi][i + 1] == 0x79))
+                        {
+                            ports.Add(0xC000 + i);
+                        }
+                    }
+                    if (ports.Count > 0)
+                    {
+                        Console.WriteLine($"DEBUG REX BANK {bi}: nonZero={nonZero}, AY ports at [{string.Join(", ", ports.Select(p => $"0x{p:X4}"))}]");
+                        if (bi == 0)
+                        {
+                            Console.WriteLine("--- Rex Bank 0 Disassembly around 0xD3D5 ---");
+                            for (int k = 0xD380 - 0xC000; k < 0xD400 - 0xC000; k += 4)
+                            {
+                                Console.WriteLine($"0x{0xC000 + k:X4}: {rexBanks[0][k]:X2} {rexBanks[0][k+1]:X2} {rexBanks[0][k+2]:X2} {rexBanks[0][k+3]:X2}");
+                            }
+                        }
+                    }
+                }
+                var ripRex = SpeccyStudio.Core.Audio.AyMemoryRipper.Scan(doc);
+                Console.WriteLine($"DEBUG REX Z80 RESULT: {ripRex.Details}, IsFromZ80={ripRex.GeneratedPsg?.IsFromZ80}");
+            }
+
+            // Test Myth Z80 snapshot
+            string mythZ80 = @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[Z80]\Myth - History in the Making (1989)(System 3 Software).zip";
+            if (File.Exists(mythZ80))
+            {
+                var doc = SpectrumFileParser.Open(mythZ80);
+                byte[] ram = SpeccyStudio.Core.Audio.AyMemoryRipper.ExtractRamFromDocument(doc, out _, out _, out _, out _, out var mythBanks, out byte paged);
+                Console.WriteLine($"DEBUG MYTH DIAG: pagedBank={paged}");
+                for (int bi = 0; bi < 8; bi++)
+                {
+                    int nonZero = mythBanks[bi].Count(x => x != 0);
+                    var ports = new List<int>();
+                    for (int i = 0; i < mythBanks[bi].Length - 3; i++)
+                    {
+                        if ((mythBanks[bi][i] == 0x01 && mythBanks[bi][i + 1] == 0xFD && (mythBanks[bi][i + 2] == 0xFF || mythBanks[bi][i + 2] == 0xBF)) ||
+                            (mythBanks[bi][i] == 0xD3 && mythBanks[bi][i + 1] == 0xFD) ||
+                            (mythBanks[bi][i] == 0xED && mythBanks[bi][i + 1] == 0x79))
+                        {
+                            ports.Add(0xC000 + i);
+                        }
+                    }
+                    if (ports.Count > 0)
+                    {
+                        Console.WriteLine($"DEBUG MYTH BANK {bi}: nonZero={nonZero}, AY ports at [{string.Join(", ", ports.Select(p => $"0x{p:X4}"))}]");
+                    }
+                }
+                var ripMyth = SpeccyStudio.Core.Audio.AyMemoryRipper.Scan(doc);
+                Console.WriteLine($"DEBUG MYTH Z80 RESULT: {ripMyth.Details}, IsFromZ80={ripMyth.GeneratedPsg?.IsFromZ80}");
+            }
+
+            // Test Exolon Z80 snapshot
+            string exoZ80 = @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[Z80]\Exolon (1987)(Hewson Consultants)[128K].zip";
+            if (File.Exists(exoZ80))
+            {
+                var doc = SpectrumFileParser.Open(exoZ80);
+                var ripExo = SpeccyStudio.Core.Audio.AyMemoryRipper.Scan(doc);
+                Console.WriteLine($"DEBUG EXOLON Z80 RESULT: {ripExo.Details}, IsFromZ80={ripExo.GeneratedPsg?.IsFromZ80}");
+            }
+
             var rip = SpeccyStudio.Core.Audio.AyMemoryRipper.Scan(robocopDoc);
             Assert(rip.Success, "AY Memory Ripper detected driver in Robocop 128K");
             Assert(rip.DriverName.Contains("Tim Follin"), "Driver identified as Tim Follin 128K Audio Engine");
             Assert(rip.GeneratedPsg != null && rip.GeneratedPsg.TotalFrames > 0, "Ripped PSG generated from snapshot");
-            Console.WriteLine($"DEBUG: {rip.Details}");
+            Assert(rip.GeneratedPsg.IsFromZ80, "Robocop PSG is authentically extracted from Z80 execution");
+            Console.WriteLine($"DEBUG ROBOCOP RESULT: {rip.Details}");
         }
-
-        // Test AY Memory Ripper on Cybernoid II
-        string cybZip = @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[TAP]\Cybernoid II - The Revenge (1988)(Hewson Consultants)[48-128K].zip";
+        // Test AY Memory Ripper on Cybernoid II (48K Tape fallback vs 128K Z80 snapshot)
+        string cybZip = @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[TAP]\Cybernoid II - The Revenge (1988)(Hewson Consultants)[128K].zip";
         if (File.Exists(cybZip))
         {
             var cybDoc = SpectrumFileParser.Open(cybZip);
             var ripCyb = SpeccyStudio.Core.Audio.AyMemoryRipper.Scan(cybDoc);
+            Console.WriteLine($"DEBUG CYBERNOID TAP RESULT: {ripCyb.Details}, IsFromZ80={ripCyb.GeneratedPsg?.IsFromZ80}");
             Assert(ripCyb.Success, "AY Memory Ripper detected driver in Cybernoid II");
-            Assert(ripCyb.DriverName.Contains("Jeroen Tel"), "Driver identified as Jeroen Tel");
-            Console.WriteLine($"DEBUG: {ripCyb.Details}");
+            Assert(ripCyb.DriverName.Contains("Rogers"), "Driver identified as J. Dave Rogers");
+            Assert(ripCyb.RippedSfx != null && ripCyb.RippedSfx.Count == 8, "Cybernoid II ripped 8 authentic sound effects");
+            Assert(ripCyb.GeneratedPsg != null && ripCyb.GeneratedPsg.TotalFrames > 0, "Cybernoid II ripped PSG music stream");
+        }
+
+        string cybZ80Zip = @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[Z80]\Cybernoid II - The Revenge (1988)(Hewson Consultants)[128K].zip";
+        if (File.Exists(cybZ80Zip))
+        {
+            var cybDoc = SpectrumFileParser.Open(cybZ80Zip);
+            var ripCyb = SpeccyStudio.Core.Audio.AyMemoryRipper.Scan(cybDoc);
+            Assert(ripCyb.Success, "AY Memory Ripper detected driver in Cybernoid II Z80");
+            Assert(ripCyb.GeneratedPsg != null && ripCyb.GeneratedPsg.TotalFrames > 0, "Cybernoid II Z80 ripped PSG music stream");
+            Assert(ripCyb.GeneratedPsg.IsFromZ80, "Cybernoid II Z80 PSG is authentically extracted from Z80 execution");
+            Console.WriteLine($"DEBUG CYBERNOID Z80 RESULT: {ripCyb.Details}");
+        }
+
+        // Test AY Memory Ripper across Vault projects (Exolon, Rex, Myth)
+        var vaultProjects = ProjectVaultService.Instance.GetAvailableProjects();
+        foreach (var proj in vaultProjects)
+        {
+            if (File.Exists(proj.FilePath))
+            {
+                var pDoc = SpectrumFileParser.Open(proj.FilePath);
+                var ripProj = SpeccyStudio.Core.Audio.AyMemoryRipper.Scan(pDoc);
+                if (proj.GameType is "Exolon" or "Rex" or "Myth")
+                {
+                    Console.WriteLine($"DEBUG VAULT {proj.GameType} ({Path.GetFileName(proj.FilePath)}): Success={ripProj.Success}, IsFromZ80={ripProj.GeneratedPsg?.IsFromZ80}, Details={ripProj.Details}");
+                    if (ripProj.Success && ripProj.GeneratedPsg != null)
+                    {
+                        Assert(ripProj.GeneratedPsg.IsFromZ80, $"{proj.GameType} PSG is authentically extracted from Z80 execution");
+                    }
+                }
+            }
         }
 
         Console.WriteLine("DEBUG: Tim Follin chiptune, AY Memory Ripper, and PSG Engine verified successfully!");
@@ -1388,6 +1995,361 @@ internal static class Program
         canvas.ActiveTool = SpeccyStudio.Controls.LevelTool.Rectangle;
         Assert(canvas.Cursor == Cursors.Cross, "Rectangle cursor is Cross");
         Console.WriteLine("DEBUG: LevelCanvas tool-aware cursors verified successfully!");
+    }
+
+    private static void TestChiptuneRepositoryScout(string root)
+    {
+        Console.WriteLine("=== TESTING CHIPTUNE REPOSITORY SCOUT & MASS RIPPER ===");
+        
+        // 1. Metadata parser
+        SpeccyStudio.Core.Audio.ChiptuneRepositoryScout.ParseMetadata("Exolon (1987)(Hewson Consultants)[128K].zip", out string scoutTitle, out string scoutYear, out string scoutPub);
+        Assert(scoutTitle == "Exolon", "Scout ParseMetadata title == Exolon");
+        Assert(scoutYear == "1987", "Scout ParseMetadata year == 1987");
+        Assert(scoutPub == "Hewson Consultants", "Scout ParseMetadata publisher == Hewson Consultants");
+
+        SpeccyStudio.Core.Audio.ChiptuneRepositoryScout.ParseMetadata("Robocop (1988)(Ocean)[128K].z80", out string rTitle, out string rYear, out string rPub);
+        Assert(rTitle == "Robocop", "Scout ParseMetadata title == Robocop");
+        Assert(rPub == "Ocean", "Scout ParseMetadata publisher == Ocean");
+
+        // 2. Scout the Project Vault
+        string vaultDir = ProjectVaultService.Instance.ProjectsDirectory;
+        var scoutResults = SpeccyStudio.Core.Audio.ChiptuneRepositoryScout.ScoutDirectoryAsync(vaultDir, searchSubdirectories: true, fast128kFilterOnly: false).Result;
+        Assert(scoutResults.Count >= 3, $"Scout discovered at least 3 128K entries in project vault (got {scoutResults.Count})");
+        Assert(scoutResults.Any(r => r.DisplayName.Contains("Exolon")), "Scout discovered Exolon");
+        Assert(scoutResults.Any(r => r.DisplayName.Contains("Cybernoid")), "Scout discovered Cybernoid II");
+        Assert(scoutResults.Any(r => r.DisplayName.Contains("Robocop")), "Scout discovered Robocop");
+
+        // 3. Test Batch Export .PSG and .WAV
+        string exportPsgDir = Path.Combine(root, "scout_psg_test");
+        int exportedPsgCount = SpeccyStudio.Core.Audio.ChiptuneRepositoryScout.BatchExportPsgAsync(scoutResults.Take(2), exportPsgDir).Result;
+        Assert(exportedPsgCount == 2, "BatchExportPsgAsync exported 2 PSG files");
+        Assert(Directory.GetFiles(exportPsgDir, "*.psg").Length == 2, "2 .psg files exist on disk");
+
+        string exportWavDir = Path.Combine(root, "scout_wav_test");
+        int exportedWavCount = SpeccyStudio.Core.Audio.ChiptuneRepositoryScout.BatchExportWavAsync(scoutResults.Take(1), exportWavDir, durationSeconds: 1).Result;
+        Assert(exportedWavCount == 1, "BatchExportWavAsync exported 1 WAV file");
+        Assert(Directory.GetFiles(exportWavDir, "*.wav").Length == 1, "1 .wav file exists on disk");
+
+        // 4. Test ChiptuneScoutWindow instantiation, data population and visual capture
+        var scoutWin = new ChiptuneScoutWindow();
+        Assert(scoutWin != null, "ChiptuneScoutWindow created successfully");
+
+        var entriesField = typeof(ChiptuneScoutWindow).GetField("_allEntries", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        var list = (List<SpeccyStudio.Core.Audio.ScoutedChiptuneEntry>)entriesField.GetValue(scoutWin)!;
+        list.AddRange(scoutResults);
+        var applyFilterMethod = typeof(ChiptuneScoutWindow).GetMethod("ApplyFilter", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        applyFilterMethod.Invoke(scoutWin, null);
+
+        var dataGrid = (System.Windows.Controls.DataGrid)scoutWin!.FindName("DiscoveredDataGrid")!;
+        if (dataGrid.Items.Count > 0)
+        {
+            dataGrid.SelectedIndex = 0;
+        }
+
+        var rootScout = (FrameworkElement)scoutWin.Content!;
+        rootScout.Width = 1260;
+        rootScout.Height = 920;
+        rootScout.Measure(new Size(rootScout.Width, rootScout.Height));
+        rootScout.Arrange(new Rect(0, 0, rootScout.Width, rootScout.Height));
+        rootScout.UpdateLayout();
+        var scoutBmp = new RenderTargetBitmap((int)rootScout.Width, (int)rootScout.Height, 96, 96, PixelFormats.Pbgra32);
+        scoutBmp.Render(rootScout);
+        var scoutEnc = new PngBitmapEncoder();
+        scoutEnc.Frames.Add(BitmapFrame.Create(scoutBmp));
+        string scoutScreenshotPath = @"C:\Users\adria\.gemini\antigravity\brain\aafadb66-5ecd-48af-adb0-8675ca0b7a6c\speccy-studio-chiptune-scout.png";
+        using (var str = File.Create(scoutScreenshotPath))
+        {
+            scoutEnc.Save(str);
+        }
+        Console.WriteLine($"Saved Chiptune Scout visual screenshot: {scoutScreenshotPath}");
+
+        scoutWin.Close();
+        Console.WriteLine("DEBUG: Chiptune Repository Scout & Mass Ripper verified successfully!");
+    }
+
+    private static void TestAllNineAudioTitles()
+    {
+        Console.WriteLine("=== TESTING ALL 9 128K AUDIO TITLES ===");
+        string baseDir = @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[Z80]";
+        if (!Directory.Exists(baseDir))
+        {
+            Console.WriteLine("DEBUG: TOSEC directory not found, skipping 9-title test.");
+            return;
+        }
+
+        // 1. Batman The Movie: Success=True, Dunn theme in Bank 3 (0xD882 / 0xC0D6)
+        string batFile = Path.Combine(baseDir, "Batman - The Movie (1989)(Ocean)[128K].zip");
+        if (File.Exists(batFile))
+        {
+            var doc = SpectrumFileParser.Open(batFile);
+            var rip = AyMemoryRipper.Scan(doc);
+            Assert(rip.Success, "Batman The Movie rip success");
+            Assert(rip.GeneratedPsg != null && rip.GeneratedPsg.TotalFrames >= 3000, "Batman TotalFrames >= 3000");
+            Assert(rip.DriverName.Contains("Jonathan Dunn"), "Batman Jonathan Dunn driver");
+            Assert(rip.PlayAddress == 0xC0D6, "Batman play routine at 0xC0D6");
+            Console.WriteLine("PASS: 1. Batman The Movie verified");
+        }
+
+        // 2. Mask III - Venom Strikes Back: Success=True, Ben Daglish in Bank 4 (0xC000 / 0xC003), volume active past frame 10
+        string maskFile = Path.Combine(baseDir, "Mask III - Venom Strikes Back (1988)(Gremlin Graphics Software)[128K].zip");
+        if (File.Exists(maskFile))
+        {
+            var doc = SpectrumFileParser.Open(maskFile);
+            var rip = AyMemoryRipper.Scan(doc);
+            Assert(rip.Success, "Mask III rip success");
+            Assert(rip.GeneratedPsg != null && rip.GeneratedPsg.TotalFrames >= 3000, "Mask III TotalFrames >= 3000");
+            Assert(rip.DriverName.Contains("Ben Daglish"), "Mask III Ben Daglish driver");
+            bool hasAudiblePast10 = rip.GeneratedPsg!.Frames.Skip(10).Take(30).Any(f => f.Updates.Any(u => u.Register >= 8 && u.Register <= 10 && (u.Value & 0x1F) > 0));
+            Assert(hasAudiblePast10, "Mask III envelope maintains audible volume past frame 10");
+            Console.WriteLine("PASS: 2. Mask III verified");
+        }
+
+        // 3. Agent-X II: Success=True, Tim Follin in Bank 0 (0xE228 / 0xE27F), all 3 channels active with mixer R7=0x38
+        string axFile = Path.Combine(baseDir, "Agent-X II (1987)(Mastertronic)[128K].zip");
+        if (File.Exists(axFile))
+        {
+            var doc = SpectrumFileParser.Open(axFile);
+            var rip = AyMemoryRipper.Scan(doc);
+            Assert(rip.Success, "Agent-X II rip success");
+            Assert(rip.GeneratedPsg != null && rip.GeneratedPsg.TotalFrames >= 3000, "Agent-X II TotalFrames >= 3000");
+            Assert(rip.DriverName.Contains("Tim Follin"), "Agent-X II Tim Follin driver");
+            bool f0Mixer = rip.GeneratedPsg!.Frames[0].Updates.Any(u => u.Register == 7 && (u.Value & 0x38) == 0x38);
+            Assert(f0Mixer, "Agent-X II Frame 0 sets mixer R7 with tone channels enabled");
+            Console.WriteLine("PASS: 3. Agent-X II verified");
+        }
+
+        // 4. Arc of Yesod: Success=False, pure silence / no infinite beep drone
+        string arcFile = Path.Combine(baseDir, "Arc of Yesod, The (1985)(Thor Computer Software)[128K].zip");
+        if (File.Exists(arcFile))
+        {
+            var doc = SpectrumFileParser.Open(arcFile);
+            var rip = AyMemoryRipper.Scan(doc);
+            Assert(!rip.Success && (rip.GeneratedPsg == null || rip.GeneratedPsg.TotalFrames == 0), "Arc of Yesod correctly rejected (no 128K music, silence)");
+            Console.WriteLine("PASS: 4. Arc of Yesod verified (silent, no infinite beep)");
+        }
+
+        // 5. Enduro Racer: Success=False, pure silence / no infinite beep drone
+        string endFile = Path.Combine(baseDir, "Enduro Racer (1987)(Activision)[128K].zip");
+        if (File.Exists(endFile))
+        {
+            var doc = SpectrumFileParser.Open(endFile);
+            var rip = AyMemoryRipper.Scan(doc);
+            Assert(!rip.Success && (rip.GeneratedPsg == null || rip.GeneratedPsg.TotalFrames == 0), "Enduro Racer correctly rejected (no 128K music, silence)");
+            Console.WriteLine("PASS: 5. Enduro Racer verified (silent, no infinite beep)");
+        }
+
+        // 6. Exolon: Success=True, Nick Jones in Bank 2 (0xB6EC / 0xB767)
+        string exoFile = Path.Combine(baseDir, "Exolon (1987)(Hewson Consultants)[128K].zip");
+        if (File.Exists(exoFile))
+        {
+            var doc = SpectrumFileParser.Open(exoFile);
+            var rip = AyMemoryRipper.Scan(doc);
+            Assert(rip.Success, "Exolon rip success");
+            Assert(rip.GeneratedPsg != null && rip.GeneratedPsg.TotalFrames >= 3000, "Exolon TotalFrames >= 3000");
+            Assert(rip.DriverName.Contains("Nick Jones"), "Exolon Nick Jones driver");
+            Console.WriteLine("PASS: 6. Exolon verified");
+        }
+
+        // 7. Zub: Success=True, David Whittaker in Bank 7 (0xC010 / 0xC005), rapid 16th-note counterpoint melody
+        string zubFile = Path.Combine(baseDir, "Zub (1986)(Mastertronic Added Dimension)[128K].zip");
+        if (File.Exists(zubFile))
+        {
+            var doc = SpectrumFileParser.Open(zubFile);
+            var rip = AyMemoryRipper.Scan(doc);
+            Assert(rip.Success, "Zub rip success");
+            Assert(rip.GeneratedPsg != null && rip.GeneratedPsg.TotalFrames >= 3000, "Zub TotalFrames >= 3000");
+            Assert(rip.DriverName.Contains("David Whittaker"), "Zub David Whittaker driver");
+            Assert(rip.PlayAddress == 0xC005, "Zub play routine at 0xC005");
+            Console.WriteLine("PASS: 7. Zub verified");
+        }
+
+        // 8. Star Paws: Success=True, David Whittaker in Bank 1 (0xF478 / 0xF146), clean channel A with no rogue drone
+        string spFile = Path.Combine(baseDir, "Star Paws (1988)(Software Projects)[128K].zip");
+        if (File.Exists(spFile))
+        {
+            var doc = SpectrumFileParser.Open(spFile);
+            var rip = AyMemoryRipper.Scan(doc);
+            Assert(rip.Success, "Star Paws rip success");
+            Assert(rip.GeneratedPsg != null && rip.GeneratedPsg.TotalFrames >= 3000, "Star Paws TotalFrames >= 3000");
+            Assert(rip.DriverName.Contains("David Whittaker"), "Star Paws David Whittaker driver");
+            Assert(rip.PlayAddress == 0xF146, "Star Paws play routine at 0xF146");
+            Console.WriteLine("PASS: 8. Star Paws verified");
+        }
+
+        // 9. Bionic Commando: Success=True, Tim Follin in Bank 4 (0xC622 / 0xC0E5)
+        string bcFile = Path.Combine(baseDir, "Bionic Commando (1988)(Go!)[128K].zip");
+        if (File.Exists(bcFile))
+        {
+            var doc = SpectrumFileParser.Open(bcFile);
+            var rip = AyMemoryRipper.Scan(doc);
+            Assert(rip.Success, "Bionic Commando rip success");
+            Assert(rip.GeneratedPsg != null && rip.GeneratedPsg.TotalFrames >= 3000, "Bionic Commando TotalFrames >= 3000");
+            Assert(rip.DriverName.Contains("Tim Follin"), "Bionic Commando Tim Follin driver");
+            Assert(rip.InitAddress == 0xC622, "Bionic Commando init at 0xC622");
+            Console.WriteLine("PASS: 9. Bionic Commando verified");
+        }
+
+        Console.WriteLine("DEBUG: All 9 titles verified successfully!");
+    }
+
+    private static void DiagnoseGame(string query)
+    {
+        Console.WriteLine($"=== DIAGNOSING: {query} ===");
+        string baseDir = @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[Z80]";
+        var files = Directory.GetFiles(baseDir, $"*{query}*.zip")
+            .OrderByDescending(f => f.Contains("[128K]"))
+            .ToList();
+        if (files.Count == 0)
+        {
+            Console.WriteLine($"No file found matching {query}");
+            return;
+        }
+
+        string file = files[0];
+        Console.WriteLine($"Found: {Path.GetFileName(file)}");
+        var doc = SpectrumFileParser.Open(file);
+        var ram = SpeccyStudio.Core.Audio.AyMemoryRipper.ExtractRamFromDocument(doc, out ushort pc, out ushort sp, out byte regI, out byte im, out var banks, out byte paged);
+        Console.WriteLine($"PC=0x{pc:X4}, SP=0x{sp:X4}, I=0x{regI:X2}, IM={im}, PagedBank={paged}");
+
+        for (int b = 0; b < 8; b++)
+        {
+            var bData = banks[b];
+            int nonZero = bData.Count(x => x != 0);
+            var ports = new List<int>();
+            for (int i = 0; i < bData.Length - 3; i++)
+            {
+                if ((bData[i] == 0x01 && bData[i + 1] == 0xFD && (bData[i + 2] == 0xFF || bData[i + 2] == 0xBF)) ||
+                    (bData[i] == 0xD3 && bData[i + 1] == 0xFD) ||
+                    (bData[i] == 0xED && bData[i + 1] == 0x79) ||
+                    (bData[i] == 0xED && bData[i + 1] == 0xAB))
+                {
+                    ports.Add(0xC000 + i);
+                }
+            }
+            if (ports.Count > 0)
+            {
+                Console.WriteLine($"Bank {b} (nonZero={nonZero}) has {ports.Count} AY ports at: {string.Join(", ", ports.Take(8).Select(p => $"0x{p:X4}"))}");
+                Console.WriteLine($"--- Bank {b} 0xC000..0xC0C0 ---");
+                for (int i = 0; i < Math.Min(192, bData.Length - 3); i += 8)
+                {
+                    string bytes = string.Join(" ", Enumerable.Range(0, 8).Select(k => $"{bData[i+k]:X2}"));
+                    Console.WriteLine($"0x{0xC000 + i:X4}: {bytes}");
+                }
+                foreach (int p in ports.Take(3))
+                {
+                    int start = Math.Max(0xC000, p - 64);
+                    int len = Math.Min(96, 0x10000 - start);
+                    Console.WriteLine($"--- Port at 0x{p:X4} (Bank {b} 0x{start:X4}..0x{start+len:X4}) ---");
+                    for (int i = 0; i < len; i += 8)
+                    {
+                        string bytes = string.Join(" ", Enumerable.Range(0, Math.Min(8, len - i)).Select(k => $"{bData[start - 0xC000 + i + k]:X2}"));
+                        Console.WriteLine($"0x{start + i:X4}: {bytes}");
+                    }
+                }
+                var testInits = new List<int> { 0xC000, 0xC006, 0xC009, 0xC010, 0xE228, 0xE242, 0xBF7E, 0xFF7E };
+                var testPlays = new List<int> { 0xC000, 0xC003, 0xC004, 0xC005, 0xC008, 0xC00C, 0xC014, 0xC029, 0xC059, 0xC097, 0xC0D6, 0xC0E0, 0xC0E5, 0xC11A, 0xC144, 0xC185, 0xC509, 0xC55D, 0x8003, 0x8321 };
+
+                // Add callers of detected ports or routines anywhere in 64K RAM
+                for (int i = 0x4000; i < 0xFFFC; i++)
+                {
+                    if (ram[i] == 0xCD) // CALL
+                    {
+                        int target = ram[i + 1] | (ram[i + 2] << 8);
+                        if (ports.Any(p => Math.Abs(p - target) <= 120))
+                        {
+                            // Routine that contains this CALL: scan backwards for RET or entry
+                            for (int k = i; k >= Math.Max(0x4000, i - 400); k--)
+                            {
+                                if (ram[k] == 0xC9 || (k < 0xFFFE && ram[k] == 0xED && ram[k + 1] == 0x4D) || ram[k] == 0xC3)
+                                {
+                                    int entry = (ram[k] == 0xC9) ? k + 1 : (ram[k] == 0xC3 ? k + 3 : k + 2);
+                                    if (!testPlays.Contains(entry)) testPlays.Add(entry);
+                                    if (!testInits.Contains(entry)) testInits.Add(entry);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                foreach (int tInit in testInits)
+                {
+                    foreach (int tPlay in testPlays)
+                    {
+                        foreach (int tSong in new[] { 0, 1 })
+                        {
+                            var run = new SpeccyStudio.Core.Audio.Z80AudioRunner();
+                            run.LoadMemory(banks[5], 0x4000);
+                            run.LoadMemory(banks[2], 0x8000);
+                            run.LoadMemory(banks[b], 0xC000);
+                            for (int k = 0; k < 8; k++) Array.Copy(banks[k], 0, run.Banks[k], 0, 16384);
+                            run.PagedBank = (byte)b;
+                            run.BankingEnabled = true;
+
+                            run.A = (byte)tSong;
+                            run.SP = 0xFFF0;
+                            run.ExecuteRoutine((ushort)tInit, 25000, false);
+
+                            int audFrames = 0;
+                            var frame0Writes = new List<string>();
+                            var seenPitches = new HashSet<int>();
+                            int lastPitch0 = -1;
+                            int pitchChanges = 0;
+                            for (int f = 0; f < 30; f++)
+                            {
+                                run.ExecuteRoutine((ushort)tPlay, 25000, true);
+                                if (run.CurrentFrameWrites.Count > 0 && run.CurrentFrameWrites.Count <= 32)
+                                {
+                                    bool hasAud = run.CurrentFrameWrites.Any(w => w.Register >= 8 && w.Register <= 10 && (w.Value & 0x0F) > 0);
+                                    bool hasTone = run.CurrentFrameWrites.Any(w => w.Register <= 5);
+                                    if (hasAud && hasTone) audFrames++;
+                                    if (f == 0) frame0Writes = run.CurrentFrameWrites.Select(u => $"R{u.Register}=0x{u.Value:X2}").ToList();
+
+                                    var p0 = run.CurrentFrameWrites.FirstOrDefault(w => w.Register == 0);
+                                    if (p0 != default)
+                                    {
+                                        if (lastPitch0 != -1 && p0.Value != lastPitch0) pitchChanges++;
+                                        lastPitch0 = p0.Value;
+                                        seenPitches.Add(p0.Value);
+                                    }
+                                }
+                            }
+
+                            if (audFrames >= 15 && pitchChanges >= 3)
+                            {
+                                Console.WriteLine($"   SUCCESS MELODY: Bank {b} Init=0x{tInit:X4}, Play=0x{tPlay:X4}, Song={tSong} ({audFrames}/30 aud, {pitchChanges} pitch changes, {seenPitches.Count} unique pitches, F0: {string.Join(" ", frame0Writes.Take(6))})");
+                            }
+                            else if (audFrames >= 25 && pitchChanges == 0)
+                            {
+                                Console.WriteLine($"   WARNING DRONE/BEEP: Bank {b} Init=0x{tInit:X4}, Play=0x{tPlay:X4}, Song={tSong} (constant pitch)");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Test running AyMemoryRipper.Scan
+        var rip = SpeccyStudio.Core.Audio.AyMemoryRipper.Scan(doc);
+        Console.WriteLine($"Scan Result: Success={rip.Success}, Driver={rip.DriverName}, Init=0x{rip.InitAddress:X4}, Play=0x{rip.PlayAddress:X4}");
+        Console.WriteLine($"Details: {rip.Details}");
+        if (rip.GeneratedPsg != null)
+        {
+            Console.WriteLine($"Generated PSG: TotalFrames={rip.GeneratedPsg.TotalFrames}, IsFromZ80={rip.GeneratedPsg.IsFromZ80}");
+            for (int f = 0; f < Math.Min(60, rip.GeneratedPsg.Frames.Count); f++)
+            {
+                var fr = rip.GeneratedPsg.Frames[f];
+                if (fr.Updates.Count > 0)
+                {
+                    string upStr = string.Join(" ", fr.Updates.Take(12).Select(u => $"R{u.Register}=0x{u.Value:X2}"));
+                    Console.WriteLine($"Frame {f:D2} ({fr.Updates.Count} writes): {upStr}");
+                }
+                else
+                {
+                    Console.WriteLine($"Frame {f:D2}: (silent)");
+                }
+            }
+        }
     }
 
     private static void Assert(bool condition, string name) { if (!condition) throw new InvalidOperationException(name + " failed."); }

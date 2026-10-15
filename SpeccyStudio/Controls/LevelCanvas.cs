@@ -112,7 +112,10 @@ public sealed class LevelCanvas : FrameworkElement
     public event Action<UniversalSpriteEntity>? UniversalEntityDeleted;
     public event Action<UniversalSpriteEntity, int, int>? UniversalEntityMoved;
     public event Action<SpriteBankItem>? UniversalSpritePicked;
+    public event Action<int, int>? UniversalCellErased;
     public event Action<bool>? PastePreviewToggled;
+
+    private (int Col, int Row) _lastErasedUniversalCell = (-1, -1);
 
     public void SetRoom(CybernoidRoom room, CybernoidTileAtlas atlas, byte[] displayedTiles, HashSet<int>? proposalChanges = null)
     {
@@ -592,6 +595,61 @@ public sealed class LevelCanvas : FrameworkElement
         dc.DrawRectangle(null, outerBorderPen, new Rect(ox, oy, rw, rh));
     }
 
+    private ExolonRoomRender? _exolonRender;
+    private IReadOnlyList<ExolonEntity>? _exolonRenderSource;
+    private long _exolonRenderKey;
+
+    /// <summary>
+    /// Renders the room with the game's own tile-script engine (cached until an entity moves, changes or is added/removed).
+    /// </summary>
+    private ExolonRoomRender? GetExolonRender()
+    {
+        IReadOnlyList<ExolonEntity>? ents = ProposalExolonEntities ?? CurrentExolonRoom?.Entities;
+        if (ents == null) return null;
+
+        long key = 1469598103934665603L;
+        foreach (var ent in ents)
+        {
+            key = (key ^ ((ent.Row << 16) | (ent.Col << 8) | ent.TypeId)) * 1099511628211L;
+        }
+        key ^= ents.Count;
+
+        if (_exolonRender == null || !ReferenceEquals(_exolonRenderSource, ents) || _exolonRenderKey != key)
+        {
+            _exolonRender = ExolonEngine.RenderRoom(ents);
+            _exolonRenderSource = ents;
+            _exolonRenderKey = key;
+        }
+        return _exolonRender;
+    }
+
+    /// <summary>Character-cell rectangle an entity occupies on screen (the cells its tile-script actually draws).</summary>
+    private Int32Rect? GetExolonEntityCells(IReadOnlyList<ExolonEntity> ents, int index)
+    {
+        var render = GetExolonRender();
+        if (render != null && ReferenceEquals(_exolonRenderSource, ents) && index < render.EntityCells.Length && render.EntityCells[index] is { } cells)
+            return cells;
+
+        // Entities that draw nothing (collision-only types) or custom stamps: use the footprint at the anchor, clipped to the screen.
+        var ent = ents[index];
+        if (ent.Col >= ExolonEngine.ScreenCols || ent.Row >= ExolonEngine.PlayfieldRows) return null;
+        var (dx, dy, w, h) = ExolonEntityCatalog.GetFootprint(ent.TypeId);
+        int c0 = Math.Max(0, ent.Col + dx), r0 = Math.Max(0, ent.Row + dy);
+        int c1 = Math.Min(ExolonEngine.ScreenCols, ent.Col + dx + w), r1 = Math.Min(ExolonEngine.PlayfieldRows, ent.Row + dy + h);
+        return c1 > c0 && r1 > r0 ? new Int32Rect(c0, r0, c1 - c0, r1 - r0) : null;
+    }
+
+    private ExolonEntity? HitTestExolonEntity(IReadOnlyList<ExolonEntity>? ents, int col, int row)
+    {
+        if (ents == null) return null;
+        for (int i = ents.Count - 1; i >= 0; i--)
+        {
+            if (GetExolonEntityCells(ents, i) is { } r && col >= r.X && col < r.X + r.Width && row >= r.Y && row < r.Y + r.Height)
+                return ents[i];
+        }
+        return null;
+    }
+
     private void RenderExolonRoom(DrawingContext dc)
     {
         var (ox, oy, rw, rh, ts) = GetCanvasMetrics();
@@ -601,36 +659,23 @@ public sealed class LevelCanvas : FrameworkElement
         // 1. Draw screen background (Authentic ZX Spectrum Black Playfield)
         dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(0, 0, 0)), null, new Rect(ox, oy, rw, rh));
 
-        // 2. Draw Exolon dynamic entities (or fallback to static screen image if room has no entities)
+        // 2. Draw the room as the game's engine draws it (tile-scripts, wrapping columns, full-width floor strips)
         var entitiesToRender = ProposalExolonEntities ?? CurrentExolonRoom?.Entities;
-        if (ShowArt)
+        if (ShowArt && entitiesToRender != null)
         {
-            if (entitiesToRender != null && entitiesToRender.Count > 0)
+            var render = GetExolonRender();
+            if (render != null)
             {
-                foreach (var entity in entitiesToRender)
-                {
-                    var sprite = ExolonSpriteAtlas.GetSprite(entity.TypeId);
-                    if (sprite != null)
-                    {
-                        double ex = ox + (entity.Col * 8.0 * scale);
-                        double ey = oy + (entity.Row * 8.0 * scale);
-                        double ew = sprite.PixelWidth * scale;
-                        double eh = sprite.PixelHeight * scale;
-                        dc.DrawImage(sprite, new Rect(ex, ey, ew, eh));
-                    }
-                }
+                dc.DrawImage(render.Image, new Rect(ox, oy, rw, rh));
             }
-            else if (ExolonScreenImage != null)
+
+            // Custom cross-game stamps are not engine types: draw their bitmap at the anchor cell.
+            foreach (var entity in entitiesToRender)
             {
-                try
-                {
-                    var crop = new CroppedBitmap(ExolonScreenImage, new Int32Rect(0, 0, Math.Min(256, ExolonScreenImage.PixelWidth), Math.Min(176, ExolonScreenImage.PixelHeight)));
-                    dc.DrawImage(crop, new Rect(ox, oy, rw, rh));
-                }
-                catch
-                {
-                    dc.DrawImage(ExolonScreenImage, new Rect(ox, oy, rw, rh));
-                }
+                if (ExolonEngine.IsEngineType(entity.TypeId)) continue;
+                var sprite = ExolonSpriteAtlas.GetSprite(entity.TypeId);
+                if (sprite == null) continue;
+                dc.DrawImage(sprite, new Rect(ox + (entity.Col * 8.0 * scale), oy + (entity.Row * 8.0 * scale), sprite.PixelWidth * scale, sprite.PixelHeight * scale));
             }
         }
 
@@ -655,16 +700,17 @@ public sealed class LevelCanvas : FrameworkElement
         // 4. Draw Entity Markers (Graphical Badges & Clean Corner Brackets)
         if (entitiesToRender != null)
         {
-            foreach (var entity in entitiesToRender)
+            for (int entityIndex = 0; entityIndex < entitiesToRender.Count; entityIndex++)
             {
+                var entity = entitiesToRender[entityIndex];
                 bool isSelected = SelectedExolonEntity == entity;
                 if (!ShowMarkers && !isSelected && ProposalExolonEntities == null) continue;
 
-                var (wCells, hCells) = ExolonEntityCatalog.GetDimensions(entity.TypeId);
-                double ex = ox + (entity.Col * 8.0 * scale);
-                double ey = oy + (entity.Row * 8.0 * scale);
-                double ew = wCells * 8.0 * scale;
-                double eh = hCells * 8.0 * scale;
+                if (GetExolonEntityCells(entitiesToRender, entityIndex) is not { } cells) continue;
+                double ex = ox + (cells.X * 8.0 * scale);
+                double ey = oy + (cells.Y * 8.0 * scale);
+                double ew = cells.Width * 8.0 * scale;
+                double eh = cells.Height * 8.0 * scale;
 
                 Color color = entity.Category switch
                 {
@@ -747,8 +793,10 @@ public sealed class LevelCanvas : FrameworkElement
         // Ghost Stamp Preview on Mouse Hover (Pencil tool)
         if (ShowPastePreview && ActiveTool == LevelTool.Pencil && ExolonHoverRow >= 0 && ExolonHoverCol >= 0 && !_isDraggingExolonEntity)
         {
-            double px = ox + (ExolonHoverCol * 8.0 * scale);
-            double py = oy + (ExolonHoverRow * 8.0 * scale);
+            // Engine types can extend left of / above their anchor cell, so offset the ghost by the real footprint.
+            var (footDx, footDy, _, _) = ExolonEntityCatalog.GetFootprint(ActiveExolonTypeId);
+            double px = ox + ((ExolonHoverCol + footDx) * 8.0 * scale);
+            double py = oy + ((ExolonHoverRow + footDy) * 8.0 * scale);
 
             var sprite = ExolonSpriteAtlas.GetSprite(ActiveExolonTypeId);
             double pw = (sprite != null ? sprite.PixelWidth : 16.0) * scale;
@@ -756,8 +804,10 @@ public sealed class LevelCanvas : FrameworkElement
 
             if (sprite != null)
             {
+                dc.PushClip(new RectangleGeometry(new Rect(ox, oy, rw, rh)));
                 dc.PushOpacity(0.85);
                 dc.DrawImage(sprite, new Rect(px, py, pw, ph));
+                dc.Pop();
                 dc.Pop();
             }
 
@@ -841,31 +891,17 @@ public sealed class LevelCanvas : FrameworkElement
             else if (CurrentExolonRoom != null)
             {
                 dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(0, 0, 0)), null, new Rect(0, 0, pixelW, pixelH));
-                if (CurrentExolonRoom.Entities != null && CurrentExolonRoom.Entities.Count > 0)
+                if (CurrentExolonRoom.Entities != null)
                 {
+                    var render = ExolonEngine.RenderRoom(CurrentExolonRoom.Entities);
+                    dc.DrawImage(render.Image, new Rect(0, 0, pixelW, pixelH));
+
                     foreach (var entity in CurrentExolonRoom.Entities)
                     {
+                        if (ExolonEngine.IsEngineType(entity.TypeId)) continue;
                         var sprite = ExolonSpriteAtlas.GetSprite(entity.TypeId);
                         if (sprite != null)
-                        {
-                            double ex = entity.Col * 8.0 * scale;
-                            double ey = entity.Row * 8.0 * scale;
-                            double ew = sprite.PixelWidth * scale;
-                            double eh = sprite.PixelHeight * scale;
-                            dc.DrawImage(sprite, new Rect(ex, ey, ew, eh));
-                        }
-                    }
-                }
-                else if (ExolonScreenImage != null)
-                {
-                    try
-                    {
-                        var crop = new CroppedBitmap(ExolonScreenImage, new Int32Rect(0, 0, Math.Min(256, ExolonScreenImage.PixelWidth), Math.Min(176, ExolonScreenImage.PixelHeight)));
-                        dc.DrawImage(crop, new Rect(0, 0, pixelW, pixelH));
-                    }
-                    catch
-                    {
-                        dc.DrawImage(ExolonScreenImage, new Rect(0, 0, pixelW, pixelH));
+                            dc.DrawImage(sprite, new Rect(entity.Col * 8.0 * scale, entity.Row * 8.0 * scale, sprite.PixelWidth * scale, sprite.PixelHeight * scale));
                     }
                 }
             }
@@ -991,12 +1027,22 @@ public sealed class LevelCanvas : FrameworkElement
                 if (ActiveTool == LevelTool.Eraser || e.RightButton == MouseButtonState.Pressed)
                 {
                     _isErasingUniversalEntities = true;
+                    _lastErasedUniversalCell = (col, row);
                     CaptureMouse();
                     if (entity != null)
                     {
                         UniversalEntityDeleted?.Invoke(entity);
                         SelectedUniversalEntity = null;
                         InvalidateVisual();
+                    }
+                    else if (CurrentUniversalRoom != null)
+                    {
+                        CurrentUniversalRoom.PushUndo();
+                        if (CurrentUniversalRoom.EraseCell(col, row))
+                        {
+                            UniversalCellErased?.Invoke(col, row);
+                            InvalidateVisual();
+                        }
                     }
                     return;
                 }
@@ -1050,23 +1096,10 @@ public sealed class LevelCanvas : FrameworkElement
             if (pt.X >= ox && pt.X <= ox + rw && pt.Y >= oy && pt.Y <= oy + rh)
             {
                 int col = Math.Clamp((int)((pt.X - ox) / (8.0 * scale)), 0, 31);
-                int row = Math.Clamp((int)((pt.Y - oy) / (8.0 * scale)), 0, 19);
+                int row = Math.Clamp((int)((pt.Y - oy) / (8.0 * scale)), 0, ExolonEngine.PlayfieldRows - 1);
 
-                // Hit test entity: check if (row, col) matches entity bounds using real dimensions
-                ExolonEntity? entity = null;
-                if (CurrentExolonRoom.Entities != null)
-                {
-                    for (int i = CurrentExolonRoom.Entities.Count - 1; i >= 0; i--)
-                    {
-                        var ent = CurrentExolonRoom.Entities[i];
-                        var (w, h) = ExolonEntityCatalog.GetDimensions(ent.TypeId);
-                        if (col >= ent.Col && col < ent.Col + w && row >= ent.Row && row < ent.Row + h)
-                        {
-                            entity = ent;
-                            break;
-                        }
-                    }
-                }
+                // Hit test entity against the cells its tile-script actually draws
+                ExolonEntity? entity = HitTestExolonEntity(CurrentExolonRoom.Entities, col, row);
 
                 // Eraser tool OR Right Click -> Delete entity & start drag-to-erase
                 if (ActiveTool == LevelTool.Eraser || e.RightButton == MouseButtonState.Pressed)
@@ -1199,16 +1232,16 @@ public sealed class LevelCanvas : FrameworkElement
                 int col = Math.Clamp((int)((pt.X - ox) / (8.0 * scale)), 0, 31);
                 int row = Math.Clamp((int)((pt.Y - oy) / (8.0 * scale)), 0, 23);
 
-                // Continuous sweep / drag-to-erase across entities
+                // Continuous sweep / drag-to-erase across entities or background map
                 bool isErasing = (ActiveTool == LevelTool.Eraser && e.LeftButton == MouseButtonState.Pressed)
                                  || e.RightButton == MouseButtonState.Pressed
                                  || _isErasingUniversalEntities;
                 if (isErasing)
                 {
                     var entitiesList = CurrentUniversalRoom.Entities;
+                    UniversalSpriteEntity? hit = null;
                     if (entitiesList != null)
                     {
-                        UniversalSpriteEntity? hit = null;
                         for (int i = entitiesList.Count - 1; i >= 0; i--)
                         {
                             var ent = entitiesList[i];
@@ -1218,10 +1251,20 @@ public sealed class LevelCanvas : FrameworkElement
                                 break;
                             }
                         }
-                        if (hit != null)
+                    }
+
+                    if (hit != null)
+                    {
+                        UniversalEntityDeleted?.Invoke(hit);
+                        if (SelectedUniversalEntity == hit) SelectedUniversalEntity = null;
+                        InvalidateVisual();
+                    }
+                    else if ((col, row) != _lastErasedUniversalCell)
+                    {
+                        _lastErasedUniversalCell = (col, row);
+                        if (CurrentUniversalRoom.EraseCell(col, row))
                         {
-                            UniversalEntityDeleted?.Invoke(hit);
-                            if (SelectedUniversalEntity == hit) SelectedUniversalEntity = null;
+                            UniversalCellErased?.Invoke(col, row);
                             InvalidateVisual();
                         }
                     }
@@ -1262,7 +1305,7 @@ public sealed class LevelCanvas : FrameworkElement
             if (pt.X >= ox && pt.X <= ox + rw && pt.Y >= oy && pt.Y <= oy + rh)
             {
                 int col = Math.Clamp((int)((pt.X - ox) / (8.0 * scale)), 0, 31);
-                int row = Math.Clamp((int)((pt.Y - oy) / (8.0 * scale)), 0, 19);
+                int row = Math.Clamp((int)((pt.Y - oy) / (8.0 * scale)), 0, ExolonEngine.PlayfieldRows - 1);
 
                 // Continuous sweep / drag-to-erase across entities
                 bool isErasing = (ActiveTool == LevelTool.Eraser && e.LeftButton == MouseButtonState.Pressed)
@@ -1270,26 +1313,12 @@ public sealed class LevelCanvas : FrameworkElement
                                  || _isErasingExolonEntities;
                 if (isErasing)
                 {
-                    var entitiesList = ProposalExolonEntities ?? CurrentExolonRoom.Entities;
-                    if (entitiesList != null)
+                    var hit = HitTestExolonEntity(ProposalExolonEntities ?? CurrentExolonRoom.Entities, col, row);
+                    if (hit != null)
                     {
-                        ExolonEntity? hit = null;
-                        for (int i = entitiesList.Count - 1; i >= 0; i--)
-                        {
-                            var ent = entitiesList[i];
-                            var (w, h) = ExolonEntityCatalog.GetDimensions(ent.TypeId);
-                            if (col >= ent.Col && col < ent.Col + w && row >= ent.Row && row < ent.Row + h)
-                            {
-                                hit = ent;
-                                break;
-                            }
-                        }
-                        if (hit != null)
-                        {
-                            ExolonEntityDeleted?.Invoke(hit);
-                            if (SelectedExolonEntity == hit) SelectedExolonEntity = null;
-                            InvalidateVisual();
-                        }
+                        ExolonEntityDeleted?.Invoke(hit);
+                        if (SelectedExolonEntity == hit) SelectedExolonEntity = null;
+                        InvalidateVisual();
                     }
                 }
 
@@ -1358,6 +1387,7 @@ public sealed class LevelCanvas : FrameworkElement
 
         if (CurrentUniversalRoom != null)
         {
+            _lastErasedUniversalCell = (-1, -1);
             if (_isErasingUniversalEntities)
             {
                 _isErasingUniversalEntities = false;

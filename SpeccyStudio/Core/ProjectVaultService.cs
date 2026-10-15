@@ -49,31 +49,42 @@ public sealed class ProjectVaultService
     {
         try
         {
-            // Preset 1: Cybernoid II (1988)
+            // Preset 1: Cybernoid II (1988) - TAP for Level Lab + Z80 for 128K Audio
             string cybDest = Path.Combine(_projectsDir, "Cybernoid II (1988).tap");
             if (!File.Exists(cybDest))
             {
                 string[] cybSources =
                 [
-                    @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[TAP]\Cybernoid II - The Revenge (1988)(Hewson Consultants)[128K].zip",
-                    @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[TAP]\Cybernoid II - The Revenge (1988)(Hewson Consultants).zip",
                     Path.Combine(AppContext.BaseDirectory, "level-lab", "cybernoid2", "cybernoid2-original-copy.tap"),
                     Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "level-lab", "cybernoid2", "cybernoid2-original-copy.tap"),
                     @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Speccy Studio SOURCE\level-lab\cybernoid2\cybernoid2-original-copy.tap",
+                    @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[TAP]\Cybernoid II - The Revenge (1988)(Hewson Consultants)[128K].zip",
                     @"C:\Users\adria\Desktop\cybernoid2.tap"
                 ];
                 CopyFirstFound(cybSources, cybDest);
             }
 
+            string cyb128Dest = Path.Combine(_projectsDir, "Cybernoid II (1988) [128K].zip");
+            string[] cyb128Sources =
+            [
+                @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[Z80]\Cybernoid II - The Revenge (1988)(Hewson Consultants)[128K].zip"
+            ];
+            if (!File.Exists(cyb128Dest))
+            {
+                CopyFirstFound(cyb128Sources, cyb128Dest);
+            }
+
             // Preset 2: Exolon (1987) [128K]
             string exoDest = Path.Combine(_projectsDir, "Exolon (1987) [128K].zip");
-            if (!File.Exists(exoDest))
+            string[] exoSources =
+            [
+                @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[Z80]\Exolon (1987)(Hewson Consultants)[128K].zip",
+                @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[TAP]\Exolon (1987)(Hewson Consultants)[48-128K].zip",
+                Path.Combine(AppContext.BaseDirectory, "Assets", "Exolon (1987)(Hewson Consultants)[48-128K].zip")
+            ];
+            bool refreshExo = !File.Exists(exoDest) || (new FileInfo(exoDest).Length < 40000);
+            if (refreshExo)
             {
-                string[] exoSources =
-                [
-                    @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[TAP]\Exolon (1987)(Hewson Consultants)[48-128K].zip",
-                    Path.Combine(AppContext.BaseDirectory, "Assets", "Exolon (1987)(Hewson Consultants)[48-128K].zip")
-                ];
                 CopyFirstFound(exoSources, exoDest);
             }
 
@@ -81,25 +92,79 @@ public sealed class ProjectVaultService
             string rexDest = Path.Combine(_projectsDir, "Rex (1988) [128K].zip");
             string[] rexSources =
             [
+                @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[Z80]\Rex (1988)(Martech Games)[128K].zip",
                 @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[Z80]\Rex (1988)(Martech Games)(Part 1 of 2).zip",
-                @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[TAP]\Rex (1988)(Martech Games)(Side A).zip",
-                @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[Z80]\Rex (1988)(Martech Games)[128K].zip"
+                @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[TAP]\Rex (1988)(Martech Games)(Side A).zip"
             ];
-            CopyFirstFound(rexSources, rexDest);
+            if (!File.Exists(rexDest))
+            {
+                CopyFirstFound(rexSources, rexDest);
+            }
 
-            // Preset 4: Myth (1989) [128K]
+            // Preset 3b: Rex (1988) TAPs for Rex Level Lab (Part 1 = 35 rooms, Part 2 = 26 rooms)
+            string rexTap1Dest = Path.Combine(_projectsDir, "Rex (1988).tap");
+            if (!File.Exists(rexTap1Dest))
+            {
+                CopyFirstFound([@"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[TAP]\Rex (1988)(Martech Games)(Side A).zip"], rexTap1Dest);
+            }
+
+            string rexTap2Dest = Path.Combine(_projectsDir, "Rex (1988) [Part 2].tap");
+            if (!File.Exists(rexTap2Dest))
+            {
+                CopyFirstFound([@"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[TAP]\Rex (1988)(Martech Games).zip"], rexTap2Dest);
+            }
+
+            // Preset 4: Myth (1989) [128K] (kept for Audio Studio AY music extraction)
             string mythDest = Path.Combine(_projectsDir, "Myth (1989) [128K].zip");
             string[] mythSources =
             [
-                @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[TAP]\Myth - History in the Making (1989)(System 3 Software).zip",
-                @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[Z80]\Myth - History in the Making (1989)(System 3 Software).zip"
+                @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[Z80]\Myth - History in the Making (1989)(System 3 Software).zip",
+                @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[TAP]\Myth - History in the Making (1989)(System 3 Software).zip"
             ];
-            CopyFirstFound(mythSources, mythDest);
+            bool refreshMyth = !File.Exists(mythDest) || (new FileInfo(mythDest).Length > 50000);
+            if (refreshMyth)
+            {
+                CopyFirstFound(mythSources, mythDest);
+            }
+
+            // Preset 4b: Myth (1989) TAP for Myth Level Lab (4 levels, 17 areas)
+            string mythTapDest = Path.Combine(_projectsDir, "Myth (1989).tap");
+            if (!File.Exists(mythTapDest))
+            {
+                CopyFirstFound([@"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[TAP]\Myth - History in the Making (1989)(System 3 Software).zip"], mythTapDest);
+            }
         }
         catch (Exception ex)
         {
             Console.Error.WriteLine("Error initializing project presets: " + ex.Message);
         }
+    }
+
+    public string? FindDefaultRexTapPath(int part = 1)
+    {
+        string[] candidates = part == 2
+            ? [
+                Path.Combine(_projectsDir, "Rex (1988) [Part 2].tap"),
+                Path.Combine(_projectsDir, "Rex (1988) [Part 2 TAP].zip"),
+                @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[TAP]\Rex (1988)(Martech Games).zip"
+            ]
+            : [
+                Path.Combine(_projectsDir, "Rex (1988).tap"),
+                Path.Combine(_projectsDir, "Rex (1988) [Part 1 TAP].zip"),
+                @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[TAP]\Rex (1988)(Martech Games)(Side A).zip"
+            ];
+        return candidates.FirstOrDefault(File.Exists);
+    }
+
+    public string? FindDefaultMythTapPath()
+    {
+        string[] candidates =
+        [
+            Path.Combine(_projectsDir, "Myth (1989).tap"),
+            Path.Combine(_projectsDir, "Myth (1989) [TAP].zip"),
+            @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[TAP]\Myth - History in the Making (1989)(System 3 Software).zip"
+        ];
+        return candidates.FirstOrDefault(File.Exists);
     }
 
     private static void CopyFirstFound(IEnumerable<string> candidates, string destination)
@@ -136,86 +201,44 @@ public sealed class ProjectVaultService
     {
         if (!File.Exists(filePath)) return filePath;
 
-        string targetPath = filePath;
+        var available = GetAvailableProjects();
+        bool isCoreModdingGame = available.Any(p => p.FilePath.Equals(filePath, StringComparison.OrdinalIgnoreCase)) ||
+                                 Path.GetFileName(filePath).Equals("Rex (1988) [Part 2].tap", StringComparison.OrdinalIgnoreCase);
 
-        // If not already in the Projects directory, copy it into Projects/
-        if (!filePath.StartsWith(_projectsDir, StringComparison.OrdinalIgnoreCase))
+        if (isCoreModdingGame)
         {
-            string fileName = Path.GetFileName(filePath);
-            string dest = Path.Combine(_projectsDir, fileName);
-            try
-            {
-                File.Copy(filePath, dest, true);
-                targetPath = dest;
-            }
-            catch
-            {
-                targetPath = filePath;
-            }
+            var settings = LoadSettings();
+            settings.LastOpenedFilePath = filePath;
+            settings.RecentProjects.Clear();
+            SaveSettings(settings);
         }
 
-        string title = displayName ?? Path.GetFileNameWithoutExtension(targetPath);
-        string gameType = DetectGameType(title, targetPath);
-
-        var settings = LoadSettings();
-        settings.LastOpenedFilePath = targetPath;
-
-        settings.RecentProjects.RemoveAll(p => p.FilePath.Equals(targetPath, StringComparison.OrdinalIgnoreCase));
-        settings.RecentProjects.Insert(0, new StoredProjectItem(title, targetPath, gameType, DateTime.UtcNow));
-
-        // Keep top 20 recent
-        if (settings.RecentProjects.Count > 20)
-        {
-            settings.RecentProjects = settings.RecentProjects.Take(20).ToList();
-        }
-
-        SaveSettings(settings);
-        return targetPath;
+        return filePath;
     }
 
     public string? GetStartupProjectPath()
     {
+        var available = GetAvailableProjects();
         var settings = LoadSettings();
-        if (!string.IsNullOrWhiteSpace(settings.LastOpenedFilePath) && File.Exists(settings.LastOpenedFilePath))
+        if (!string.IsNullOrWhiteSpace(settings.LastOpenedFilePath) &&
+            File.Exists(settings.LastOpenedFilePath) &&
+            available.Any(p => p.FilePath.Equals(settings.LastOpenedFilePath, StringComparison.OrdinalIgnoreCase)))
         {
             return settings.LastOpenedFilePath;
         }
 
-        // Fallback to presets in priority order
-        string cyb = Path.Combine(_projectsDir, "Cybernoid II (1988).tap");
-        if (File.Exists(cyb)) return cyb;
-
-        string exo = Path.Combine(_projectsDir, "Exolon (1987) [128K].zip");
-        if (File.Exists(exo)) return exo;
-
-        string rex = Path.Combine(_projectsDir, "Rex (1988) [128K].zip");
-        if (File.Exists(rex)) return rex;
-
-        string myth = Path.Combine(_projectsDir, "Myth (1989) [128K].zip");
-        if (File.Exists(myth)) return myth;
-
-        return null;
+        return available.FirstOrDefault()?.FilePath;
     }
 
     public IReadOnlyList<StoredProjectItem> GetAvailableProjects()
     {
         var result = new List<StoredProjectItem>();
-        var settings = LoadSettings();
 
-        // 1. Core Presets
+        // Only the exact 4 modding game ROMs
         AddPresetIfExists(result, "Cybernoid II (1988)", Path.Combine(_projectsDir, "Cybernoid II (1988).tap"), "Cybernoid");
-        AddPresetIfExists(result, "Exolon (1987) [128K]", Path.Combine(_projectsDir, "Exolon (1987) [128K].zip"), "Exolon");
-        AddPresetIfExists(result, "Rex (1988) [128K]", Path.Combine(_projectsDir, "Rex (1988) [128K].zip"), "Rex");
-        AddPresetIfExists(result, "Myth (1989) [128K]", Path.Combine(_projectsDir, "Myth (1989) [128K].zip"), "Myth");
-
-        // 2. Add Recent/Vault files not already in list
-        foreach (var p in settings.RecentProjects)
-        {
-            if (File.Exists(p.FilePath) && !result.Any(r => r.FilePath.Equals(p.FilePath, StringComparison.OrdinalIgnoreCase)))
-            {
-                result.Add(p);
-            }
-        }
+        AddPresetIfExists(result, "Exolon (1987)", Path.Combine(_projectsDir, "Exolon (1987) [128K].zip"), "Exolon");
+        AddPresetIfExists(result, "Rex (1988)", Path.Combine(_projectsDir, "Rex (1988).tap"), "Rex");
+        AddPresetIfExists(result, "Myth (1989)", Path.Combine(_projectsDir, "Myth (1989).tap"), "Myth");
 
         return result;
     }

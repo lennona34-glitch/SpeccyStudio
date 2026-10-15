@@ -34,25 +34,30 @@
         </StackPanel>
 
         <!-- Main Actions & View Mode Toggle -->
-        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="24,0,8,0">
-          <Button Content="Open game…" Click="Open_Click" Style="{StaticResource PrimaryButton}"/>
-          <ComboBox x:Name="StoredGamesBox" Width="180" Margin="6,0,0,0" VerticalAlignment="Center" SelectionChanged="StoredGamesBox_SelectionChanged" ToolTip="Quickly switch between stored games &amp; projects without browsing files"/>
-          <Button x:Name="SaveButton" Content="Save" Click="Save_Click" IsEnabled="False"/>
-          <Button x:Name="SaveAsButton" Content="Save as…" Click="SaveAs_Click" IsEnabled="False"/>
-          <Button x:Name="UndoButton" Content="Undo" Click="Undo_Click" IsEnabled="False" ToolTip="Undo edit (Ctrl+Z)"/>
-          <Button x:Name="RedoButton" Content="Redo" Click="Redo_Click" IsEnabled="False" ToolTip="Redo edit (Ctrl+Y)"/>
-          <Button x:Name="PlayHeaderButton" Content="▶ Playtest (F5)" Click="Play_Click" IsEnabled="False" Style="{StaticResource PrimaryButton}" Margin="6,0,0,0" ToolTip="Quick playtest in Spectrum Emulator (F5)"/>
-          <Button x:Name="ScreenshotHeaderButton" Content="📸 Screenshot (F10)" Click="Screenshot_Click" Margin="6,0,0,0" ToolTip="Capture high-resolution screenshot to Pictures and clipboard (F10 / PrintScreen)"/>
-          
-          <Border Width="1" Height="24" Background="{StaticResource BorderBrush}" Margin="12,0"/>
-          
-          <!-- View Switcher -->
-          <RadioButton x:Name="ViewScreenRadio" Content="🖥️ Loading Screen" Style="{StaticResource SegmentButton}" IsChecked="True" Checked="ViewMode_Changed" ToolTip="Edit loading screen art, colors &amp; attributes"/>
-          <RadioButton x:Name="ViewLevelRadio" Content="🕹️ Level Editor" Style="{StaticResource SegmentButton}" IsChecked="False" Checked="ViewMode_Changed" ToolTip="Interactive room canvas &amp; level editor"/>
-          <Button x:Name="HeaderSpriteBankButton" Content="🎨 Sprite Bank" Click="SpriteBank_Click" Margin="10,0,0,0" Padding="10,5" Background="#182338" Foreground="#42D392" BorderBrush="#35D0BA" ToolTip="Open Universal 8-Bit Sprite &amp; Tile Bank"/>
-          <Button x:Name="HeaderRomRipperButton" Content="🔬 ROM Ripper" Click="RomRipper_Click" Margin="6,0,0,0" Padding="10,5" Background="#1D2A42" Foreground="#35D0BA" BorderBrush="#35D0BA" ToolTip="Open In-App Visual Memory &amp; ROM Ripper to scrub 48K/128K memory and extract sprites"/>
-          <Button x:Name="HeaderAudioStudioButton" Content="🎵 Audio Studio" Click="AudioStudio_Click" Margin="6,0,0,0" Padding="10,5" Background="#241432" Foreground="#E040FB" BorderBrush="#E040FB" ToolTip="Open AY-3-8912 PSG (128K) &amp; 48K Beeper Sound Studio, tracker player &amp; inspector (Ctrl+M)"/>
-        </StackPanel>
+        <Viewbox Grid.Column="1" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="16,0,12,0">
+          <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <Button Content="Open game…" Click="Open_Click" Style="{StaticResource PrimaryButton}" Padding="9,5"/>
+            <ComboBox x:Name="StoredGamesBox" Width="170" Margin="5,0,0,0" VerticalAlignment="Center" SelectionChanged="StoredGamesBox_SelectionChanged" ToolTip="Switch between the 4 core modding games"/>
+            <Button x:Name="SaveButton" Content="Save" Click="Save_Click" IsEnabled="False" Padding="8,5"/>
+            <Button x:Name="SaveAsButton" Content="Save as…" Click="SaveAs_Click" IsEnabled="False" Padding="8,5"/>
+            <Button x:Name="UndoButton" Content="Undo" Click="Undo_Click" IsEnabled="False" Padding="8,5" ToolTip="Undo edit (Ctrl+Z)"/>
+            <Button x:Name="RedoButton" Content="Redo" Click="Redo_Click" IsEnabled="False" Padding="8,5" ToolTip="Redo edit (Ctrl+Y)"/>
+            <Button x:Name="PlayHeaderButton" Content="▶ Playtest (F5)" Click="Play_Click" IsEnabled="False" Style="{StaticResource PrimaryButton}" Margin="5,0,0,0" Padding="9,5" ToolTip="Quick playtest in Spectrum Emulator (F5)"/>
+            <Button x:Name="ScreenshotHeaderButton" Content="📸 Screenshot (F10)" Click="Screenshot_Click" Margin="5,0,0,0" Padding="8,5" ToolTip="Capture high-resolution screenshot to Pictures and clipboard (F10 / PrintScreen)"/>
+            
+            <Border Width="1" Height="24" Background="{StaticResource BorderBrush}" Margin="10,0"/>
+            
+            <!-- View Switcher -->
+            <RadioButton x:Name="ViewScreenRadio" Content="🖥️ Screen" Style="{StaticResource SegmentButton}" IsChecked="True" Checked="ViewMode_Changed" ToolTip="Edit loading screen art, colors &amp; attributes"/>
+            <RadioButton x:Name="ViewLevelRadio" Content="🕹️ Level Editor" Style="{StaticResource SegmentButton}" IsChecked="False" Checked="ViewMode_Changed" ToolTip="Interactive room canvas &amp; level editor"/>
+            <Button x:Name="HeaderSpriteBankButton" Content="🎨 Sprite Bank" Click="SpriteBank_Click" Margin="8,0,0,0" Padding="8,5" Background="#182338" Foreground="#42D392" BorderBrush="#35D0BA" ToolTip="Open Universal 8-Bit Sprite &amp; Tile Bank"/>
+            <Button x:Name="HeaderRomRipperButton" Content="🔬 ROM Ripper" Click="RomRipper_Click" Margin="5,0,0,0" Padding="8,5" Background="#1D2A42" Foreground="#35D0BA" BorderBrush="#35D0BA" ToolTip="Open In-App Visual Memory &amp; ROM Ripper to scrub 48K/128K memory and extract sprites"/>
+            <Button x:Name="HeaderZ80DisasmButton" Content="⚡ Z80 Disasm" Click="Z80Disasm_Click" Margin="5,0,0,0" Padding="8,5" Background="#2A1C08" Foreground="#FBBF24" BorderBrush="#F59E0B" ToolTip="Open Native Z80 Disassembler, Code Inspector, Live POKE Patcher &amp; 8BitAnalysers Bridge"/>
+            <Button x:Name="Header8BitAnalyserButton" Content="🚀 8BitAnalyser" Click="Launch8BitAnalyser_Click" Margin="5,0,0,0" Padding="8,5" Background="#162234" Foreground="#38BDF8" BorderBrush="#0284C7" ToolTip="One-click launch of bundled SpectrumAnalyser.exe (TheGoodDoktor/8BitAnalysers) with live game &amp; pre-labeled symbols"/>
+            <Button x:Name="HeaderAudioStudioButton" Content="🎵 Audio Studio" Click="AudioStudio_Click" Margin="5,0,0,0" Padding="8,5" Background="#241432" Foreground="#E040FB" BorderBrush="#E040FB" ToolTip="Open AY-3-8912 PSG (128K) &amp; 48K Beeper Sound Studio, tracker player &amp; inspector (Ctrl+M)"/>
+            <Button x:Name="HeaderAudioScoutButton" Content="🔍 Audio Scout" Click="AudioScout_Click" Margin="5,0,0,0" Padding="8,5" Background="#0C2538" Foreground="#00D2FF" BorderBrush="#00D2FF" ToolTip="Scout massive game repositories/TOSEC for 128K AY-3-8912 music routines &amp; sound effects"/>
+          </StackPanel>
+        </Viewbox>
 
         <!-- Current File Status -->
         <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
@@ -209,25 +214,37 @@
                 <ColumnDefinition Width="*"/>
               </Grid.ColumnDefinitions>
 
-              <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                <Button x:Name="CanvasLeftButton" Content="◀" ToolTip="Step West (Left Room)" Width="28" Height="26" Padding="0" Tag="Left" Click="LevelNavigate_Click"/>
-                <ComboBox x:Name="CanvasRoomBox" SelectionChanged="LevelRoom_Changed" Width="160" Margin="4,0" ToolTip="Select Room"/>
-                <Button x:Name="CanvasRightButton" Content="▶" ToolTip="Step East (Right Room)" Width="28" Height="26" Padding="0" Tag="Right" Click="LevelNavigate_Click"/>
+              <WrapPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button x:Name="CanvasLeftButton" Content="◀" ToolTip="Step West (Left Room / Area)" Width="28" Height="26" Padding="0" Tag="Left" Click="LevelNavigate_Click"/>
+                <ComboBox x:Name="CanvasRoomBox" SelectionChanged="LevelRoom_Changed" Width="170" Margin="4,0" ToolTip="Select Room / Area"/>
+                <Button x:Name="CanvasRightButton" Content="▶" ToolTip="Step East (Right Room / Area)" Width="28" Height="26" Padding="0" Tag="Right" Click="LevelNavigate_Click"/>
                 <Button x:Name="CanvasUpButton" Content="▲" ToolTip="Step North (Upper Room)" Width="28" Height="26" Padding="0" Tag="Up" Margin="3,0,0,0" Click="LevelNavigate_Click"/>
                 <Button x:Name="CanvasDownButton" Content="▼" ToolTip="Step South (Lower Room)" Width="28" Height="26" Padding="0" Tag="Down" Margin="3,0,0,0" Click="LevelNavigate_Click"/>
 
-                <Border Background="#152A27" CornerRadius="5" Padding="9,3" Margin="10,0,0,0" VerticalAlignment="Center">
+                <!-- Rex Part 1 / Part 2 Switcher -->
+                <StackPanel x:Name="RexPartSwitchPanel" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0" Visibility="Collapsed">
+                  <Button x:Name="RexPart1Button" Content="Part 1 (35 rooms)" Click="RexPart1_Click" Padding="7,3" FontSize="10" Margin="0,0,4,0" ToolTip="Switch to Rex Part 1 (Side A · 35 rooms)"/>
+                  <Button x:Name="RexPart2Button" Content="Part 2 (26 rooms)" Click="RexPart2_Click" Padding="7,3" FontSize="10" Margin="0" ToolTip="Switch to Rex Part 2 (Side B · 26 rooms)"/>
+                </StackPanel>
+
+                <!-- Myth Level Switcher -->
+                <StackPanel x:Name="MythLevelSwitchPanel" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0" Visibility="Collapsed">
+                  <TextBlock Text="Level:" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                  <ComboBox x:Name="MythCanvasLevelCombo" SelectionChanged="MythLevelCombo_SelectionChanged" Width="175" FontSize="11" ToolTip="Select Myth Level (1–4)"/>
+                </StackPanel>
+
+                <Border Background="#152A27" CornerRadius="5" Padding="9,3" Margin="8,0,0,0" VerticalAlignment="Center">
                   <TextBlock x:Name="CanvasRoomTitleText" Text="Room 06 · Level 1 Start" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold" FontSize="11"/>
                 </Border>
                 <Border Background="#151B27" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="5" Padding="8,3" Margin="6,0,0,0" VerticalAlignment="Center">
                   <TextBlock x:Name="CanvasBudgetText" Text="Descriptor 58/82 B" Foreground="#72BDE8" FontSize="10"/>
                 </Border>
                 <Button x:Name="CanvasExportPngButton" Content="📸 Export PNG" Click="Screenshot_Click" Padding="8,3" Margin="8,0,0,0" ToolTip="Export current room view to PNG"/>
-              </StackPanel>
+              </WrapPanel>
             </Grid>
 
-            <!-- Row 1: Tools & Display Options -->
-            <Grid Grid.Row="1">
+            <!-- Row 1A: Cybernoid II & Exolon Tools & Display Options -->
+            <Grid x:Name="CybernoidExolonToolbar" Grid.Row="1">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
@@ -257,6 +274,64 @@
                 <CheckBox x:Name="CanvasShowPreviewCheck" Content="Preview" IsChecked="True" Checked="LevelCanvasOption_Changed" Unchecked="LevelCanvasOption_Changed" VerticalAlignment="Center" FontSize="11" ToolTip="Toggle floating brush stamp preview under mouse cursor (Middle-click / Wheel)"/>
               </StackPanel>
             </Grid>
+
+            <!-- Row 1B: Rex Tools & Display Options -->
+            <Grid x:Name="RexToolbar" Grid.Row="1" Visibility="Collapsed">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+              </Grid.ColumnDefinitions>
+
+              <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <RadioButton x:Name="RexToolTilesRadio" Content="🧱 Paint Metatiles (24×24)" GroupName="RexTool" Style="{StaticResource ToolRadioButton}" IsChecked="True" Checked="RexTool_Changed" ToolTip="Left-click/drag paints the selected 24×24 metatile · Right-click picks metatile under cursor"/>
+                <RadioButton x:Name="RexToolSpawnsRadio" Content="👾 Enemy Spawns" GroupName="RexTool" Style="{StaticResource ToolRadioButton}" Checked="RexTool_Changed" ToolTip="Click an enemy spawn to select it · Drag to move it"/>
+                <Border Width="1" Height="16" Background="#2B3548" Margin="8,0,8,0"/>
+                <Button Content="➕ Add Spawn" Click="RexSpawnAdd_Click" Padding="7,2" Margin="2,0" FontSize="11" ToolTip="Add a new enemy spawn to this room"/>
+                <Button Content="🗑 Delete Spawn" Click="RexSpawnDelete_Click" Padding="7,2" Margin="2,0" FontSize="11" ToolTip="Delete the selected enemy spawn (Delete)"/>
+                <Border Width="1" Height="16" Background="#2B3548" Margin="8,0,8,0"/>
+                <Button Content="🎨 Sprite Bank" Click="SpriteBank_Click" Padding="7,2" Margin="2,0" FontSize="11" Background="#1D2A42" Foreground="#42D392" ToolTip="Open Universal 8-Bit Sprite &amp; Tile Bank"/>
+              </StackPanel>
+
+              <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                <CheckBox x:Name="RexGridCheck" Content="24×24 Grid" IsChecked="True" Checked="RexView_Changed" Unchecked="RexView_Changed" VerticalAlignment="Center" Margin="0,0,12,0" FontSize="11"/>
+                <CheckBox x:Name="RexSpritesCheck" Content="Enemy sprites" IsChecked="True" Checked="RexView_Changed" Unchecked="RexView_Changed" VerticalAlignment="Center" Margin="0,0,12,0" FontSize="11"/>
+                <CheckBox x:Name="RexPropsCheck" Content="Raw cell properties" Checked="RexView_Changed" Unchecked="RexView_Changed" VerticalAlignment="Center" FontSize="11"
+                          ToolTip="Colour every 8×8 cell by its raw property byte (0 = empty)"/>
+              </StackPanel>
+            </Grid>
+
+            <!-- Row 1C: Myth Tools & Display Options -->
+            <Grid x:Name="MythToolbar" Grid.Row="1" Visibility="Collapsed">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+              </Grid.ColumnDefinitions>
+
+              <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <RadioButton x:Name="MythToolTilesRadio" Content="🧱 Paint Metatiles (16×16)" GroupName="MythTool" Style="{StaticResource ToolRadioButton}" IsChecked="True" Checked="MythTool_Changed" ToolTip="Left-click/drag paints the selected 16×16 metatile · Right-click picks metatile under cursor"/>
+                <RadioButton x:Name="MythToolObjectsRadio" Content="📦 Area Objects" GroupName="MythTool" Style="{StaticResource ToolRadioButton}" Checked="MythTool_Changed" ToolTip="Click an object to select it · Drag to move it"/>
+                <Border Width="1" Height="16" Background="#2B3548" Margin="8,0,8,0"/>
+                <Button Content="➕ Add Object" Click="MythObjectAdd_Click" Padding="7,2" Margin="2,0" FontSize="11" ToolTip="Add an object to this scrolling area"/>
+                <Button Content="🗑 Delete Object" Click="MythObjectDelete_Click" Padding="7,2" Margin="2,0" FontSize="11" ToolTip="Delete the selected object (Delete)"/>
+                <Border Width="1" Height="16" Background="#2B3548" Margin="8,0,8,0"/>
+                <Button Content="🎨 Sprite Bank" Click="SpriteBank_Click" Padding="7,2" Margin="2,0" FontSize="11" Background="#1D2A42" Foreground="#42D392" ToolTip="Open Universal 8-Bit Sprite &amp; Tile Bank"/>
+              </StackPanel>
+
+              <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                <CheckBox x:Name="MythGridCheck" Content="Metatile grid" Checked="MythView_Changed" Unchecked="MythView_Changed" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="11"/>
+                <CheckBox x:Name="MythScreensCheck" Content="14×9 screen guides" IsChecked="True" Checked="MythView_Changed" Unchecked="MythView_Changed" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="11"
+                          ToolTip="Dashed frames show one game screen (14×9 metatiles) starting at the area's start position"/>
+                <CheckBox x:Name="MythObjectsCheck" Content="Objects" IsChecked="True" Checked="MythView_Changed" Unchecked="MythView_Changed" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="11"/>
+                <TextBlock Text="Zoom:" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,4,0" FontSize="11"/>
+                <ComboBox x:Name="MythZoomCombo" Width="58" SelectedIndex="1" SelectionChanged="MythZoom_Changed" FontSize="11">
+                  <ComboBoxItem Content="1×"/>
+                  <ComboBoxItem Content="2×"/>
+                  <ComboBoxItem Content="3×"/>
+                </ComboBox>
+              </StackPanel>
+            </Grid>
           </Grid>
 
           <!-- Central Canvas Stage -->
@@ -264,9 +339,31 @@
             <Grid>
               <controls:LevelCanvas x:Name="MainLevelCanvas" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
 
+              <!-- Rex Decoded Room Stage (240x168 scaled 3x to 720x504 inside Uniform Viewbox) -->
+              <Viewbox x:Name="RexStageContainer" Stretch="Uniform" Visibility="Collapsed">
+                <Border Background="Black" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                  <Grid x:Name="RexRoomHost" Width="720" Height="504" Background="Black" Cursor="Cross"
+                        MouseLeftButtonDown="RexRoom_MouseDown" MouseRightButtonDown="RexRoom_RightDown"
+                        MouseMove="RexRoom_MouseMove" MouseLeftButtonUp="RexRoom_MouseUp" MouseLeave="RexRoom_MouseLeave">
+                    <Image x:Name="RexRoomImage" Stretch="Fill" RenderOptions.BitmapScalingMode="NearestNeighbor" IsHitTestVisible="False"/>
+                    <Canvas x:Name="RexOverlayCanvas" IsHitTestVisible="False"/>
+                  </Grid>
+                </Border>
+              </Viewbox>
+
+              <!-- Myth Decoded Scrolling Area Stage -->
+              <ScrollViewer x:Name="MythStageContainer" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="#06080D" Visibility="Collapsed">
+                <Grid x:Name="MythAreaHost" HorizontalAlignment="Left" VerticalAlignment="Top" Background="Black" Cursor="Cross"
+                      MouseLeftButtonDown="MythArea_MouseDown" MouseRightButtonDown="MythArea_RightDown"
+                      MouseMove="MythArea_MouseMove" MouseLeftButtonUp="MythArea_MouseUp">
+                  <Image x:Name="MythAreaImage" Stretch="Fill" RenderOptions.BitmapScalingMode="NearestNeighbor" IsHitTestVisible="False"/>
+                  <Canvas x:Name="MythOverlayCanvas" IsHitTestVisible="False"/>
+                </Grid>
+              </ScrollViewer>
+
               <!-- Interactive Edge Step Buttons -->
-              <Button Content="◀" HorizontalAlignment="Left" VerticalAlignment="Center" Width="24" Height="48" Padding="0" Opacity="0.55" Tag="Left" Click="LevelNavigate_Click" ToolTip="Step West (Left Room)"/>
-              <Button Content="▶" HorizontalAlignment="Right" VerticalAlignment="Center" Width="24" Height="48" Padding="0" Opacity="0.55" Tag="Right" Click="LevelNavigate_Click" ToolTip="Step East (Right Room)"/>
+              <Button Content="◀" HorizontalAlignment="Left" VerticalAlignment="Center" Width="24" Height="48" Padding="0" Opacity="0.55" Tag="Left" Click="LevelNavigate_Click" ToolTip="Step West (Left Room / Area)"/>
+              <Button Content="▶" HorizontalAlignment="Right" VerticalAlignment="Center" Width="24" Height="48" Padding="0" Opacity="0.55" Tag="Right" Click="LevelNavigate_Click" ToolTip="Step East (Right Room / Area)"/>
               <Button Content="▲" HorizontalAlignment="Center" VerticalAlignment="Top" Width="48" Height="22" Padding="0" Opacity="0.55" Tag="Up" Click="LevelNavigate_Click" ToolTip="Step North (Upper Room)"/>
               <Button Content="▼" HorizontalAlignment="Center" VerticalAlignment="Bottom" Width="48" Height="22" Padding="0" Opacity="0.55" Tag="Down" Click="LevelNavigate_Click" ToolTip="Step South (Lower Room)"/>
 
@@ -274,7 +371,7 @@
               <Border x:Name="LevelNoGameOverlay" Background="#E606080D" CornerRadius="5" Visibility="Collapsed">
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="400">
                   <TextBlock Text="SPECCY STUDIO LEVEL LAB" HorizontalAlignment="Center" FontSize="16" FontWeight="Bold"/>
-                  <TextBlock Text="Open Cybernoid II (1988) or Exolon (1987) to activate interactive Level Workshops. Decodes authentic rooms, entities, compression limits, and game graphics." TextWrapping="Wrap" TextAlignment="Center" Foreground="{StaticResource MutedBrush}" Margin="0,10,0,0"/>
+                  <TextBlock Text="Open Cybernoid II (1988), Exolon (1987), Rex (1988), or Myth (1989) to activate interactive Level Workshops. Decodes authentic rooms, entities, compression limits, and game graphics." TextWrapping="Wrap" TextAlignment="Center" Foreground="{StaticResource MutedBrush}" Margin="0,10,0,0"/>
                 </StackPanel>
               </Border>
             </Grid>
@@ -314,7 +411,6 @@
                 <StackPanel x:Name="MainQuickTilePanel" Orientation="Horizontal" VerticalAlignment="Center"/>
               </StackPanel>
             </ScrollViewer>
-
 
             <!-- Quick Action Buttons -->
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
@@ -367,7 +463,85 @@
             </StackPanel>
           </Grid>
 
-          <!-- Level Footer: Universal (Rex / Myth) -->
+          <!-- Level Footer: Rex -->
+          <Grid x:Name="RexLevelFooter" Grid.Row="2" Margin="0,10,0,0" Visibility="Collapsed">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto"/>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="#111722" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="5" Padding="8,4" Margin="0,0,12,0"
+                    ToolTip="Active 24×24 Metatile Brush · Left-click canvas to paint · Right-click any room cell to pick">
+              <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Border Width="36" Height="36" Background="#06080D" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="3" Margin="0,0,8,0">
+                  <Image x:Name="RexBrushImage" Width="36" Height="36" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                  <StackPanel Orientation="Horizontal">
+                    <TextBlock x:Name="RexBrushText" Text="$00" FontWeight="Bold" FontSize="12" Foreground="{StaticResource AccentBrush}" Margin="0,0,6,0"/>
+                    <Border Background="#1A2D25" CornerRadius="3" Padding="4,1">
+                      <TextBlock Text="24×24 Metatile" FontSize="9" FontWeight="SemiBold" Foreground="#42D392"/>
+                    </Border>
+                  </StackPanel>
+                  <TextBlock Text="Left-click paint · Right-click pick" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" VerticalAlignment="Center" PreviewMouseWheel="QuickTileScrollViewer_PreviewMouseWheel">
+              <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="IN-ROOM METATILES:" Foreground="{StaticResource MutedBrush}" FontSize="9" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <StackPanel x:Name="RexQuickTilePanel" Orientation="Horizontal" VerticalAlignment="Center"/>
+              </StackPanel>
+            </ScrollViewer>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+              <Button Content="Empty · $00" Click="RexEmptyBrush_Click" Padding="7,4" FontSize="10"/>
+              <Button Content="➕ Add Spawn" Click="RexSpawnAdd_Click" Style="{StaticResource PrimaryButton}" Padding="8,4" FontSize="10" Margin="6,0,0,0"/>
+            </StackPanel>
+          </Grid>
+
+          <!-- Level Footer: Myth -->
+          <Grid x:Name="MythLevelFooter" Grid.Row="2" Margin="0,10,0,0" Visibility="Collapsed">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto"/>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="#111722" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="5" Padding="8,4" Margin="0,0,12,0"
+                    ToolTip="Active 16×16 Metatile Brush · Left-click canvas to paint · Right-click any area cell to pick">
+              <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Border Width="32" Height="32" Background="#06080D" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="3" Margin="0,0,8,0">
+                  <Image x:Name="MythBrushImage" Width="32" Height="32" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                  <StackPanel Orientation="Horizontal">
+                    <TextBlock x:Name="MythBrushText" Text="$00" FontWeight="Bold" FontSize="12" Foreground="{StaticResource AccentBrush}" Margin="0,0,6,0"/>
+                    <Border Background="#1A2D25" CornerRadius="3" Padding="4,1">
+                      <TextBlock Text="16×16 Metatile" FontSize="9" FontWeight="SemiBold" Foreground="#42D392"/>
+                    </Border>
+                  </StackPanel>
+                  <TextBlock Text="Left-click paint · Right-click pick" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" VerticalAlignment="Center" PreviewMouseWheel="QuickTileScrollViewer_PreviewMouseWheel">
+              <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="IN-AREA METATILES:" Foreground="{StaticResource MutedBrush}" FontSize="9" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <StackPanel x:Name="MythQuickTilePanel" Orientation="Horizontal" VerticalAlignment="Center"/>
+              </StackPanel>
+            </ScrollViewer>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+              <Button Content="Empty · $00" Click="MythEmptyBrush_Click" Padding="7,4" FontSize="10"/>
+              <Button Content="➕ Add Object" Click="MythObjectAdd_Click" Style="{StaticResource PrimaryButton}" Padding="8,4" FontSize="10" Margin="6,0,0,0"/>
+            </StackPanel>
+          </Grid>
+
+          <!-- Level Footer: Universal Fallback -->
           <Grid x:Name="UniversalLevelFooter" Grid.Row="2" Margin="0,10,0,0" Visibility="Collapsed">
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="Auto"/>
@@ -847,10 +1021,209 @@
                 </GroupBox>
               </StackPanel>
 
+              <!-- Rex Level Workshop Panel -->
+              <StackPanel x:Name="RexEditorPanel" Visibility="Collapsed">
+                <TextBlock x:Name="RexTitleText" Text="Rex · Level Workshop" FontSize="18" FontWeight="SemiBold"/>
+                <TextBlock x:Name="RexMatchText" Foreground="{StaticResource AccentBrush}" TextWrapping="Wrap" FontSize="10" Margin="0,3,0,8" Text="Rex (1988 Martech) · 35 rooms decoded"/>
+
+                <!-- Part 1 / Part 2 Switcher -->
+                <UniformGrid Columns="2" Margin="0,0,0,8">
+                  <Button x:Name="RexSidePart1Button" Content="Part 1 (35 rooms)" Click="RexPart1_Click" Padding="6,4" FontSize="10" Margin="0,0,3,0" ToolTip="Switch to Rex Part 1 (Side A · 35 rooms)"/>
+                  <Button x:Name="RexSidePart2Button" Content="Part 2 (26 rooms)" Click="RexPart2_Click" Padding="6,4" FontSize="10" Margin="3,0,0,0" ToolTip="Switch to Rex Part 2 (Side B · 26 rooms)"/>
+                </UniformGrid>
+
+                <!-- 1. Room Selector & Exits -->
+                <GroupBox Header="ROOMS &amp; EXITS">
+                  <StackPanel>
+                    <Grid Margin="0,0,0,8">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                      </Grid.ColumnDefinitions>
+                      <ComboBox x:Name="RexRoomBox" SelectionChanged="RexRoomBox_SelectionChanged" FontFamily="Cascadia Mono" FontSize="11" ToolTip="Select Room"/>
+                      <WrapPanel Grid.Column="1" Margin="6,0,0,0">
+                        <Button Content="◀" Tag="Left" Click="LevelNavigate_Click" Width="26" Height="26" Padding="0" ToolTip="Step Left"/>
+                        <Button Content="▲" Tag="Up" Click="LevelNavigate_Click" Width="26" Height="26" Padding="0" Margin="2,0,0,0" ToolTip="Step Up"/>
+                        <Button Content="▼" Tag="Down" Click="LevelNavigate_Click" Width="26" Height="26" Padding="0" Margin="2,0,0,0" ToolTip="Step Down"/>
+                        <Button Content="▶" Tag="Right" Click="LevelNavigate_Click" Width="26" Height="26" Padding="0" Margin="2,0,0,0" ToolTip="Step Right"/>
+                      </WrapPanel>
+                    </Grid>
+
+                    <TextBlock Text="Neighbouring room reached by walking off each edge (0 = wall):" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" FontSize="9" Margin="0,0,0,4"/>
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                      </Grid.ColumnDefinitions>
+                      <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                      </Grid.RowDefinitions>
+                      <TextBlock Text="↑ Up:" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center" Margin="0,2,4,2"/>
+                      <TextBox Grid.Column="1" x:Name="RexExitUpBox" FontFamily="Cascadia Mono" FontSize="11" Margin="0,2" LostFocus="RexExit_Changed" KeyDown="RexBox_KeyDown"/>
+                      <TextBlock Grid.Column="2" Text="→ Right:" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center" Margin="8,2,4,2"/>
+                      <TextBox Grid.Column="3" x:Name="RexExitRightBox" FontFamily="Cascadia Mono" FontSize="11" Margin="0,2" LostFocus="RexExit_Changed" KeyDown="RexBox_KeyDown"/>
+
+                      <TextBlock Grid.Row="1" Text="↓ Down:" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center" Margin="0,2,4,2"/>
+                      <TextBox Grid.Row="1" Grid.Column="1" x:Name="RexExitDownBox" FontFamily="Cascadia Mono" FontSize="11" Margin="0,2" LostFocus="RexExit_Changed" KeyDown="RexBox_KeyDown"/>
+                      <TextBlock Grid.Row="1" Grid.Column="2" Text="← Left:" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center" Margin="8,2,4,2"/>
+                      <TextBox Grid.Row="1" Grid.Column="3" x:Name="RexExitLeftBox" FontFamily="Cascadia Mono" FontSize="11" Margin="0,2" LostFocus="RexExit_Changed" KeyDown="RexBox_KeyDown"/>
+                    </Grid>
+                    <TextBlock x:Name="RexExitHintText" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" FontSize="9" Margin="0,4,0,0"/>
+                  </StackPanel>
+                </GroupBox>
+
+                <!-- 2. Visual 24x24 Metatile Palette -->
+                <GroupBox Header="VISUAL METATILE PALETTE (24×24)">
+                  <StackPanel>
+                    <CheckBox x:Name="RexUsedOnlyCheck" Content="Only metatiles used by the game" IsChecked="True" Checked="RexPalette_Filter" Unchecked="RexPalette_Filter" FontSize="10" Margin="0,0,0,6"/>
+                    <Border Background="#070A0F" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="4">
+                      <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                        <WrapPanel x:Name="RexPalettePanel"/>
+                      </ScrollViewer>
+                    </Border>
+                    <TextBlock Text="Click any 24×24 metatile to load into brush · Right-click room canvas to sample" Foreground="{StaticResource MutedBrush}" FontSize="9" Margin="1,5,0,0"/>
+                  </StackPanel>
+                </GroupBox>
+
+                <!-- 3. Enemy Spawns & Room Spawn Rules -->
+                <GroupBox Header="ENEMY SPAWNS &amp; ROOM RULES">
+                  <StackPanel>
+                    <TextBlock x:Name="RexSpawnBudgetText" Foreground="#72BDE8" FontSize="10" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                    <ListBox x:Name="RexSpawnList" Height="120" SelectionChanged="RexSpawnList_SelectionChanged" FontFamily="Cascadia Mono" FontSize="11"/>
+                    <WrapPanel Margin="0,6,0,6">
+                      <Button Content="＋ Add Spawn" Click="RexSpawnAdd_Click" Padding="7,3" FontSize="10"/>
+                      <Button Content="🗑 Delete Spawn" Click="RexSpawnDelete_Click" Padding="7,3" FontSize="10" Margin="4,0,0,0"/>
+                    </WrapPanel>
+
+                    <Grid Margin="0,2,0,6">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="52"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="42"/>
+                        <ColumnDefinition Width="*"/>
+                      </Grid.ColumnDefinitions>
+                      <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                      </Grid.RowDefinitions>
+                      <TextBlock Grid.Row="0" Text="Type:" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center"/>
+                      <ComboBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="3" x:Name="RexSpawnTypeCombo" Margin="0,2" SelectionChanged="RexSpawnField_Changed" FontSize="11"/>
+
+                      <TextBlock Grid.Row="1" Text="X (px):" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center"/>
+                      <TextBox Grid.Row="1" Grid.Column="1" x:Name="RexSpawnXBox" Margin="0,2" FontFamily="Cascadia Mono" FontSize="11" LostFocus="RexSpawnField_Changed" KeyDown="RexBox_KeyDown"/>
+                      <TextBlock Grid.Row="1" Grid.Column="2" Text="Row:" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                      <TextBox Grid.Row="1" Grid.Column="3" x:Name="RexSpawnRowBox" Margin="0,2" FontFamily="Cascadia Mono" FontSize="11" LostFocus="RexSpawnField_Changed" KeyDown="RexBox_KeyDown"/>
+
+                      <CheckBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" x:Name="RexSpawnFacingCheck" Content="Faces left" Margin="0,4,0,0" FontSize="10" Checked="RexSpawnField_Changed" Unchecked="RexSpawnField_Changed"/>
+                    </Grid>
+
+                    <Border Padding="8" Background="#0F1520" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4">
+                      <StackPanel>
+                        <TextBlock Text="Room spawn rules" Foreground="{StaticResource MutedBrush}" FontSize="10" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <Grid>
+                          <Grid.ColumnDefinitions><ColumnDefinition Width="135"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                          <TextBlock Text="Max concurrent (0–31):" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" FontSize="10"/>
+                          <TextBox Grid.Column="1" x:Name="RexParamCountBox" Margin="0,2" FontFamily="Cascadia Mono" FontSize="10" LostFocus="RexParam_Changed" KeyDown="RexBox_KeyDown"/>
+                          <TextBlock Grid.Row="1" Text="Spawn period:" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" FontSize="10"/>
+                          <TextBox Grid.Row="1" Grid.Column="1" x:Name="RexParamPeriodBox" Margin="0,2" FontFamily="Cascadia Mono" FontSize="10" LostFocus="RexParam_Changed" KeyDown="RexBox_KeyDown"/>
+                          <TextBlock Grid.Row="2" Text="Variant byte:" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" FontSize="10"/>
+                          <TextBox Grid.Row="2" Grid.Column="1" x:Name="RexParamVariantBox" Margin="0,2" FontFamily="Cascadia Mono" FontSize="10" LostFocus="RexParam_Changed" KeyDown="RexBox_KeyDown"/>
+                        </Grid>
+                      </StackPanel>
+                    </Border>
+                  </StackPanel>
+                </GroupBox>
+
+                <!-- 4. Actions -->
+                <GroupBox Header="ACTIONS">
+                  <WrapPanel>
+                    <Button Content="📸 Export Room PNG" Click="Screenshot_Click" Padding="6,3" FontSize="10" Margin="0,0,4,0"/>
+                    <Button Content="▶ Playtest in Emulator (F5)" Click="Play_Click" Style="{StaticResource PrimaryButton}" Padding="6,3" FontSize="10"/>
+                  </WrapPanel>
+                </GroupBox>
+              </StackPanel>
+
+              <!-- Myth Level Workshop Panel -->
+              <StackPanel x:Name="MythEditorPanel" Visibility="Collapsed">
+                <TextBlock x:Name="MythTitleText" Text="Myth · Level Workshop" FontSize="18" FontWeight="SemiBold"/>
+                <TextBlock x:Name="MythMatchText" Foreground="{StaticResource AccentBrush}" TextWrapping="Wrap" FontSize="10" Margin="0,3,0,8" Text="Myth: History in the Making (1989 System 3) · 4 levels · 17 scrolling areas"/>
+
+                <!-- 1. Level & Scrolling Area Selector -->
+                <GroupBox Header="LEVELS &amp; SCROLLING AREAS (17 TOTAL)">
+                  <StackPanel>
+                    <TextBlock Text="Select Level (1–4):" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,0,0,4"/>
+                    <ComboBox x:Name="MythLevelCombo" SelectionChanged="MythLevelCombo_SelectionChanged" Margin="0,0,0,8" FontSize="11"/>
+                    <TextBlock Text="Scrolling Areas in Level:" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,0,0,4"/>
+                    <ListBox x:Name="MythAreaList" SelectionChanged="MythAreaList_SelectionChanged" FontFamily="Cascadia Mono" FontSize="11" MaxHeight="120"/>
+                    <Border Margin="0,8,0,0" Padding="7" Background="#0F1520" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4">
+                      <TextBlock x:Name="MythInfoText" Foreground="{StaticResource MutedBrush}" FontSize="10" TextWrapping="Wrap"/>
+                    </Border>
+                  </StackPanel>
+                </GroupBox>
+
+                <!-- 2. Visual 16x16 Metatile Palette & RLE Pack Budget -->
+                <GroupBox Header="VISUAL METATILE PALETTE (16×16)">
+                  <StackPanel>
+                    <TextBlock x:Name="MythPackText" Foreground="#72BDE8" FontSize="10" TextWrapping="Wrap" Margin="0,0,0,4"/>
+                    <ProgressBar x:Name="MythPackBar" Height="6" Margin="0,0,0,6" Foreground="{StaticResource AccentBrush}" Background="#101923"/>
+                    <Border Background="#070A0F" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="4">
+                      <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                        <WrapPanel x:Name="MythPalettePanel"/>
+                      </ScrollViewer>
+                    </Border>
+                    <TextBlock Text="Click any 16×16 metatile to load into brush · Right-click area canvas to sample" Foreground="{StaticResource MutedBrush}" FontSize="9" Margin="1,5,0,0"/>
+                  </StackPanel>
+                </GroupBox>
+
+                <!-- 3. Area Objects & Entities -->
+                <GroupBox Header="AREA OBJECTS &amp; ENTITIES">
+                  <StackPanel>
+                    <TextBlock x:Name="MythObjectBudgetText" Foreground="#72BDE8" FontSize="10" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                    <ListBox x:Name="MythObjectList" Height="140" SelectionChanged="MythObjectList_SelectionChanged" FontFamily="Cascadia Mono" FontSize="11"/>
+                    <WrapPanel Margin="0,6,0,6">
+                      <Button Content="＋ Add Object" Click="MythObjectAdd_Click" Padding="7,3" FontSize="10"/>
+                      <Button Content="🗑 Delete Object" Click="MythObjectDelete_Click" Padding="7,3" FontSize="10" Margin="4,0,0,0"/>
+                    </WrapPanel>
+                    <Grid Margin="0,2,0,4">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="46"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="58"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="58"/>
+                        <ColumnDefinition Width="*"/>
+                      </Grid.ColumnDefinitions>
+                      <TextBlock Text="Type:" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center"/>
+                      <TextBox Grid.Column="1" x:Name="MythObjTypeBox" Margin="0,2" FontFamily="Cascadia Mono" FontSize="11" LostFocus="MythObjField_Changed" KeyDown="MythBox_KeyDown"/>
+                      <TextBlock Grid.Column="2" Text="X (ch):" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                      <TextBox Grid.Column="3" x:Name="MythObjXBox" Margin="0,2" FontFamily="Cascadia Mono" FontSize="11" LostFocus="MythObjField_Changed" KeyDown="MythBox_KeyDown"/>
+                      <TextBlock Grid.Column="4" Text="Y (ch):" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                      <TextBox Grid.Column="5" x:Name="MythObjYBox" Margin="0,2" FontFamily="Cascadia Mono" FontSize="11" LostFocus="MythObjField_Changed" KeyDown="MythBox_KeyDown"/>
+                    </Grid>
+                    <TextBlock Foreground="{StaticResource MutedBrush}" FontSize="9" TextWrapping="Wrap" Margin="0,4,0,0"
+                               Text="Object types are the level's own entity IDs. Sprites are captured from the running game; trigger types show as coloured boxes."/>
+                  </StackPanel>
+                </GroupBox>
+
+                <!-- 4. Actions -->
+                <GroupBox Header="ACTIONS">
+                  <WrapPanel>
+                    <Button Content="📸 Export Area PNG" Click="Screenshot_Click" Padding="6,3" FontSize="10" Margin="0,0,4,0"/>
+                    <Button Content="▶ Playtest in Emulator (F5)" Click="Play_Click" Style="{StaticResource PrimaryButton}" Padding="6,3" FontSize="10"/>
+                  </WrapPanel>
+                </GroupBox>
+              </StackPanel>
+
               <!-- Universal / Rex / Myth Level & Sprite Workshop Panel -->
               <StackPanel x:Name="UniversalEditorPanel" Visibility="Collapsed">
                 <TextBlock x:Name="UniversalTitleText" Text="Rex · Level &amp; Sprite Workshop" FontSize="18" FontWeight="SemiBold"/>
                 <TextBlock x:Name="UniversalMatchText" Foreground="{StaticResource AccentBrush}" TextWrapping="Wrap" FontSize="10" Margin="0,3,0,6" Text="32 authentic native sprites · Richard Franke &amp; Neil Harris"/>
+                <Button x:Name="UniversalLaunchFullLabButton" Content="🦏 Open Full Rex Level Lab (35+26 Decoded Rooms)" Click="UniversalLaunchFullLab_Click" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Stretch" Padding="10,7" Margin="0,0,0,8" FontWeight="SemiBold" ToolTip="Open the full dedicated Level Lab window with real decoded rooms, metatiles, exits, and enemy/object spawns"/>
 
                 <!-- 0. Level Room / Sector Selector -->
                 <GroupBox Header="LEVEL ROOM / SECTOR SELECTOR">

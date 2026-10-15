@@ -27,7 +27,20 @@ public partial class AudioStudioWindow : Window
     private readonly SolidColorBrush _ledOnBrush = new(Color.FromRgb(0x00, 0xD2, 0xFF));
     private readonly DispatcherTimer _ledOffTimer = new() { Interval = TimeSpan.FromMilliseconds(70) };
 
-    public Core.SpectrumDocument? ActiveDocument { get; set; }
+    private Core.SpectrumDocument? _activeDocument;
+    public Core.SpectrumDocument? ActiveDocument
+    {
+        get => _activeDocument;
+        set
+        {
+            _activeDocument = value;
+            if (_activeDocument != null)
+            {
+                SetActiveGameFromDocument(_activeDocument);
+            }
+        }
+    }
+
     private PsgSong? _loadedPsg;
 
     public AudioStudioWindow()
@@ -37,6 +50,32 @@ public partial class AudioStudioWindow : Window
         RegisterGrid.ItemsSource = _registerRows;
         InitRegisterRows();
         InitMidiDevices();
+        UpdateSoundboardBank("All");
+
+        Loaded += (_, _) =>
+        {
+            if (ActiveDocument != null)
+            {
+                SetActiveGameFromDocument(ActiveDocument);
+                try
+                {
+                    var rip = Core.Audio.AyMemoryRipper.Scan(ActiveDocument);
+                    if (rip.Success && rip.GeneratedPsg != null && rip.GeneratedPsg.IsFromZ80)
+                    {
+                        LoadAndPlayPsg(rip.GeneratedPsg);
+                    }
+                    else if (TryGetAuthenticVaultPsg(ActiveDocument.DisplayName, out var vaultPsg) && vaultPsg != null)
+                    {
+                        LoadAndPlayPsg(vaultPsg);
+                    }
+                }
+                catch { }
+            }
+            else
+            {
+                UpdateSoundboardBank("All");
+            }
+        };
 
         _ledOffTimer.Tick += (_, _) => { MidiLed.Fill = _ledOffBrush; _ledOffTimer.Stop(); };
         SpeccyMidiOut.Instance.OnMidiActivity += OnMidiActivityFired;
@@ -164,16 +203,105 @@ public partial class AudioStudioWindow : Window
             : "Ready · AY-3-8912 & 48K Beeper Active";
     }
 
+    private static readonly Dictionary<string, PsgSong> _vaultPsgCache = new(StringComparer.OrdinalIgnoreCase);
+
+    public static bool TryGetAuthenticVaultPsg(string trackName, out PsgSong? psg)
+    {
+        psg = null;
+        if (string.IsNullOrWhiteSpace(trackName)) return false;
+
+        if (_vaultPsgCache.TryGetValue(trackName, out var cached))
+        {
+            psg = cached;
+            return true;
+        }
+
+        string vaultDir = Core.ProjectVaultService.Instance.ProjectsDirectory;
+        string tosecZ80Dir = @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[Z80]";
+        string tosecTapDir = @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[TAP]";
+
+        string? candidateFile = null;
+
+        if (trackName.Contains("Cybernoid", StringComparison.OrdinalIgnoreCase))
+        {
+            candidateFile = new[]
+            {
+                Path.Combine(vaultDir, "Cybernoid II (1988) [128K].zip"),
+                Path.Combine(tosecZ80Dir, "Cybernoid II - The Revenge (1988)(Hewson Consultants)[128K].zip"),
+                Path.Combine(vaultDir, "Cybernoid II (1988).tap")
+            }.FirstOrDefault(File.Exists);
+        }
+        else if (trackName.Contains("Exolon", StringComparison.OrdinalIgnoreCase))
+        {
+            candidateFile = new[]
+            {
+                Path.Combine(vaultDir, "Exolon (1987) [128K].zip"),
+                Path.Combine(tosecZ80Dir, "Exolon (1987)(Hewson Consultants)[128K].zip"),
+                Path.Combine(tosecTapDir, "Exolon (1987)(Hewson Consultants)[48-128K].zip")
+            }.FirstOrDefault(File.Exists);
+        }
+        else if (trackName.Contains("Rex", StringComparison.OrdinalIgnoreCase))
+        {
+            candidateFile = new[]
+            {
+                Path.Combine(vaultDir, "Rex (1988) [128K].zip"),
+                Path.Combine(tosecZ80Dir, "Rex (1988)(Martech Games)[128K].zip"),
+                Path.Combine(tosecZ80Dir, "Rex (1988)(Martech Games)(Part 1 of 2).zip")
+            }.FirstOrDefault(File.Exists);
+        }
+        else if (trackName.Contains("Myth", StringComparison.OrdinalIgnoreCase))
+        {
+            candidateFile = new[]
+            {
+                Path.Combine(vaultDir, "Myth (1989) [128K].zip"),
+                Path.Combine(tosecZ80Dir, "Myth - History in the Making (1989)(System 3 Software).zip")
+            }.FirstOrDefault(File.Exists);
+        }
+        else if (trackName.Contains("RoboCop", StringComparison.OrdinalIgnoreCase) || trackName.Contains("Follin", StringComparison.OrdinalIgnoreCase))
+        {
+            candidateFile = new[]
+            {
+                Path.Combine(tosecZ80Dir, "RoboCop (1988)(Ocean)[128K].zip"),
+                Path.Combine(tosecTapDir, "RoboCop (1988)(Ocean)[128K].zip")
+            }.FirstOrDefault(File.Exists);
+        }
+
+        if (candidateFile != null && File.Exists(candidateFile))
+        {
+            try
+            {
+                var doc = Core.SpectrumFileParser.Open(candidateFile);
+                var rip = Core.Audio.AyMemoryRipper.Scan(doc);
+                if (rip.Success && rip.GeneratedPsg != null && rip.GeneratedPsg.IsFromZ80)
+                {
+                    psg = rip.GeneratedPsg;
+                    _vaultPsgCache[trackName] = psg;
+                    return true;
+                }
+            }
+            catch { }
+        }
+
+        return false;
+    }
+
     private void Play_Click(object sender, RoutedEventArgs e)
     {
-        string track = (TrackSelectorCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Tim Follin: Moonlight Cybercop (RoboCop & Ghouls Homage)";
+        string track = (TrackSelectorCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "RoboCop (1988) [128K] - Tim Follin";
         if (_loadedPsg != null && _loadedPsg.Title == track)
         {
             _engine.PlayPsg(_loadedPsg, LoopCheck.IsChecked == true);
         }
+        else if (TryGetAuthenticVaultPsg(track, out var authenticPsg) && authenticPsg != null)
+        {
+            _loadedPsg = authenticPsg;
+            _engine.PlayPsg(authenticPsg, LoopCheck.IsChecked == true);
+            StatusText.Text = $"▶ Playing Authentic Ripped AY: '{authenticPsg.Title}' ({authenticPsg.TotalFrames} frames, {authenticPsg.Duration:mm\\:ss})";
+        }
         else
         {
-            _engine.PlayTrack(track, LoopCheck.IsChecked == true);
+            _engine.Stop();
+            StatusText.Text = $"⏹ Silence: No authentic 128K audio stream extracted for '{track}'.";
         }
         UpdateUiState();
     }
@@ -188,14 +316,21 @@ public partial class AudioStudioWindow : Window
     {
         if (_engine.IsPlaying)
         {
-            string track = (TrackSelectorCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Tim Follin: Moonlight Cybercop (RoboCop & Ghouls Homage)";
+            string track = (TrackSelectorCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "RoboCop (1988) [128K] - Tim Follin";
             if (_loadedPsg != null && _loadedPsg.Title == track)
             {
                 _engine.PlayPsg(_loadedPsg, LoopCheck.IsChecked == true);
             }
+            else if (TryGetAuthenticVaultPsg(track, out var authenticPsg) && authenticPsg != null)
+            {
+                _loadedPsg = authenticPsg;
+                _engine.PlayPsg(authenticPsg, LoopCheck.IsChecked == true);
+                StatusText.Text = $"▶ Playing Authentic Ripped AY: '{authenticPsg.Title}' ({authenticPsg.TotalFrames} frames, {authenticPsg.Duration:mm\\:ss})";
+            }
             else
             {
-                _engine.PlayTrack(track, LoopCheck.IsChecked == true);
+                _engine.Stop();
+                StatusText.Text = $"⏹ Silence: No authentic 128K audio stream extracted for '{track}'.";
             }
         }
     }
@@ -307,6 +442,104 @@ public partial class AudioStudioWindow : Window
         ResetSoloButtons();
     }
 
+    private void SfxGameBankCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (SfxGameBankCombo?.SelectedItem is ComboBoxItem item && item.Tag is string gameKey)
+        {
+            UpdateSoundboardBank(gameKey);
+        }
+    }
+
+    public void SetActiveGameFromDocument(Core.SpectrumDocument? doc)
+    {
+        if (doc == null || SfxGameBankCombo == null) return;
+        string name = doc.DisplayName;
+
+        string targetTag = "All";
+        if (name.Contains("Cybernoid", StringComparison.OrdinalIgnoreCase)) targetTag = "Cybernoid";
+        else if (name.Contains("Exolon", StringComparison.OrdinalIgnoreCase)) targetTag = "Exolon";
+        else if (name.Contains("Rex", StringComparison.OrdinalIgnoreCase)) targetTag = "Rex";
+        else if (name.Contains("Myth", StringComparison.OrdinalIgnoreCase)) targetTag = "Myth";
+
+        foreach (ComboBoxItem item in SfxGameBankCombo.Items)
+        {
+            if (string.Equals(item.Tag?.ToString(), targetTag, StringComparison.OrdinalIgnoreCase))
+            {
+                SfxGameBankCombo.SelectedItem = item;
+                break;
+            }
+        }
+    }
+
+    public void UpdateSoundboardBank(string gameKey)
+    {
+        var sfxList = ChiptuneEngine.GetSfxForGame(gameKey);
+        if (sfxList == null || sfxList.Count < 8) return;
+
+        Button[] buttons = [ Pad1Btn, Pad2Btn, Pad3Btn, Pad4Btn, Pad5Btn, Pad6Btn, Pad7Btn, Pad8Btn ];
+        TextBlock[] titles = [ Pad1Title, Pad2Title, Pad3Title, Pad4Title, Pad5Title, Pad6Title, Pad7Title, Pad8Title ];
+        TextBlock[] descs = [ Pad1Desc, Pad2Desc, Pad3Desc, Pad4Desc, Pad5Desc, Pad6Desc, Pad7Desc, Pad8Desc ];
+
+        for (int i = 0; i < 8; i++)
+        {
+            var sfx = sfxList[i];
+            var btn = buttons[i];
+            var title = titles[i];
+            var desc = descs[i];
+
+            if (btn == null || title == null || desc == null) continue;
+
+            btn.Tag = sfx.Id;
+
+            // Strip game prefix for clean pad display: e.g. "Cybernoid - Pulse Laser Blaster" -> "Pulse Laser Blaster"
+            string displayName = sfx.Name;
+            int dashIdx = displayName.IndexOf(" - ");
+            if (dashIdx >= 0) displayName = displayName.Substring(dashIdx + 3);
+
+            title.Text = $"[{i + 1}] {displayName}";
+            desc.Text = sfx.Description;
+
+            // Palette styling based on game / source
+            var (border, bg, fg) = GetGamePalette(sfx.SourceGame);
+            btn.BorderBrush = border;
+            btn.Background = bg;
+            title.Foreground = fg;
+        }
+    }
+
+    private static (Brush Border, Brush Background, Brush Foreground) GetGamePalette(string game)
+    {
+        if (game.Contains("Cybernoid", StringComparison.OrdinalIgnoreCase))
+        {
+            return (new SolidColorBrush(Color.FromRgb(0xFF, 0x40, 0x81)),
+                    new SolidColorBrush(Color.FromRgb(0x2A, 0x13, 0x20)),
+                    new SolidColorBrush(Color.FromRgb(0xFF, 0x40, 0x81)));
+        }
+        if (game.Contains("Exolon", StringComparison.OrdinalIgnoreCase))
+        {
+            return (new SolidColorBrush(Color.FromRgb(0x4E, 0xFA, 0x94)),
+                    new SolidColorBrush(Color.FromRgb(0x14, 0x2A, 0x1D)),
+                    new SolidColorBrush(Color.FromRgb(0x4E, 0xFA, 0x94)));
+        }
+        if (game.Contains("Rex", StringComparison.OrdinalIgnoreCase))
+        {
+            return (new SolidColorBrush(Color.FromRgb(0x00, 0xD2, 0xFF)),
+                    new SolidColorBrush(Color.FromRgb(0x13, 0x24, 0x38)),
+                    new SolidColorBrush(Color.FromRgb(0x00, 0xD2, 0xFF)));
+        }
+        if (game.Contains("Myth", StringComparison.OrdinalIgnoreCase))
+        {
+            return (new SolidColorBrush(Color.FromRgb(0xFF, 0x91, 0x00)),
+                    new SolidColorBrush(Color.FromRgb(0x2A, 0x1B, 0x14)),
+                    new SolidColorBrush(Color.FromRgb(0xFF, 0x91, 0x00)));
+        }
+
+        // Universal / Speccy
+        return (new SolidColorBrush(Color.FromRgb(0x4E, 0xFA, 0x94)),
+                new SolidColorBrush(Color.FromRgb(0x14, 0x2A, 0x1D)),
+                new SolidColorBrush(Color.FromRgb(0x4E, 0xFA, 0x94)));
+    }
+
     private void SfxPad_Click(object sender, RoutedEventArgs e)
     {
         if (sender is Button btn && btn.Tag is string sfxId)
@@ -346,12 +579,25 @@ public partial class AudioStudioWindow : Window
 
     private void ExportWav_Click(object sender, RoutedEventArgs e)
     {
-        string track = (TrackSelectorCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Tim Follin: Moonlight Cybercop (RoboCop & Ghouls Homage)";
+        string track = (TrackSelectorCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "RoboCop (1988) [128K] - Tim Follin";
+        PsgSong? targetPsg = (_loadedPsg != null && _loadedPsg.Title == track) ? _loadedPsg : null;
+        if (targetPsg == null && TryGetAuthenticVaultPsg(track, out var authenticPsg) && authenticPsg != null)
+        {
+            targetPsg = authenticPsg;
+            _loadedPsg = authenticPsg;
+        }
+
+        if (targetPsg == null)
+        {
+            MessageBox.Show(this, "No authentic extracted 128K audio available to export for this track.", "Audio Export", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
         string defaultName = track.Split('(')[0].Trim() + ".wav";
 
         var sfd = new SaveFileDialog
         {
-            Title = "Export Remixed Audio to Standard WAV",
+            Title = "Export Authentic 128K Audio to Standard WAV",
             Filter = "Waveform Audio File (*.wav)|*.wav",
             FileName = defaultName
         };
@@ -360,13 +606,11 @@ public partial class AudioStudioWindow : Window
         {
             try
             {
-                byte[] wav = (_loadedPsg != null && _loadedPsg.Title == track)
-                    ? _engine.GeneratePsgWav(_loadedPsg)
-                    : _engine.GenerateTrackWav(track, durationSeconds: 30);
+                byte[] wav = _engine.GeneratePsgWav(targetPsg);
 
                 File.WriteAllBytes(sfd.FileName, wav);
                 MessageBox.Show(this,
-                    $"Successfully exported 44.1kHz 16-bit WAV file!\n\nFile: {Path.GetFileName(sfd.FileName)}\nSize: {wav.Length:N0} bytes",
+                    $"Successfully exported authentic 44.1kHz 16-bit WAV file!\n\nFile: {Path.GetFileName(sfd.FileName)}\nSize: {wav.Length:N0} bytes",
                     "Audio Export Successful",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
@@ -383,6 +627,19 @@ public partial class AudioStudioWindow : Window
         try
         {
             string track = (TrackSelectorCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Chiptune";
+            PsgSong? targetPsg = (_loadedPsg != null && _loadedPsg.Title == track) ? _loadedPsg : null;
+            if (targetPsg == null && TryGetAuthenticVaultPsg(track, out var authenticPsg) && authenticPsg != null)
+            {
+                targetPsg = authenticPsg;
+                _loadedPsg = authenticPsg;
+            }
+
+            if (targetPsg == null)
+            {
+                MessageBox.Show(this, "No authentic extracted 128K chiptune available to export for this track.", "PSG Export", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
             string safeName = string.Join("_", track.Split(Path.GetInvalidFileNameChars())).Replace(" ", "_");
 
             var sfd = new SaveFileDialog
@@ -394,43 +651,11 @@ public partial class AudioStudioWindow : Window
 
             if (sfd.ShowDialog(this) == true)
             {
-                byte[] psgBytes;
-                if (_loadedPsg != null && _loadedPsg.Title == track)
-                {
-                    psgBytes = _loadedPsg.ToBytes();
-                }
-                else
-                {
-                    var frames = new List<PsgFrame>();
-                    var tempChip = new AySoundChip();
-                    tempChip.Reset();
-
-                    int totalFrames = 1500; // 30 seconds
-                    for (int f = 0; f < totalFrames; f++)
-                    {
-                        byte[] before = tempChip.GetRegisters();
-                        var method = typeof(ChiptuneEngine).GetMethod("UpdateTrackerFrame", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
-                        method?.Invoke(null, [tempChip, track, f]);
-                        byte[] after = tempChip.GetRegisters();
-
-                        var diffs = new List<(byte, byte)>();
-                        for (int r = 0; r < 14; r++)
-                        {
-                            if (f == 0 || before[r] != after[r])
-                            {
-                                diffs.Add(((byte)r, after[r]));
-                            }
-                        }
-                        frames.Add(new PsgFrame(f, diffs));
-                    }
-                    var exportedPsg = new PsgSong(track, frames);
-                    psgBytes = exportedPsg.ToBytes();
-                }
-
+                byte[] psgBytes = targetPsg.ToBytes();
                 File.WriteAllBytes(sfd.FileName, psgBytes);
                 StatusText.Text = $"💾 Exported {psgBytes.Length:N0} bytes to {Path.GetFileName(sfd.FileName)}";
                 MessageBox.Show(this,
-                    $"Successfully exported standard 50Hz .PSG chiptune file!\n\nFile: {Path.GetFileName(sfd.FileName)}\nSize: {psgBytes.Length:N0} bytes\nCompatible with Ay_Emul, Vortex Tracker, and modern DAWs.",
+                    $"Successfully exported authentic 50Hz .PSG chiptune file!\n\nFile: {Path.GetFileName(sfd.FileName)}\nSize: {psgBytes.Length:N0} bytes\nCompatible with Ay_Emul, Vortex Tracker, and modern DAWs.",
                     "PSG Export Successful",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
@@ -496,49 +721,151 @@ public partial class AudioStudioWindow : Window
             var targetDoc = ActiveDocument;
             if (targetDoc == null)
             {
-                var ofd = new OpenFileDialog
+                // Check if the currently selected sound bank matches one of the 4 reverse-engineered games in the project vault
+                string bank = (SfxGameBankCombo?.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "All";
+                string vaultPreset = bank switch
                 {
-                    Title = "Select Game Snapshot or Tape to Rip AY Audio",
-                    Filter = "Spectrum Files (*.z80;*.sna;*.tap;*.zip)|*.z80;*.sna;*.tap;*.zip|All Files (*.*)|*.*"
+                    "Cybernoid" => File.Exists(Path.Combine(Core.ProjectVaultService.Instance.ProjectsDirectory, "Cybernoid II (1988) [128K].zip"))
+                        ? Path.Combine(Core.ProjectVaultService.Instance.ProjectsDirectory, "Cybernoid II (1988) [128K].zip")
+                        : Path.Combine(Core.ProjectVaultService.Instance.ProjectsDirectory, "Cybernoid II (1988).tap"),
+                    "Exolon" => Path.Combine(Core.ProjectVaultService.Instance.ProjectsDirectory, "Exolon (1987) [128K].zip"),
+                    "Rex" => Path.Combine(Core.ProjectVaultService.Instance.ProjectsDirectory, "Rex (1988) [128K].zip"),
+                    "Myth" => Path.Combine(Core.ProjectVaultService.Instance.ProjectsDirectory, "Myth (1989) [128K].zip"),
+                    _ => ""
                 };
-                if (ofd.ShowDialog(this) != true) return;
-                targetDoc = Core.SpectrumFileParser.Open(ofd.FileName);
+
+                if (!string.IsNullOrEmpty(vaultPreset) && File.Exists(vaultPreset))
+                {
+                    targetDoc = Core.SpectrumFileParser.Open(vaultPreset);
+                }
+                else
+                {
+                    var ofd = new OpenFileDialog
+                    {
+                        Title = "Select Game Snapshot or Tape to Rip AY Audio",
+                        Filter = "Spectrum Files (*.z80;*.sna;*.tap;*.zip)|*.z80;*.sna;*.tap;*.zip|All Files (*.*)|*.*",
+                        InitialDirectory = Directory.Exists(Core.ProjectVaultService.Instance.ProjectsDirectory)
+                            ? Core.ProjectVaultService.Instance.ProjectsDirectory
+                            : null
+                    };
+                    if (ofd.ShowDialog(this) != true) return;
+                    targetDoc = Core.SpectrumFileParser.Open(ofd.FileName);
+                }
             }
 
-            var rip = AyMemoryRipper.Scan(targetDoc);
-            if (rip.Success)
-            {
-                StatusText.Text = $"🎵 Ripped: {rip.DriverName}";
-                MessageBox.Show(this,
-                    $"Authentic AY-3-8912 Audio Driver Ripped Successfully!\n\n" +
-                    $"• Game: {targetDoc.DisplayName}\n" +
-                    $"• Driver: {rip.DriverName}\n" +
-                    $"• Address: 0x{rip.DriverAddress:X4}\n" +
-                    $"• Init Address: 0x{rip.InitAddress:X4} | Play Address: 0x{rip.PlayAddress:X4}\n\n" +
-                    $"{rip.Details}\n\n" +
-                    $"Playing ripped chiptune stream directly through AY-3-8912 engine and live MIDI!",
-                    "AY Audio Ripper", MessageBoxButton.OK, MessageBoxImage.Information);
+            PerformAudioRip(targetDoc);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, "Error ripping audio: " + ex.Message, "Rip Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
 
-                if (rip.GeneratedPsg != null)
+    private void RipCurrentGameAudio_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var targetDoc = ActiveDocument;
+            if (targetDoc == null)
+            {
+                string bank = (SfxGameBankCombo?.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "All";
+                string candidate = bank switch
                 {
-                    _loadedPsg = rip.GeneratedPsg;
-                    AddAndSelectCustomTrack(_loadedPsg.Title);
-                    _engine.PlayPsg(_loadedPsg, LoopCheck.IsChecked == true);
+                    "Cybernoid" => File.Exists(Path.Combine(Core.ProjectVaultService.Instance.ProjectsDirectory, "Cybernoid II (1988) [128K].zip"))
+                        ? Path.Combine(Core.ProjectVaultService.Instance.ProjectsDirectory, "Cybernoid II (1988) [128K].zip")
+                        : Path.Combine(Core.ProjectVaultService.Instance.ProjectsDirectory, "Cybernoid II (1988).tap"),
+                    "Exolon" => Path.Combine(Core.ProjectVaultService.Instance.ProjectsDirectory, "Exolon (1987) [128K].zip"),
+                    "Rex" => Path.Combine(Core.ProjectVaultService.Instance.ProjectsDirectory, "Rex (1988) [128K].zip"),
+                    "Myth" => Path.Combine(Core.ProjectVaultService.Instance.ProjectsDirectory, "Myth (1989) [128K].zip"),
+                    _ => Path.Combine(Core.ProjectVaultService.Instance.ProjectsDirectory, "Rex (1988) [128K].zip")
+                };
+
+                if (File.Exists(candidate))
+                {
+                    targetDoc = Core.SpectrumFileParser.Open(candidate);
                 }
-                UpdateUiState();
+            }
+
+            if (targetDoc != null)
+            {
+                PerformAudioRip(targetDoc);
             }
             else
             {
-                MessageBox.Show(this,
-                    $"No standard AY-3-8912 audio driver routine was detected in {targetDoc.DisplayName}.\n\n" +
-                    $"{rip.Details}",
-                    "AY Audio Ripper", MessageBoxButton.OK, MessageBoxImage.Information);
+                RipAy_Click(sender, e);
             }
         }
         catch (Exception ex)
         {
             MessageBox.Show(this, "Error ripping audio: " + ex.Message, "Rip Failed", MessageBoxButton.OK, MessageBoxImage.Error);
         }
+    }
+
+    private void PerformAudioRip(Core.SpectrumDocument targetDoc)
+    {
+        var rip = AyMemoryRipper.Scan(targetDoc);
+        if (rip.Success)
+        {
+            StatusText.Text = $"🎵 Ripped: {rip.DriverName}";
+
+            // Auto-switch to the game's authentic sound effect bank
+            SetActiveGameFromDocument(targetDoc);
+
+            if (rip.GeneratedPsg != null)
+            {
+                LoadAndPlayPsg(rip.GeneratedPsg);
+            }
+
+            MessageBox.Show(this,
+                $"Authentic AY-3-8912 Audio & Soundboard Ripped Successfully!\n\n" +
+                $"• Game: {targetDoc.DisplayName}\n" +
+                $"• Audio Driver: {rip.DriverName}\n" +
+                $"• Driver Address: 0x{rip.DriverAddress:X4}\n" +
+                $"• Init: 0x{rip.InitAddress:X4} | Play: 0x{rip.PlayAddress:X4}\n" +
+                $"• Ripped Sound Effects: {rip.RippedSfx?.Count ?? 8} authentic AY-3-8912 effects unlocked in Soundboard!\n\n" +
+                $"{rip.Details}\n\n" +
+                $"Playing authentic ripped chiptune stream with live 50Hz register telemetry & MIDI streaming.",
+                "AY Audio Ripper", MessageBoxButton.OK, MessageBoxImage.Information);
+
+            UpdateUiState();
+        }
+        else
+        {
+            var res = MessageBox.Show(this,
+                $"No standard AY-3-8912 audio driver routine was detected in {targetDoc.DisplayName}.\n\n" +
+                $"{rip.Details}\n\n" +
+                $"Would you like to open the 128K Repository Scout to search your library for games with authentic AY music & sound effects?",
+                "AY Audio Ripper", MessageBoxButton.YesNo, MessageBoxImage.Information);
+
+            if (res == MessageBoxResult.Yes)
+            {
+                OpenChiptuneScout();
+            }
+        }
+    }
+
+    private void ScoutRepo_Click(object sender, RoutedEventArgs e)
+    {
+        OpenChiptuneScout();
+    }
+
+    private void OpenChiptuneScout()
+    {
+        var scoutWindow = new ChiptuneScoutWindow
+        {
+            Owner = this
+        };
+        scoutWindow.Show();
+    }
+
+    public void LoadAndPlayPsg(PsgSong psg)
+    {
+        if (psg == null) return;
+        _loadedPsg = psg;
+        AddAndSelectCustomTrack(psg.Title);
+        _engine.PlayPsg(psg, LoopCheck?.IsChecked == true);
+        StatusText.Text = $"▶ Playing Authentic Ripped AY: '{psg.Title}' ({psg.TotalFrames} frames, {psg.Duration:mm\\:ss})";
+        UpdateUiState();
     }
 
     private void AddAndSelectCustomTrack(string trackTitle)

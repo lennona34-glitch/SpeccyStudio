@@ -1,0 +1,357 @@
+<Window x:Class="SpeccyStudio.Z80DisassemblerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Speccy Studio — Z80 Disassembler, Code Inspector &amp; 8BitAnalyser Bridge"
+        Width="1360" Height="840" MinWidth="1020" MinHeight="640"
+        WindowStartupLocation="CenterOwner"
+        Background="#0B0F17" Foreground="#E6EDF3" FontFamily="Segoe UI">
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="64"/>
+      <RowDefinition Height="44"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="30"/>
+    </Grid.RowDefinitions>
+
+    <!-- ROW 0: TOP HEADER BAR -->
+    <Border Grid.Row="0" Background="#111722" BorderBrush="#233044" BorderThickness="0,0,0,1" Padding="16,0">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+
+        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+          <Border Background="#F59E0B" CornerRadius="6" Width="36" Height="36" Margin="0,0,12,0">
+            <TextBlock Text="Z80" Foreground="#0B0F17" FontWeight="Black" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          </Border>
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="Z80 DISASSEMBLER &amp; CODE LAB" FontWeight="Bold" FontSize="15" Foreground="#F8FAFC"/>
+            <TextBlock x:Name="SubtitleText" Text="Interactive Z80 instruction decoder · Live POKE patcher · 8BitAnalysers bridge" Foreground="#8B98A9" FontSize="11"/>
+          </StackPanel>
+        </StackPanel>
+
+        <!-- Search Box in Middle -->
+        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+          <TextBlock Text="Find:" VerticalAlignment="Center" Foreground="#8B98A9" Margin="0,0,8,0" FontSize="12"/>
+          <TextBox x:Name="SearchBox" Width="240" Padding="8,5" Background="#0D131D" Foreground="#E6EDF3" BorderBrush="#2A3A52"
+                   FontFamily="Cascadia Mono" FontSize="12" KeyDown="SearchBox_KeyDown"
+                   ToolTip="Search Z80 mnemonics (e.g. CALL, OUT ($FE), DEC (HL)), hex bytes (e.g. 21 00 5B), or symbol names"/>
+          <Button Content="🔍 Search Next" Click="SearchNext_Click" Margin="6,0,0,0" Padding="10,5" Background="#182338" Foreground="#35D0BA" BorderBrush="#35D0BA"/>
+        </StackPanel>
+
+        <!-- Right: 8BitAnalysers Bridge & Export Actions -->
+        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+          <Button x:Name="LaunchAnalyserButton" Content="🚀 Launch 8BitAnalyser (Live Trace)" Click="LaunchAnalyser_Click"
+                  Padding="12,6" Background="#2A1C08" Foreground="#FBBF24" BorderBrush="#F59E0B" FontWeight="SemiBold"
+                  ToolTip="Launch bundled SpectrumAnalyser.exe (TheGoodDoktor/8BitAnalysers) pre-configured with this game and our symbol table"/>
+          <Button Content="🔄 Sync JSON Labels" Click="SyncAnalyserLabels_Click" Margin="8,0,0,0" Padding="10,6"
+                  Background="#162234" Foreground="#38BDF8" BorderBrush="#0284C7"
+                  ToolTip="Import &amp; sync labels/comments from 8BitAnalysers Analysis.json workspace"/>
+          <Button Content="📂 Import JSON…" Click="ImportJsonFile_Click" Margin="6,0,0,0" Padding="10,6"
+                  Background="#162234" Foreground="#94A3B8" BorderBrush="#334155"
+                  ToolTip="Import labels from any 8BitAnalysers .json file"/>
+          <Button Content="📄 Export .ASM" Click="ExportAsm_Click" Margin="6,0,0,0" Padding="10,6"
+                  Background="#142922" Foreground="#42D392" BorderBrush="#10B981"
+                  ToolTip="Export annotated Z80 assembly (.asm) listing to file"/>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- ROW 1: NAVIGATION & QUICK BANK JUMPS -->
+    <Border Grid.Row="1" Background="#0E141F" BorderBrush="#1E293B" BorderThickness="0,0,0,1" Padding="16,0">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+
+        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+          <Button x:Name="BackButton" Content="◀ Back" Click="Back_Click" IsEnabled="False" Padding="8,4" Margin="0,0,4,0" ToolTip="Return to previous address before jump"/>
+          <Button x:Name="ForwardButton" Content="▶ Fwd" Click="Forward_Click" IsEnabled="False" Padding="8,4" Margin="0,0,10,0" ToolTip="Go forward in jump history"/>
+
+          <TextBlock Text="Address:" VerticalAlignment="Center" Foreground="#94A3B8" Margin="0,0,6,0" FontSize="12"/>
+          <TextBox x:Name="AddressBox" Width="90" Text="$8000" FontFamily="Cascadia Mono" FontWeight="Bold" FontSize="12"
+                   Padding="6,4" Background="#090D14" Foreground="#35D0BA" BorderBrush="#2A3A52" KeyDown="AddressBox_KeyDown"
+                   ToolTip="Enter hex ($8000 or 0x8000) or decimal (32768) Z80 address"/>
+          <Button Content="Go" Click="GoAddress_Click" Margin="4,0,10,0" Padding="8,4" Background="#1D2A42" Foreground="#35D0BA" BorderBrush="#35D0BA"/>
+
+          <Button Content="▲ -256" Click="StepMinus256_Click" Padding="7,4" Margin="0,0,3,0"/>
+          <Button Content="▲ -32" Click="StepMinus32_Click" Padding="7,4" Margin="0,0,3,0"/>
+          <Button Content="▼ +32" Click="StepPlus32_Click" Padding="7,4" Margin="0,0,3,0"/>
+          <Button Content="▼ +256" Click="StepPlus256_Click" Padding="7,4" Margin="0,0,12,0"/>
+        </StackPanel>
+
+        <!-- Quick Memory Region Buttons -->
+        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+          <TextBlock Text="Regions:" VerticalAlignment="Center" Foreground="#64748B" Margin="0,0,6,0" FontSize="11"/>
+          <Button Content="$4000 Screen" Tag="0x4000" Click="QuickRegion_Click" Padding="7,3" Margin="0,0,4,0" FontSize="11"/>
+          <Button Content="$5800 Attrs" Tag="0x5800" Click="QuickRegion_Click" Padding="7,3" Margin="0,0,4,0" FontSize="11"/>
+          <Button Content="$5B00 Buffer" Tag="0x5B00" Click="QuickRegion_Click" Padding="7,3" Margin="0,0,4,0" FontSize="11"/>
+          <Button Content="$6300 Low Code" Tag="0x6300" Click="QuickRegion_Click" Padding="7,3" Margin="0,0,4,0" FontSize="11"/>
+          <Button Content="$75E0 Tables" Tag="0x75E0" Click="QuickRegion_Click" Padding="7,3" Margin="0,0,4,0" FontSize="11"/>
+          <Button Content="$8000 Main RAM" Tag="0x8000" Click="QuickRegion_Click" Padding="7,3" Margin="0,0,4,0" FontSize="11"/>
+          <Button Content="$C000 High Bank" Tag="0xC000" Click="QuickRegion_Click" Padding="7,3" Margin="0,0,4,0" FontSize="11"/>
+        </StackPanel>
+
+        <!-- Myth Level Selector (visible when Myth is loaded) -->
+        <StackPanel x:Name="MythLevelPanel" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
+          <TextBlock Text="Myth Level RAM:" VerticalAlignment="Center" Foreground="#FBBF24" Margin="0,0,6,0" FontSize="11" FontWeight="SemiBold"/>
+          <ComboBox x:Name="MythLevelDisasmCombo" Width="170" SelectionChanged="MythLevelDisasmCombo_SelectionChanged"/>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- ROW 2: MAIN 3-COLUMN WORKSPACE -->
+    <Grid Grid.Row="2">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="300"/>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="340"/>
+      </Grid.ColumnDefinitions>
+
+      <!-- LEFT COLUMN: SYMBOLS & TRAINER POKES -->
+      <Border Grid.Column="0" Background="#101622" BorderBrush="#1E293B" BorderThickness="0,0,1,0" Padding="12">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="220"/>
+          </Grid.RowDefinitions>
+
+          <StackPanel Grid.Row="0" Margin="0,0,0,8">
+            <TextBlock Text="📍 GAME SYMBOLS &amp; MEMORY MAP" FontWeight="Bold" FontSize="11" Foreground="#35D0BA" Margin="0,0,0,6"/>
+            <TextBox x:Name="SymbolFilterBox" Padding="6,4" Background="#090D14" Foreground="#E6EDF3" BorderBrush="#26354A"
+                     FontSize="11" TextChanged="SymbolFilterBox_TextChanged"
+                     ToolTip="Filter symbols by name, address, or description"/>
+          </StackPanel>
+
+          <ListBox x:Name="SymbolsList" Grid.Row="1" Background="#0B0F17" BorderBrush="#1E293B" Foreground="#E6EDF3"
+                   SelectionChanged="SymbolsList_SelectionChanged" FontFamily="Cascadia Mono" FontSize="11">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <StackPanel Margin="2,3">
+                  <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding AddressHex}" Foreground="#FBBF24" FontWeight="Bold" Width="48"/>
+                    <TextBlock Text="{Binding Name}" Foreground="#38BDF8" FontWeight="SemiBold"/>
+                  </StackPanel>
+                  <TextBlock Text="{Binding Comment}" Foreground="#8B98A9" FontSize="10" TextWrapping="Wrap" Margin="48,1,0,0"/>
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+
+          <!-- Trainer POKEs Section -->
+          <StackPanel Grid.Row="2" Margin="0,14,0,6">
+            <TextBlock Text="⚡ 1-CLICK TRAINER &amp; LIVE POKES" FontWeight="Bold" FontSize="11" Foreground="#F59E0B"/>
+            <TextBlock Text="Select a verified patch or apply a custom Z80 POKE:" Foreground="#8B98A9" FontSize="10" Margin="0,2,0,0"/>
+          </StackPanel>
+
+          <Grid Grid.Row="3">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="*"/>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <ListBox x:Name="TrainerPokesList" Grid.Row="0" Background="#0B0F17" BorderBrush="#1E293B" Foreground="#E6EDF3"
+                     SelectionChanged="TrainerPokesList_SelectionChanged" FontSize="11">
+              <ListBox.ItemTemplate>
+                <DataTemplate>
+                  <StackPanel Margin="2,3">
+                    <TextBlock Text="{Binding Title}" Foreground="#42D392" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding PatchSummary}" Foreground="#FBBF24" FontFamily="Cascadia Mono" FontSize="10"/>
+                    <TextBlock Text="{Binding Description}" Foreground="#8B98A9" FontSize="10" TextWrapping="Wrap"/>
+                  </StackPanel>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+
+            <Button Grid.Row="1" Content="⚡ Apply Selected Trainer POKE" Click="ApplyTrainerPoke_Click" Margin="0,6,0,0"
+                    Padding="8,5" Background="#142922" Foreground="#42D392" BorderBrush="#10B981" FontWeight="SemiBold"/>
+
+            <Grid Grid.Row="2" Margin="0,6,0,0">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+              </Grid.ColumnDefinitions>
+              <TextBox x:Name="CustomPokeBox" Grid.Column="0" Text="34374,0" FontFamily="Cascadia Mono" FontSize="11"
+                       Padding="6,4" Background="#090D14" Foreground="#E6EDF3" BorderBrush="#26354A"
+                       ToolTip="Enter POKE address,value (e.g. 34374,0 or $8646,$00)"/>
+              <Button Grid.Column="1" Content="POKE" Click="ApplyCustomPoke_Click" Margin="6,0,0,0" Padding="10,4"
+                      Background="#2A1C08" Foreground="#FBBF24" BorderBrush="#F59E0B" FontWeight="Bold"/>
+            </Grid>
+          </Grid>
+        </Grid>
+      </Border>
+
+      <!-- CENTER COLUMN: INTERACTIVE Z80 DISASSEMBLY LISTING -->
+      <Grid Grid.Column="1" Background="#090D14">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="28"/>
+          <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Column Headers -->
+        <Border Grid.Row="0" Background="#131B29" BorderBrush="#1E293B" BorderThickness="0,0,0,1" Padding="12,0">
+          <Grid VerticalAlignment="Center" TextElement.FontFamily="Cascadia Mono" TextElement.FontSize="11" TextElement.FontWeight="Bold" TextElement.Foreground="#94A3B8">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="64"/>
+              <ColumnDefinition Width="56"/>
+              <ColumnDefinition Width="72"/>
+              <ColumnDefinition Width="170"/>
+              <ColumnDefinition Width="105"/>
+              <ColumnDefinition Width="175"/>
+              <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="ADDR"/>
+            <TextBlock Grid.Column="1" Text="DEC"/>
+            <TextBlock Grid.Column="2" Text="FILE"/>
+            <TextBlock Grid.Column="3" Text="LABEL"/>
+            <TextBlock Grid.Column="4" Text="BYTES"/>
+            <TextBlock Grid.Column="5" Text="Z80 MNEMONIC"/>
+            <TextBlock Grid.Column="6" Text="TARGET / COMMENT (Double-click to jump)"/>
+          </Grid>
+        </Border>
+
+        <ListBox x:Name="DisassemblyList" Grid.Row="1" Background="#090D14" BorderThickness="0" Foreground="#E6EDF3"
+                 FontFamily="Cascadia Mono" FontSize="12"
+                 SelectionChanged="DisassemblyList_SelectionChanged"
+                 MouseDoubleClick="DisassemblyList_MouseDoubleClick"
+                 VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
+          <ListBox.ItemContainerStyle>
+            <Style TargetType="ListBoxItem">
+              <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+              <Setter Property="Padding" Value="10,3"/>
+              <Setter Property="Background" Value="Transparent"/>
+              <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                  <Setter Property="Background" Value="#1E293B"/>
+                </Trigger>
+              </Style.Triggers>
+            </Style>
+          </ListBox.ItemContainerStyle>
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="64"/>
+                  <ColumnDefinition Width="56"/>
+                  <ColumnDefinition Width="72"/>
+                  <ColumnDefinition Width="170"/>
+                  <ColumnDefinition Width="105"/>
+                  <ColumnDefinition Width="175"/>
+                  <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{Binding AddressHex}" Foreground="#FBBF24" FontWeight="Bold"/>
+                <TextBlock Grid.Column="1" Text="{Binding AddressDec}" Foreground="#64748B" FontSize="11"/>
+                <TextBlock Grid.Column="2" Text="{Binding FileOffsetText}" Foreground="#475569" FontSize="11"/>
+                <TextBlock Grid.Column="3" Text="{Binding Label}" Foreground="#38BDF8" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Margin="0,0,6,0"/>
+                <TextBlock Grid.Column="4" Text="{Binding HexBytes}" Foreground="#94A3B8"/>
+                <TextBlock Grid.Column="5" Text="{Binding Mnemonic}" Foreground="#42D392" FontWeight="SemiBold"/>
+                <TextBlock Grid.Column="6" Text="{Binding Comment}" Foreground="#A78BFA" FontSize="11" TextTrimming="CharacterEllipsis"/>
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Grid>
+
+      <!-- RIGHT COLUMN: INSTRUCTION INSPECTOR, LABEL EDITOR & LIVE PATCHER -->
+      <Border Grid.Column="2" Background="#101622" BorderBrush="#1E293B" BorderThickness="1,0,0,0" Padding="14">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel>
+            <TextBlock Text="🔬 INSTRUCTION &amp; MEMORY INSPECTOR" FontWeight="Bold" FontSize="11" Foreground="#35D0BA" Margin="0,0,0,8"/>
+
+            <Border Background="#0B0F17" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,12">
+              <StackPanel>
+                <TextBlock x:Name="InspectorTitleText" Text="$8000 (32768)" FontFamily="Cascadia Mono" FontWeight="Bold" FontSize="15" Foreground="#FBBF24"/>
+                <TextBlock x:Name="InspectorMnemonicText" Text="NOP" FontFamily="Cascadia Mono" FontWeight="Bold" FontSize="14" Foreground="#42D392" Margin="0,4,0,2"/>
+                <TextBlock x:Name="InspectorMetaText" Text="File Offset: —  ·  Bytes: 00" FontFamily="Cascadia Mono" FontSize="11" Foreground="#94A3B8"/>
+                <Button x:Name="JumpTargetButton" Content="↪ Jump to Referenced Address" Click="JumpTarget_Click"
+                        Visibility="Collapsed" Margin="0,8,0,0" Padding="8,4" Background="#1D2A42" Foreground="#38BDF8" BorderBrush="#0284C7"/>
+              </StackPanel>
+            </Border>
+
+            <!-- Label & Comment Editor -->
+            <TextBlock Text="🏷️ SYMBOL &amp; ANNOTATION EDITOR" FontWeight="Bold" FontSize="11" Foreground="#38BDF8" Margin="0,0,0,6"/>
+            <Border Background="#0B0F17" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,12">
+              <StackPanel>
+                <TextBlock Text="Symbol Label Name:" Foreground="#94A3B8" FontSize="11" Margin="0,0,0,3"/>
+                <TextBox x:Name="EditLabelNameBox" FontFamily="Cascadia Mono" FontSize="12" Padding="6,4" Background="#111722" Foreground="#E6EDF3" BorderBrush="#26354A"/>
+
+                <TextBlock Text="Category:" Foreground="#94A3B8" FontSize="11" Margin="0,6,0,3"/>
+                <ComboBox x:Name="EditLabelKindBox" FontSize="11" Margin="0,0,0,6"/>
+
+                <TextBlock Text="Comment / Notes:" Foreground="#94A3B8" FontSize="11" Margin="0,2,0,3"/>
+                <TextBox x:Name="EditCommentBox" FontSize="11" Padding="6,4" Height="48" TextWrapping="Wrap" AcceptsReturn="True"
+                         Background="#111722" Foreground="#E6EDF3" BorderBrush="#26354A"/>
+
+                <Button Content="💾 Save Label &amp; Sync to 8BitAnalyser" Click="SaveSymbol_Click" Margin="0,8,0,0" Padding="8,5"
+                        Background="#162234" Foreground="#38BDF8" BorderBrush="#0284C7" FontWeight="SemiBold"/>
+              </StackPanel>
+            </Border>
+
+            <!-- Live Code Patcher -->
+            <TextBlock Text="🛠️ LIVE Z80 INSTRUCTION PATCHER" FontWeight="Bold" FontSize="11" Foreground="#F59E0B" Margin="0,0,0,6"/>
+            <Border Background="#0B0F17" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,12">
+              <StackPanel>
+                <TextBlock Text="Hex Bytes at Current Address:" Foreground="#94A3B8" FontSize="11" Margin="0,0,0,3"/>
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                  </Grid.ColumnDefinitions>
+                  <TextBox x:Name="PatchHexBytesBox" Grid.Column="0" FontFamily="Cascadia Mono" FontSize="12" Padding="6,4"
+                           Background="#111722" Foreground="#FBBF24" BorderBrush="#26354A"
+                           ToolTip="Space-separated hex bytes to write at the selected Z80 address"/>
+                  <Button Grid.Column="1" Content="✏️ Patch Bytes" Click="PatchHexBytes_Click" Margin="6,0,0,0" Padding="8,4"
+                          Background="#2A1C08" Foreground="#FBBF24" BorderBrush="#F59E0B" FontWeight="SemiBold"/>
+                </Grid>
+
+                <Grid Margin="0,8,0,0">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                  </Grid.ColumnDefinitions>
+                  <Button Grid.Column="0" Content="🛡️ NOP Instruction ($00)" Click="NopInstruction_Click" Margin="0,0,4,0" Padding="6,5"
+                          Background="#1D2A42" Foreground="#42D392" BorderBrush="#35D0BA" FontSize="11"
+                          ToolTip="Overwrite all bytes of the selected instruction with NOP ($00)"/>
+                  <Button Grid.Column="1" Content="↩️ Stub with RET ($C9)" Click="StubRetInstruction_Click" Margin="4,0,0,0" Padding="6,5"
+                          Background="#241432" Foreground="#E040FB" BorderBrush="#E040FB" FontSize="11"
+                          ToolTip="Write RET ($C9) at the selected address to immediately return from routine"/>
+                </Grid>
+              </StackPanel>
+            </Border>
+
+            <!-- Cross-Tool Actions -->
+            <Button Content="🔬 Inspect Address in Visual ROM Ripper" Click="OpenInRomRipper_Click" Margin="0,0,0,12" Padding="8,6"
+                    Background="#182338" Foreground="#35D0BA" BorderBrush="#35D0BA" FontWeight="SemiBold"
+                    ToolTip="Open Visual ROM Ripper directly at this address to view bitmaps/sprites"/>
+
+            <!-- Neighborhood Hex Dump -->
+            <TextBlock Text="📦 128-BYTE HEX &amp; ASCII DUMP" FontWeight="Bold" FontSize="11" Foreground="#94A3B8" Margin="0,0,0,6"/>
+            <Border Background="#070A0F" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="8">
+              <TextBox x:Name="HexDumpBox" IsReadOnly="True" BorderThickness="0" Background="Transparent" Foreground="#94A3B8"
+                       FontFamily="Cascadia Mono" FontSize="10.5" TextWrapping="NoWrap" AcceptsReturn="True"/>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </Border>
+    </Grid>
+
+    <!-- ROW 3: STATUS BAR -->
+    <Border Grid.Row="3" Background="#111722" BorderBrush="#233044" BorderThickness="0,1,0,0" Padding="16,0">
+      <Grid VerticalAlignment="Center">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <TextBlock x:Name="StatusText" Grid.Column="0" Text="Ready — Double-click any CALL/JP/JR instruction to follow branch target." Foreground="#94A3B8" FontSize="11"/>
+        <TextBlock x:Name="AnalyserPathStatusText" Grid.Column="1" Text="8BitAnalysers: Ready" Foreground="#42D392" FontSize="11" FontFamily="Cascadia Mono"/>
+      </Grid>
+    </Border>
+  </Grid>
+</Window>

@@ -108,63 +108,68 @@ public static class ExolonEntityCatalog
 {
     private static readonly Dictionary<byte, (string Name, string Category)> Catalog = new()
     {
-        [0x00] = ("Platform Column Base", "Structures"),
-        [0x01] = ("Platform Column Top", "Structures"),
-        [0x02] = ("Exolon Pod (Transformation)", "Interactive"),
-        [0x03] = ("Red Cratered Planet", "Scenery"),
-        [0x04] = ("Magenta Moonlet", "Scenery"),
+        [0x00] = ("Yellow Hatch Block", "Structures"),
+        [0x01] = ("Pod Machinery Cap", "Structures"),
+        [0x02] = ("Landing Craft", "Interactive"),
+        [0x03] = ("Red Planet", "Scenery"),
+        [0x04] = ("Magenta Moon", "Scenery"),
         [0x05] = ("Swivel Gun Turret", "Enemies"),
-        [0x06] = ("Heavy Base Pillar", "Structures"),
-        [0x07] = ("Heavy Base Turret", "Enemies"),
-        [0x0A] = ("Hazard Mesh Floor", "Hazards"),
-        [0x0B] = ("Pod Support Columns", "Structures"),
-        [0x0C] = ("Energy Barrier / Laser", "Hazards"),
-        [0x0D] = ("Alien Rock Formation", "Scenery"),
-        [0x0E] = ("Solid Sub-Floor", "Structures"),
-        [0x0F] = ("Radar Dish Scanner", "Interactive"),
-        [0x10] = ("Launch Rocket / Missile", "Enemies"),
-        [0x11] = ("Alien Monolith (Cyan)", "Structures"),
-        [0x13] = ("Alien Monolith (Green)", "Structures"),
-        [0x14] = ("Ammo / Grenade Canister", "Interactive"),
-        [0x15] = ("Floating Spore / Mine", "Hazards"),
-        [0x16] = ("Underground Minefield", "Hazards"),
-        [0x17] = ("Raised Green Walkway", "Structures"),
-        [0x18] = ("Green Walkway Pillar", "Structures"),
-        [0x19] = ("Upper Platform Rail", "Structures"),
-        [0x1A] = ("Ground Defense Bunker", "Enemies"),
-        [0x1B] = ("Turret Pedestal", "Structures"),
-        [0x1C] = ("Alien Column / Arch", "Structures"),
-        [0x1D] = ("Alien Wall Inscription", "Scenery"),
-        [0x1E] = ("Green Moon / Satellite", "Scenery"),
-        [0x1F] = ("Stalactite / Spire", "Hazards"),
-        [0x20] = ("Stalagmite / Spire Base", "Hazards"),
-        [0x21] = ("Platform Walkway Rail", "Structures"),
-        [0x22] = ("Walkway Section", "Structures"),
-        [0x23] = ("Ceiling Defense Turret", "Enemies"),
-        [0x24] = ("Twin Rocket Silo", "Enemies"),
-        [0x25] = ("Energy Generator Pod", "Interactive"),
-        [0x26] = ("Hazard Lava Pool", "Hazards"),
-        [0x27] = ("Platform Strut", "Structures"),
-        [0x28] = ("Alien Crystal Pod", "Scenery"),
-        [0x29] = ("Energy Conduit", "Structures"),
-        [0x2A] = ("Zone Beacon (Finish)", "Interactive"),
-        [0x2B] = ("Zone Gate Column", "Structures"),
-        [0x2C] = ("High-Voltage Relay", "Hazards"),
-        [0x2D] = ("Ground Relay Node", "Hazards"),
-        [0x2E] = ("Plasma Emitter", "Enemies"),
-        [0x2F] = ("Star Cluster / Nebula", "Scenery"),
-        [0x30] = ("Alien Fortress Wall", "Structures"),
-        [0x31] = ("Fortress Battlement", "Structures"),
-        [0x32] = ("Fortress Gateway", "Structures"),
-        [0x33] = ("Heavy Defense Cannon", "Enemies"),
-        [0x34] = ("Slime Trap / Acid Pit", "Hazards"),
-        [0x35] = ("Alien Tendril Trap", "Hazards"),
-        [0x36] = ("Zone Boundary Marker", "Structures"),
-        [0x37] = ("Upper Ceiling Girders", "Structures"),
-        [0x3A] = ("Surface Cannon", "Enemies"),
-        [0x3B] = ("Missile Battery", "Enemies"),
-        [0x3C] = ("Acid Swamp Basin", "Hazards"),
-        [0x3D] = ("Swamp Platform Rail", "Structures")
+        [0x06] = ("Red Rock Block A", "Structures"),
+        [0x07] = ("Red Rock Block B", "Structures"),
+        [0x08] = ("Red Rock Block C", "Structures"),
+        [0x09] = ("Red Rock Block D", "Structures"),
+        [0x0A] = ("Red Rock Floor Strip", "Structures"),
+        [0x0B] = ("Landing Gantry", "Structures"),
+        [0x0C] = ("Laser Bolt", "Hazards"),
+        [0x0D] = ("Yellow Alien Rock", "Scenery"),
+        [0x0E] = ("Red Rock Sub-Floor Strip", "Structures"),
+        [0x0F] = ("Radar Dish", "Interactive"),
+        [0x10] = ("Ground Missile", "Enemies"),
+        [0x11] = ("Cyan Alien Gateway", "Structures"),
+        [0x12] = ("Grey Canister", "Interactive"),
+        [0x13] = ("White Canister", "Interactive"),
+        [0x14] = ("Yellow Canister", "Interactive"),
+        [0x15] = ("Cyan Ring Teleporter", "Interactive"),
+        [0x16] = ("Hidden Hazard Marker (no art)", "Hazards"),
+        [0x17] = ("Green Walkway Strip", "Structures"),
+        [0x18] = ("White Stone Pillar", "Structures"),
+        [0x19] = ("Green Support Pillar", "Structures"),
+        [0x1A] = ("Twin-Barrel Bunker", "Enemies"),
+        [0x1B] = ("Magenta Rock Pillar", "Structures"),
+        [0x1C] = ("Ceiling Pod Dropper", "Enemies"),
+        [0x1D] = ("Magenta Capsule Tower", "Structures"),
+        [0x1E] = ("Green Moon", "Scenery"),
+        [0x1F] = ("Spiked Mine", "Hazards"),
+        [0x20] = ("Silver-Tip Pylon", "Structures"),
+        [0x21] = ("Yellow Rail Strip", "Structures"),
+        [0x22] = ("Yellow Block Column", "Structures"),
+        [0x23] = ("Yellow Moon", "Scenery"),
+        [0x24] = ("Magenta-Red Moon", "Scenery"),
+        [0x25] = ("Cyan Moon", "Scenery"),
+        [0x26] = ("Grey Girder Strip", "Structures"),
+        [0x27] = ("Hidden Platform Marker (no art)", "Structures"),
+        [0x28] = ("Green Ore Urn", "Interactive"),
+        [0x29] = ("Red Rock Heap", "Scenery"),
+        [0x2A] = ("Twin Beacon Gate (Zone Exit)", "Interactive"),
+        [0x2B] = ("Green Switch Post", "Interactive"),
+        [0x2C] = ("Wall Cannon (Grey)", "Enemies"),
+        [0x2D] = ("Wall Cannon (Green)", "Enemies"),
+        [0x2E] = ("Green Mushroom Tree", "Scenery"),
+        [0x2F] = ("Yellow Stone Door", "Structures"),
+        [0x30] = ("Diagonal Strut (rising)", "Structures"),
+        [0x31] = ("Diagonal Strut (falling)", "Structures"),
+        [0x32] = ("Tall Yellow Block Column", "Structures"),
+        [0x33] = ("Twin Plasma Cannons", "Enemies"),
+        [0x34] = ("Yellow Circuit Strip", "Structures"),
+        [0x35] = ("Cyan Door Panel", "Structures"),
+        [0x36] = ("Green Circuit Strip", "Structures"),
+        [0x37] = ("Short Yellow Rail", "Structures"),
+        [0x38] = ("Cyan Rock Block A", "Scenery"),
+        [0x39] = ("Cyan Rock Block B", "Scenery"),
+        [0x3A] = ("Cyan Rock Block C", "Scenery"),
+        [0x3B] = ("Cyan Rock Block D", "Scenery"),
+        [0x3C] = ("Cyan Rock Strip", "Structures"),
+        [0x3D] = ("Cyan Rock Sub-Floor Strip", "Structures")
     };
 
     private static readonly Dictionary<byte, (int Width, int Height)> Dimensions = new()
@@ -186,35 +191,9 @@ public static class ExolonEntityCatalog
         [0x3D] = (32, 3)
     };
 
-    private static readonly Dictionary<byte, byte> VerticalCounterparts = new()
-    {
-        [0x05] = 0x23, // Swivel Gun Turret (ground) <-> Ceiling Defense Turret
-        [0x23] = 0x05,
-        [0x00] = 0x01, // Platform Column Base <-> Platform Column Top
-        [0x01] = 0x00,
-        [0x1F] = 0x20, // Stalactite (ceiling spire) <-> Stalagmite (ground spire)
-        [0x20] = 0x1F,
-        [0x2C] = 0x2D, // High-Voltage Relay (ceiling) <-> Ground Relay Node
-        [0x2D] = 0x2C,
-        [0x18] = 0x17, // Green Walkway Pillar <-> Raised Green Walkway
-        [0x17] = 0x18,
-        [0x06] = 0x07, // Heavy Base Pillar <-> Heavy Base Turret
-        [0x07] = 0x06,
-        [0x11] = 0x13, // Alien Monolith (Cyan) <-> Alien Monolith (Green)
-        [0x13] = 0x11,
-        [0x03] = 0x04, // Red Cratered Planet <-> Magenta Moonlet
-        [0x04] = 0x03,
-        [0x0B] = 0x27, // Pod Support Columns <-> Platform Strut
-        [0x27] = 0x0B,
-        [0x30] = 0x31, // Alien Fortress Wall <-> Fortress Battlement
-        [0x31] = 0x30,
-        [0x15] = 0x16, // Floating Spore / Mine <-> Underground Minefield
-        [0x16] = 0x15,
-        [0x24] = 0x10, // Twin Rocket Silo <-> Launch Rocket / Missile
-        [0x10] = 0x24,
-        [0x3A] = 0x3B, // Surface Cannon <-> Missile Battery
-        [0x3B] = 0x3A
-    };
+    // Names come from the art the game's tile-scripts actually draw (see level-lab/exolon/exolon-type-sheet.png).
+    // No Exolon type has a true upside-down twin, so Flip V falls back to mirroring the row.
+    private static readonly Dictionary<byte, byte> VerticalCounterparts = new();
 
     public static byte? GetVerticalCounterpart(byte typeId)
     {
@@ -224,8 +203,22 @@ public static class ExolonEntityCatalog
     public static string GetName(byte typeId) => Catalog.TryGetValue(typeId, out var val) ? val.Name : $"Entity ${typeId:X2}";
     public static string GetCategory(byte typeId) => Catalog.TryGetValue(typeId, out var val) ? val.Category : "Custom";
 
+    /// <summary>
+    /// Footprint of a type relative to its (row, col) anchor. Engine types use the real tile-script extents
+    /// (which can start left of / above the anchor); everything else falls back to the catalog dimensions.
+    /// </summary>
+    public static (int DeltaCol, int DeltaRow, int Width, int Height) GetFootprint(byte typeId)
+    {
+        var bounds = ExolonEngine.GetTypeBounds(typeId);
+        if (bounds is { } b) return (b.DeltaCol, b.DeltaRow, b.WidthCells, b.HeightCells);
+        var (w, h) = GetDimensions(typeId);
+        return (0, 0, w, h);
+    }
+
     public static (int Width, int Height) GetDimensions(byte typeId)
     {
+        var engineBounds = ExolonEngine.GetTypeBounds(typeId);
+        if (engineBounds is { } eb) return (eb.WidthCells, eb.HeightCells);
         if (Dimensions.TryGetValue(typeId, out var dim)) return dim;
         var sprite = ExolonSpriteAtlas.GetSprite(typeId);
         if (sprite != null) return (Math.Max(1, sprite.PixelWidth / 8), Math.Max(1, sprite.PixelHeight / 8));

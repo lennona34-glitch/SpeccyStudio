@@ -26,12 +26,12 @@
         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
           <TextBlock Text="🎵 " FontSize="18" VerticalAlignment="Center" Margin="0,0,4,0"/>
           <TextBlock Text="Soundtrack:" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" FontSize="12" Margin="0,0,8,0"/>
-          <ComboBox x:Name="TrackSelectorCombo" Width="320" SelectionChanged="TrackSelector_SelectionChanged">
-            <ComboBoxItem Content="Tim Follin: Moonlight Cybercop (RoboCop &amp; Ghouls Homage)" IsSelected="True"/>
-            <ComboBoxItem Content="Myth: History in the Making (Main Theme)"/>
-            <ComboBoxItem Content="Rex (Neon Infiltration Theme)"/>
-            <ComboBoxItem Content="Cybernoid II: The Revenge (Space Armada)"/>
-            <ComboBoxItem Content="Exolon (Frontier Recon Battle)"/>
+          <ComboBox x:Name="TrackSelectorCombo" Width="330" SelectionChanged="TrackSelector_SelectionChanged">
+            <ComboBoxItem Content="RoboCop (1988) [128K] - Tim Follin" IsSelected="True"/>
+            <ComboBoxItem Content="Cybernoid II: The Revenge (1988) [128K] - J. Dave Rogers"/>
+            <ComboBoxItem Content="Exolon (1987) [128K] - Nick Jones"/>
+            <ComboBoxItem Content="Rex (1988) [128K] - Jeroen Tel"/>
+            <ComboBoxItem Content="Myth: History in the Making (1989) [128K] - System 3"/>
           </ComboBox>
 
           <Button x:Name="PlayButton" Content="▶ Play" Click="Play_Click" Width="68" Margin="8,0,0,0" Background="#1D4A32" Foreground="#4EFA94" FontWeight="Bold"/>
@@ -39,7 +39,8 @@
 
           <CheckBox x:Name="LoopCheck" Content="Loop" IsChecked="True" VerticalAlignment="Center" Margin="8,0,0,0" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold"/>
           <Button x:Name="LoadAyBtn" Content="📂 Load .AY/.PSG" Click="LoadAy_Click" Margin="8,0,0,0" Padding="8,4" Background="#1A2D42" Foreground="#00D2FF" ToolTip="Load external .AY (ZXAY EMUL) or .PSG chiptune file into player"/>
-          <Button x:Name="RipAyBtn" Content="🎵 Rip AY Music" Click="RipAy_Click" Margin="4,0,0,0" Padding="8,4" Background="#2E1A47" Foreground="#E040FB" ToolTip="Rip authentic AY sound drivers directly from current loaded game snapshot (e.g. RoboCop, Cybernoid II, Rex, Myth, Exolon)"/>
+          <Button x:Name="RipAyBtn" Content="🎵 Rip AY Audio" Click="RipAy_Click" Margin="4,0,0,0" Padding="8,4" Background="#2E1A47" Foreground="#E040FB" ToolTip="Rip authentic AY-3-8912 music and sound effect routines directly from current loaded game snapshot (Cybernoid II, Exolon, Rex, Myth)"/>
+          <Button x:Name="ScoutRepoBtn" Content="🔍 Scout 128K Repository" Click="ScoutRepo_Click" Margin="4,0,0,0" Padding="8,4" Background="#0C3B4E" Foreground="#00D2FF" FontWeight="SemiBold" ToolTip="Scan massive repositories/vaults for all 128K AY music and sound effect routines"/>
         </StackPanel>
 
         <!-- Center: Position Slider & Time Display -->
@@ -260,6 +261,7 @@
             <Grid.RowDefinitions>
               <RowDefinition Height="Auto"/>
               <RowDefinition Height="Auto"/>
+              <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
             <Grid Grid.Row="0" Margin="0,0,0,6">
@@ -267,61 +269,81 @@
               <TextBlock Text="Press Keys [1]–[8] to fire" HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
             </Grid>
 
+            <!-- Game Sound Bank Selector Bar -->
+            <Border Grid.Row="1" Background="#101826" CornerRadius="6" Padding="6,4" Margin="0,0,0,8" BorderBrush="#1E2D44" BorderThickness="1">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="Auto"/>
+                  <ColumnDefinition Width="*"/>
+                  <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Game Sound Bank:" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource MutedBrush}" Margin="0,0,8,0"/>
+                <ComboBox x:Name="SfxGameBankCombo" Grid.Column="1" SelectionChanged="SfxGameBankCombo_SelectionChanged" FontSize="11">
+                  <ComboBoxItem Content="Cybernoid II: The Revenge (8 SFX)" Tag="Cybernoid"/>
+                  <ComboBoxItem Content="Exolon [128K] (8 SFX)" Tag="Exolon"/>
+                  <ComboBoxItem Content="Rex [128K] (8 SFX)" Tag="Rex"/>
+                  <ComboBoxItem Content="Myth: History in the Making (8 SFX)" Tag="Myth"/>
+                  <ComboBoxItem Content="All Games / Highlights Bank" Tag="All" IsSelected="True"/>
+                </ComboBox>
+                <Button x:Name="RipCurrentGameAudioBtn" Grid.Column="2" Content="⚡ Rip Current" Click="RipCurrentGameAudio_Click" Margin="8,0,0,0" Padding="8,2" Background="#2E1A47" Foreground="#E040FB" FontSize="10" ToolTip="Quick-rip authentic music &amp; SFX from currently loaded project or selected game"/>
+              </Grid>
+            </Border>
+
             <!-- 8 Trigger Pads (2x4 Grid) -->
-            <UniformGrid Grid.Row="1" Columns="2" Rows="4">
-              <Button x:Name="Pad1Btn" Tag="SFX_REX_01" Click="SfxPad_Click" Height="50" Margin="3,2" Background="#132438" BorderBrush="#00D2FF" BorderThickness="1" HorizontalContentAlignment="Left" Padding="8,2">
+            <UniformGrid Grid.Row="2" Columns="2" Rows="4">
+              <Button x:Name="Pad1Btn" Tag="SFX_REX_01" Click="SfxPad_Click" Height="48" Margin="3,2" Background="#132438" BorderBrush="#00D2FF" BorderThickness="1" HorizontalContentAlignment="Left" Padding="8,2">
                 <StackPanel>
-                  <TextBlock Text="[1] Rex Plasma Blast" FontWeight="Bold" Foreground="#00D2FF" FontSize="11"/>
-                  <TextBlock Text="Heavy cannon discharge with muzzle crackle" FontSize="9.5" Foreground="{StaticResource MutedBrush}"/>
+                  <TextBlock x:Name="Pad1Title" Text="[1] Rex Plasma Blast" FontWeight="Bold" Foreground="#00D2FF" FontSize="11"/>
+                  <TextBlock x:Name="Pad1Desc" Text="Heavy cannon discharge with muzzle crackle" FontSize="9.5" Foreground="{StaticResource MutedBrush}"/>
                 </StackPanel>
               </Button>
 
-              <Button x:Name="Pad2Btn" Tag="SFX_REX_02" Click="SfxPad_Click" Height="50" Margin="3,2" Background="#132438" BorderBrush="#00D2FF" BorderThickness="1" HorizontalContentAlignment="Left" Padding="8,2">
+              <Button x:Name="Pad2Btn" Tag="SFX_REX_02" Click="SfxPad_Click" Height="48" Margin="3,2" Background="#132438" BorderBrush="#00D2FF" BorderThickness="1" HorizontalContentAlignment="Left" Padding="8,2">
                 <StackPanel>
-                  <TextBlock Text="[2] Rex Jet Thruster" FontWeight="Bold" Foreground="#00D2FF" FontSize="11"/>
-                  <TextBlock Text="Dual-nozzle vertical jump ascent" FontSize="9.5" Foreground="{StaticResource MutedBrush}"/>
+                  <TextBlock x:Name="Pad2Title" Text="[2] Rex Jet Thruster" FontWeight="Bold" Foreground="#00D2FF" FontSize="11"/>
+                  <TextBlock x:Name="Pad2Desc" Text="Dual-nozzle vertical jump ascent" FontSize="9.5" Foreground="{StaticResource MutedBrush}"/>
                 </StackPanel>
               </Button>
 
-              <Button x:Name="Pad3Btn" Tag="SFX_REX_03" Click="SfxPad_Click" Height="50" Margin="3,2" Background="#132438" BorderBrush="#00D2FF" BorderThickness="1" HorizontalContentAlignment="Left" Padding="8,2">
+              <Button x:Name="Pad3Btn" Tag="SFX_REX_03" Click="SfxPad_Click" Height="48" Margin="3,2" Background="#132438" BorderBrush="#00D2FF" BorderThickness="1" HorizontalContentAlignment="Left" Padding="8,2">
                 <StackPanel>
-                  <TextBlock Text="[3] Rex Shield Deflect" FontWeight="Bold" Foreground="#00D2FF" FontSize="11"/>
-                  <TextBlock Text="High-frequency oscillating barrier ring" FontSize="9.5" Foreground="{StaticResource MutedBrush}"/>
+                  <TextBlock x:Name="Pad3Title" Text="[3] Rex Shield Deflect" FontWeight="Bold" Foreground="#00D2FF" FontSize="11"/>
+                  <TextBlock x:Name="Pad3Desc" Text="High-frequency oscillating barrier ring" FontSize="9.5" Foreground="{StaticResource MutedBrush}"/>
                 </StackPanel>
               </Button>
 
-              <Button x:Name="Pad4Btn" Tag="SFX_MYTH_01" Click="SfxPad_Click" Height="50" Margin="3,2" Background="#2A1B14" BorderBrush="#FF9100" BorderThickness="1" HorizontalContentAlignment="Left" Padding="8,2">
+              <Button x:Name="Pad4Btn" Tag="SFX_MYTH_01" Click="SfxPad_Click" Height="48" Margin="3,2" Background="#2A1B14" BorderBrush="#FF9100" BorderThickness="1" HorizontalContentAlignment="Left" Padding="8,2">
                 <StackPanel>
-                  <TextBlock Text="[4] Myth Broadsword" FontWeight="Bold" Foreground="#FF9100" FontSize="11"/>
-                  <TextBlock Text="Barbarian heavy execution slash" FontSize="9.5" Foreground="{StaticResource MutedBrush}"/>
+                  <TextBlock x:Name="Pad4Title" Text="[4] Myth Broadsword" FontWeight="Bold" Foreground="#FF9100" FontSize="11"/>
+                  <TextBlock x:Name="Pad4Desc" Text="Barbarian heavy execution slash" FontSize="9.5" Foreground="{StaticResource MutedBrush}"/>
                 </StackPanel>
               </Button>
 
-              <Button x:Name="Pad5Btn" Tag="SFX_MYTH_02" Click="SfxPad_Click" Height="50" Margin="3,2" Background="#2A1B14" BorderBrush="#FF9100" BorderThickness="1" HorizontalContentAlignment="Left" Padding="8,2">
+              <Button x:Name="Pad5Btn" Tag="SFX_MYTH_02" Click="SfxPad_Click" Height="48" Margin="3,2" Background="#2A1B14" BorderBrush="#FF9100" BorderThickness="1" HorizontalContentAlignment="Left" Padding="8,2">
                 <StackPanel>
-                  <TextBlock Text="[5] Myth Bone Clatter" FontWeight="Bold" Foreground="#FF9100" FontSize="11"/>
-                  <TextBlock Text="Rattling skeleton warrior marching" FontSize="9.5" Foreground="{StaticResource MutedBrush}"/>
+                  <TextBlock x:Name="Pad5Title" Text="[5] Myth Bone Clatter" FontWeight="Bold" Foreground="#FF9100" FontSize="11"/>
+                  <TextBlock x:Name="Pad5Desc" Text="Rattling skeleton warrior marching" FontSize="9.5" Foreground="{StaticResource MutedBrush}"/>
                 </StackPanel>
               </Button>
 
-              <Button x:Name="Pad6Btn" Tag="SFX_MYTH_03" Click="SfxPad_Click" Height="50" Margin="3,2" Background="#2A1B14" BorderBrush="#FF9100" BorderThickness="1" HorizontalContentAlignment="Left" Padding="8,2">
+              <Button x:Name="Pad6Btn" Tag="SFX_MYTH_03" Click="SfxPad_Click" Height="48" Margin="3,2" Background="#2A1B14" BorderBrush="#FF9100" BorderThickness="1" HorizontalContentAlignment="Left" Padding="8,2">
                 <StackPanel>
-                  <TextBlock Text="[6] Myth Petrify Ray" FontWeight="Bold" Foreground="#FF9100" FontSize="11"/>
-                  <TextBlock Text="Gorgon supernatural oscillating hum" FontSize="9.5" Foreground="{StaticResource MutedBrush}"/>
+                  <TextBlock x:Name="Pad6Title" Text="[6] Myth Petrify Ray" FontWeight="Bold" Foreground="#FF9100" FontSize="11"/>
+                  <TextBlock x:Name="Pad6Desc" Text="Gorgon supernatural oscillating hum" FontSize="9.5" Foreground="{StaticResource MutedBrush}"/>
                 </StackPanel>
               </Button>
 
-              <Button x:Name="Pad7Btn" Tag="SFX_CYB_01" Click="SfxPad_Click" Height="50" Margin="3,2" Background="#2A1320" BorderBrush="#FF4081" BorderThickness="1" HorizontalContentAlignment="Left" Padding="8,2">
+              <Button x:Name="Pad7Btn" Tag="SFX_CYB_01" Click="SfxPad_Click" Height="48" Margin="3,2" Background="#2A1320" BorderBrush="#FF4081" BorderThickness="1" HorizontalContentAlignment="Left" Padding="8,2">
                 <StackPanel>
-                  <TextBlock Text="[7] Cybernoid Smart Bomb" FontWeight="Bold" Foreground="#FF4081" FontSize="11"/>
-                  <TextBlock Text="Screen shockwave detonation" FontSize="9.5" Foreground="{StaticResource MutedBrush}"/>
+                  <TextBlock x:Name="Pad7Title" Text="[7] Cybernoid Smart Bomb" FontWeight="Bold" Foreground="#FF4081" FontSize="11"/>
+                  <TextBlock x:Name="Pad7Desc" Text="Screen shockwave detonation" FontSize="9.5" Foreground="{StaticResource MutedBrush}"/>
                 </StackPanel>
               </Button>
 
-              <Button x:Name="Pad8Btn" Tag="SFX_SPEC_01" Click="SfxPad_Click" Height="50" Margin="3,2" Background="#142A1D" BorderBrush="#4EFA94" BorderThickness="1" HorizontalContentAlignment="Left" Padding="8,2">
+              <Button x:Name="Pad8Btn" Tag="SFX_SPEC_01" Click="SfxPad_Click" Height="48" Margin="3,2" Background="#142A1D" BorderBrush="#4EFA94" BorderThickness="1" HorizontalContentAlignment="Left" Padding="8,2">
                 <StackPanel>
-                  <TextBlock Text="[8] Speccy 1UP Chime" FontWeight="Bold" Foreground="#4EFA94" FontSize="11"/>
-                  <TextBlock Text="Major ascending extra life bonus" FontSize="9.5" Foreground="{StaticResource MutedBrush}"/>
+                  <TextBlock x:Name="Pad8Title" Text="[8] Speccy 1UP Chime" FontWeight="Bold" Foreground="#4EFA94" FontSize="11"/>
+                  <TextBlock x:Name="Pad8Desc" Text="Major ascending extra life bonus" FontSize="9.5" Foreground="{StaticResource MutedBrush}"/>
                 </StackPanel>
               </Button>
             </UniformGrid>

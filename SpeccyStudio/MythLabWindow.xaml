@@ -1,0 +1,131 @@
+<Window x:Class="SpeccyStudio.MythLabWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Myth Level Lab — Speccy Studio"
+        Width="1460" Height="820" MinWidth="1200" MinHeight="700"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BackgroundBrush}"
+        PreviewKeyDown="Window_PreviewKeyDown">
+  <Grid Margin="14">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+
+    <!-- Header -->
+    <Border Grid.Row="0" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,0,0,10">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <StackPanel Grid.Column="0">
+          <TextBlock x:Name="TitleText" Text="🏛 Myth Level Lab" FontSize="17" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}"/>
+          <TextBlock x:Name="SubtitleText" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,2,0,0"/>
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+          <Button x:Name="OpenButton" Content="Open Myth TAP…" Click="Open_Click"/>
+          <Button x:Name="UndoButton" Content="↶ Undo" Click="Undo_Click" ToolTip="Undo the last tile edit (Ctrl+Z)"/>
+          <Button x:Name="PlayButton" Content="▶ Playtest (F5)" Click="Play_Click" ToolTip="Launch this Myth tape in the emulator (F5)"/>
+          <Button x:Name="SaveAsButton" Content="💾 Save as…" Click="SaveAs_Click" Style="{StaticResource PrimaryButton}" Margin="0" ToolTip="Write an edited copy. The source tape is never overwritten."/>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Body -->
+    <Grid Grid.Row="1">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="230"/>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="330"/>
+      </Grid.ColumnDefinitions>
+
+      <!-- Levels and areas -->
+      <Border Grid.Column="0" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="8" Margin="0,0,10,0">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Top" Text="LEVEL" Foreground="{StaticResource MutedBrush}" FontSize="11" FontWeight="SemiBold" Margin="2,0,0,4"/>
+          <ComboBox DockPanel.Dock="Top" x:Name="LevelCombo" SelectionChanged="LevelCombo_SelectionChanged" Margin="0,0,0,10"/>
+          <TextBlock DockPanel.Dock="Top" Text="AREAS" Foreground="{StaticResource MutedBrush}" FontSize="11" FontWeight="SemiBold" Margin="2,0,0,4"/>
+          <ListBox x:Name="AreaList" SelectionChanged="AreaList_SelectionChanged" FontFamily="Cascadia Mono" FontSize="11" DockPanel.Dock="Top" MaxHeight="260"/>
+          <Border DockPanel.Dock="Top" Margin="0,10,0,0" Padding="8" Background="#0F1520" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="5">
+            <TextBlock x:Name="InfoText" Foreground="{StaticResource MutedBrush}" FontSize="11" TextWrapping="Wrap"/>
+          </Border>
+        </DockPanel>
+      </Border>
+
+      <!-- Area view -->
+      <Border Grid.Column="1" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,10,0">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+            <RadioButton x:Name="ToolTilesRadio" Content="🧱 Tiles" IsChecked="True" GroupName="MythTool" Foreground="{StaticResource TextBrush}" Margin="0,0,14,0" Checked="Tool_Changed" ToolTip="Left click / drag paints the selected metatile, right click picks one"/>
+            <RadioButton x:Name="ToolObjectsRadio" Content="📦 Objects" GroupName="MythTool" Foreground="{StaticResource TextBrush}" Margin="0,0,20,0" Checked="Tool_Changed" ToolTip="Click an object to select it, drag to move it"/>
+            <CheckBox x:Name="GridCheck" Content="Metatile grid" Foreground="{StaticResource TextBrush}" Margin="0,0,12,0" Checked="View_Changed" Unchecked="View_Changed" VerticalAlignment="Center"/>
+            <CheckBox x:Name="ScreensCheck" Content="14×9 screen guides" IsChecked="True" Foreground="{StaticResource TextBrush}" Margin="0,0,12,0" Checked="View_Changed" Unchecked="View_Changed" VerticalAlignment="Center"
+                      ToolTip="Dashed frames show one game screen (14 x 9 metatiles) starting at the area's start position"/>
+            <CheckBox x:Name="ObjectsCheck" Content="Objects" IsChecked="True" Foreground="{StaticResource TextBrush}" Margin="0,0,14,0" Checked="View_Changed" Unchecked="View_Changed" VerticalAlignment="Center"/>
+            <TextBlock Text="Zoom" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+            <ComboBox x:Name="ZoomCombo" Width="70" SelectedIndex="1" SelectionChanged="Zoom_Changed">
+              <ComboBoxItem Content="1×"/>
+              <ComboBoxItem Content="2×"/>
+              <ComboBoxItem Content="3×"/>
+            </ComboBox>
+          </StackPanel>
+          <ScrollViewer x:Name="ViewScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="Black">
+            <Grid x:Name="AreaHost" HorizontalAlignment="Left" VerticalAlignment="Top" Background="Black" Cursor="Cross"
+                  MouseLeftButtonDown="Area_MouseDown" MouseRightButtonDown="Area_RightDown" MouseMove="Area_MouseMove" MouseLeftButtonUp="Area_MouseUp">
+              <Image x:Name="AreaImage" Stretch="Fill" RenderOptions.BitmapScalingMode="NearestNeighbor" IsHitTestVisible="False"/>
+              <Canvas x:Name="OverlayCanvas" IsHitTestVisible="False"/>
+            </Grid>
+          </ScrollViewer>
+        </DockPanel>
+      </Border>
+
+      <!-- Right panel -->
+      <Border Grid.Column="2" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="8">
+        <TabControl x:Name="RightTabs">
+          <TabItem Header="Tiles">
+            <DockPanel Margin="0,8,0,0">
+              <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
+                <TextBlock Text="Brush:" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <Image x:Name="BrushImage" Width="32" Height="32" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                <TextBlock x:Name="BrushText" VerticalAlignment="Center" Margin="8,0,0,0" FontFamily="Cascadia Mono" Foreground="{StaticResource TextBrush}"/>
+              </StackPanel>
+              <TextBlock DockPanel.Dock="Top" x:Name="PackText" Foreground="{StaticResource MutedBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,6"/>
+              <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <WrapPanel x:Name="PalettePanel"/>
+              </ScrollViewer>
+            </DockPanel>
+          </TabItem>
+          <TabItem Header="Objects">
+            <DockPanel Margin="0,8,0,0">
+              <TextBlock DockPanel.Dock="Top" x:Name="ObjectBudgetText" Foreground="{StaticResource MutedBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,6"/>
+              <ListBox DockPanel.Dock="Top" x:Name="ObjectList" Height="230" SelectionChanged="ObjectList_SelectionChanged" FontFamily="Cascadia Mono" FontSize="11"/>
+              <WrapPanel DockPanel.Dock="Top" Margin="0,8,0,0">
+                <Button Content="＋ Add" Click="ObjectAdd_Click" Padding="9,4"/>
+                <Button Content="🗑 Delete" Click="ObjectDelete_Click" Padding="9,4"/>
+              </WrapPanel>
+              <Grid DockPanel.Dock="Top" Margin="0,8,0,0">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="60"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                <TextBlock Text="Type" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/>
+                <TextBox Grid.Column="1" x:Name="ObjTypeBox" Margin="0,2" LostFocus="ObjField_Changed" KeyDown="Box_KeyDown"/>
+                <TextBlock Grid.Row="1" Text="X (chars)" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="1" Grid.Column="1" x:Name="ObjXBox" Margin="0,2" LostFocus="ObjField_Changed" KeyDown="Box_KeyDown"/>
+                <TextBlock Grid.Row="2" Text="Y (chars)" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="2" Grid.Column="1" x:Name="ObjYBox" Margin="0,2" LostFocus="ObjField_Changed" KeyDown="Box_KeyDown"/>
+              </Grid>
+              <TextBlock DockPanel.Dock="Top" Margin="0,10,0,0" Foreground="{StaticResource MutedBrush}" FontSize="11" TextWrapping="Wrap"
+                         Text="Object types are the level's own entity ids. Sprites are captured from the running game (one frame each). Types that draw nothing (triggers), and a few in the Viking level, show as coloured boxes."/>
+            </DockPanel>
+          </TabItem>
+        </TabControl>
+      </Border>
+    </Grid>
+
+    <!-- Status -->
+    <Border Grid.Row="2" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12,6" Margin="0,10,0,0">
+      <TextBlock x:Name="StatusText" Foreground="{StaticResource MutedBrush}" FontSize="12" TextTrimming="CharacterEllipsis"/>
+    </Border>
+  </Grid>
+</Window>

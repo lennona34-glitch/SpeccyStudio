@@ -2,12 +2,15 @@ using Microsoft.Win32;
 using SpeccyStudio.Core;
 using SpeccyStudio.Services;
 using System.ComponentModel;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
 using System.Windows.Threading;
+using Path = System.IO.Path;
 
 namespace SpeccyStudio;
 
@@ -17,6 +20,27 @@ public partial class MainWindow : Window
     private IReadOnlyList<PrintableString> _allStrings = [];
     private CybernoidLevelLabProject? _levelLab;
     private ExolonLevelLabProject? _exolonLab;
+    private RexLevelLabProject? _rexLab;
+    private RexRoom? _rexRoom;
+    private byte _rexBrush = 0x00;
+    private RexSpawn? _rexSelectedSpawn;
+    private RexSpawn? _rexDraggedSpawn;
+    private Point _rexDragOffset;
+    private bool _rexPainting;
+    private readonly Stack<(int Room, int Cell, byte Old)> _rexUndo = new();
+    private readonly Stack<(int Room, int Cell, byte New)> _rexRedo = new();
+    private readonly Dictionary<byte, Button> _rexPaletteButtons = new();
+    private MythLevelLabProject? _mythLab;
+    private MythLevel? _mythLevel;
+    private MythArea? _mythArea;
+    private byte _mythBrush = 0x00;
+    private MythObject? _mythSelectedObject;
+    private MythObject? _mythDraggedObject;
+    private Point _mythDragOffset;
+    private bool _mythPainting;
+    private readonly Stack<(MythLevel Level, MythArea Area, int Col, int Row, byte Old)> _mythUndo = new();
+    private readonly Stack<(MythLevel Level, MythArea Area, int Col, int Row, byte New)> _mythRedo = new();
+    private readonly Dictionary<byte, Button> _mythPaletteButtons = new();
     private readonly Stack<(int RoomIndex, byte[] Tiles)> _levelUndo = new();
     private readonly Stack<(int RoomIndex, byte[] Tiles)> _levelRedo = new();
     private CybernoidRoomProposal? _levelProposal;
@@ -58,6 +82,7 @@ public partial class MainWindow : Window
         EmulatorArgumentsBox.Text = _settings.EmulatorArguments;
         _loadingSettings = false;
         UpdateAiKeyStatus();
+        SpectrumAnalyserService.EnsureDefaultWorkspacesReady();
         _flashTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(320) };
         _flashTimer.Tick += (_, _) =>
         {
@@ -182,6 +207,7 @@ public partial class MainWindow : Window
         {
             if (_universalRoom != null)
             {
+                ApplyUniversalEntitiesToGame();
                 Status($"Moved {entity.Name} to ({col:D2},{row:D2})");
                 RefreshUniversalInRoomSpritesStrip();
                 UniversalEntitiesList.Items.Refresh();
@@ -193,6 +219,16 @@ public partial class MainWindow : Window
             SetActiveUniversalBrush(item);
             PopulateUniversalVisualCatalog(_universalCategoryFilter, UniversalSearchBox?.Text ?? "");
             if (ToolPencilRadio != null) ToolPencilRadio.IsChecked = true;
+        };
+
+        MainLevelCanvas.UniversalCellErased += (col, row) =>
+        {
+            if (_universalRoom != null)
+            {
+                ApplyUniversalEntitiesToGame();
+                _document?.MarkDirty();
+                Status($"Erased map scenery at ({col:D2},{row:D2})");
+            }
         };
 
         MainLevelCanvas.PastePreviewToggled += (enabled) =>
@@ -266,7 +302,10 @@ public partial class MainWindow : Window
                 };
                 StoredGamesBox.Items.Add(item);
 
-                if (_document != null && p.FilePath.Equals(_document.SourcePath, StringComparison.OrdinalIgnoreCase))
+                if (_document != null &&
+                    (p.FilePath.Equals(_document.SourcePath, StringComparison.OrdinalIgnoreCase) ||
+                     (p.GameType == "Rex" && _document.SourcePath.Contains("Rex", StringComparison.OrdinalIgnoreCase)) ||
+                     (p.GameType == "Myth" && _document.SourcePath.Contains("Myth", StringComparison.OrdinalIgnoreCase))))
                 {
                     selectIdx = StoredGamesBox.Items.Count - 1;
                 }
@@ -315,7 +354,7 @@ public partial class MainWindow : Window
             RefreshStoredGamesDropdown();
             LoadLevelLab();
             ScreenCanvas.Screen = _document.Screen;
-            if (_levelLab != null || _exolonLab != null || _universalRoom != null)
+            if (_levelLab != null || _exolonLab != null || _rexLab != null || _mythLab != null || _universalRoom != null)
             {
                 if (ViewLevelRadio != null) ViewLevelRadio.IsChecked = true;
             }
@@ -333,19 +372,23 @@ public partial class MainWindow : Window
             ScreenHintText.ToolTip = _document.FormatDetails;
             EmptyScreenOverlay.Visibility = _document.Screen is null ? Visibility.Visible : Visibility.Collapsed;
             bool hasScreen = _document.Screen is not null;
-            SaveButton.IsEnabled = _levelLab is null;
+            SaveButton.IsEnabled = _levelLab is null && _rexLab is null && _mythLab is null;
             SaveAsButton.IsEnabled = true;
             ImportButton.IsEnabled = ExportButton.IsEnabled = ClearButton.IsEnabled = hasScreen;
             PolishButton.IsEnabled = BoostButton.IsEnabled = hasScreen;
             AiRunButton.IsEnabled = hasScreen;
             PlayButton.IsEnabled = true;
             PlayHeaderButton.IsEnabled = true;
-            UndoButton.IsEnabled = false;
+            UpdateUndoRedoState();
             ScreenCanvas.InvalidateVisual();
             if (_levelLab != null)
                 Status($"Cybernoid II Level Lab ready · {_levelLab.Rooms.Count} rooms decoded · use Save as…");
             else if (_exolonLab != null)
                 Status($"Exolon Level Lab ready · {_exolonLab.Rooms.Count} screens decoded · use Save as…");
+            else if (_rexLab != null)
+                Status($"🦏 Rex Level Lab ready · {_rexLab.MatchSummary} · left-click paints metatiles, right-click picks, or switch to Spawns · use Save as…");
+            else if (_mythLab != null)
+                Status($"🏛 Myth Level Lab ready · {_mythLab.MatchSummary} · left-click paints metatiles, right-click picks, or switch to Objects · use Save as…");
             else if (_universalRoom != null)
                 Status($"{_universalRoom.GameTitle} Level Workshop ready · {_universalRoom.AvailableSprites.Count} authentic sprites in bank · click canvas to place");
             else
@@ -364,7 +407,7 @@ public partial class MainWindow : Window
     private void Save_Click(object sender, RoutedEventArgs e)
     {
         if (_document is null) return;
-        if (_levelLab is not null)
+        if (_levelLab is not null || _rexLab is not null || _mythLab is not null)
         {
             MessageBox.Show(this, "Level Lab protects the source tape. Use Save as… to create an edited copy.",
                 "Original protected", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -372,6 +415,10 @@ public partial class MainWindow : Window
         }
         try
         {
+            if (_universalRoom != null)
+            {
+                ApplyUniversalEntitiesToGame();
+            }
             _document.Save(_document.SourcePath);
             Status($"Saved {_document.SourcePath}");
         }
@@ -390,6 +437,10 @@ public partial class MainWindow : Window
         if (dialog.ShowDialog(this) != true) return;
         try
         {
+            if (_universalRoom != null)
+            {
+                ApplyUniversalEntitiesToGame();
+            }
             _document.Save(dialog.FileName);
             Status($"Saved {dialog.FileName}");
         }
@@ -461,6 +512,14 @@ public partial class MainWindow : Window
                 {
                     RenderExolonRoom(exRoom);
                 }
+            }
+            else if (_rexLab != null)
+            {
+                RefreshRexRoom();
+            }
+            else if (_mythLab != null)
+            {
+                RefreshMythArea();
             }
             else if (_universalRoom != null)
             {
@@ -741,6 +800,26 @@ public partial class MainWindow : Window
                 }
             }
 
+            if (_rexLab != null)
+            {
+                if ((e.Key == Key.Delete || e.Key == Key.Back) && Keyboard.Modifiers == ModifierKeys.None && RexToolSpawnsRadio?.IsChecked == true)
+                {
+                    RexSpawnDelete_Click(this, new RoutedEventArgs());
+                    e.Handled = true;
+                    return;
+                }
+            }
+
+            if (_mythLab != null)
+            {
+                if ((e.Key == Key.Delete || e.Key == Key.Back) && Keyboard.Modifiers == ModifierKeys.None && MythToolObjectsRadio?.IsChecked == true)
+                {
+                    MythObjectDelete_Click(this, new RoutedEventArgs());
+                    e.Handled = true;
+                    return;
+                }
+            }
+
             if (_universalRoom != null)
             {
                 // Delete or Backspace -> Delete selected entity
@@ -869,9 +948,22 @@ public partial class MainWindow : Window
         bool isLevel = ViewLevelRadio?.IsChecked == true;
         if (isLevel)
         {
-            UndoButton.IsEnabled = _levelUndo.Count > 0;
-            RedoButton.IsEnabled = _levelRedo.Count > 0;
-            LevelUndoButton.IsEnabled = _levelUndo.Count > 0;
+            if (_rexLab != null)
+            {
+                UndoButton.IsEnabled = _rexUndo.Count > 0;
+                RedoButton.IsEnabled = _rexRedo.Count > 0;
+            }
+            else if (_mythLab != null)
+            {
+                UndoButton.IsEnabled = _mythUndo.Count > 0;
+                RedoButton.IsEnabled = _mythRedo.Count > 0;
+            }
+            else
+            {
+                UndoButton.IsEnabled = _levelUndo.Count > 0;
+                RedoButton.IsEnabled = _levelRedo.Count > 0;
+                LevelUndoButton.IsEnabled = _levelUndo.Count > 0;
+            }
         }
         else
         {
@@ -1047,11 +1139,60 @@ public partial class MainWindow : Window
         catch (Exception ex) { ShowError("Text replacement rejected", ex); }
     }
 
+    private void SetActiveStageMode(string mode)
+    {
+        bool isCybernoid = mode == "Cybernoid";
+        bool isExolon = mode == "Exolon";
+        bool isRex = mode == "Rex";
+        bool isMyth = mode == "Myth";
+        bool isUniversal = mode == "Universal";
+        bool hasAny = isCybernoid || isExolon || isRex || isMyth || isUniversal;
+
+        LevelUnavailablePanel.Visibility = hasAny ? Visibility.Collapsed : Visibility.Visible;
+        LevelEditorPanel.Visibility = isCybernoid ? Visibility.Visible : Visibility.Collapsed;
+        if (ExolonEditorPanel != null) ExolonEditorPanel.Visibility = isExolon ? Visibility.Visible : Visibility.Collapsed;
+        if (RexEditorPanel != null) RexEditorPanel.Visibility = isRex ? Visibility.Visible : Visibility.Collapsed;
+        if (MythEditorPanel != null) MythEditorPanel.Visibility = isMyth ? Visibility.Visible : Visibility.Collapsed;
+        if (UniversalEditorPanel != null) UniversalEditorPanel.Visibility = isUniversal ? Visibility.Visible : Visibility.Collapsed;
+
+        if (CybernoidExolonToolbar != null) CybernoidExolonToolbar.Visibility = (isCybernoid || isExolon || isUniversal) ? Visibility.Visible : Visibility.Collapsed;
+        if (RexToolbar != null) RexToolbar.Visibility = isRex ? Visibility.Visible : Visibility.Collapsed;
+        if (MythToolbar != null) MythToolbar.Visibility = isMyth ? Visibility.Visible : Visibility.Collapsed;
+        if (RexPartSwitchPanel != null) RexPartSwitchPanel.Visibility = isRex ? Visibility.Visible : Visibility.Collapsed;
+        if (MythLevelSwitchPanel != null) MythLevelSwitchPanel.Visibility = isMyth ? Visibility.Visible : Visibility.Collapsed;
+
+        if (MainLevelCanvas != null) MainLevelCanvas.Visibility = (isCybernoid || isExolon || isUniversal) ? Visibility.Visible : Visibility.Collapsed;
+        if (RexStageContainer != null) RexStageContainer.Visibility = isRex ? Visibility.Visible : Visibility.Collapsed;
+        if (MythStageContainer != null) MythStageContainer.Visibility = isMyth ? Visibility.Visible : Visibility.Collapsed;
+
+        if (CybernoidLevelFooter != null) CybernoidLevelFooter.Visibility = isCybernoid ? Visibility.Visible : Visibility.Collapsed;
+        if (ExolonLevelFooter != null) ExolonLevelFooter.Visibility = isExolon ? Visibility.Visible : Visibility.Collapsed;
+        if (RexLevelFooter != null) RexLevelFooter.Visibility = isRex ? Visibility.Visible : Visibility.Collapsed;
+        if (MythLevelFooter != null) MythLevelFooter.Visibility = isMyth ? Visibility.Visible : Visibility.Collapsed;
+        if (UniversalLevelFooter != null) UniversalLevelFooter.Visibility = isUniversal ? Visibility.Visible : Visibility.Collapsed;
+
+        if (LevelNoGameOverlay != null) LevelNoGameOverlay.Visibility = hasAny ? Visibility.Collapsed : Visibility.Visible;
+    }
+
     private void LoadLevelLab()
     {
         _levelLab = null;
+        _exolonLab = null;
+        _rexLab = null;
+        _rexRoom = null;
+        _mythLab = null;
+        _mythLevel = null;
+        _mythArea = null;
+        _universalRoom = null;
+        _universalRooms = null;
+        _universalRoomIndex = 0;
+
         _levelUndo.Clear();
         _levelRedo.Clear();
+        _rexUndo.Clear();
+        _rexRedo.Clear();
+        _mythUndo.Clear();
+        _mythRedo.Clear();
         _levelProposal = null;
         _levelSceneProposal = null;
         _nativeTileBrushes.Clear();
@@ -1073,21 +1214,41 @@ public partial class MainWindow : Window
         bool isRex = _document is not null && (_document.SourcePath.Contains("rex", StringComparison.OrdinalIgnoreCase) || _document.DisplayName.Contains("rex", StringComparison.OrdinalIgnoreCase) || _document.Assets.Any(a => a.Name.Contains("rex", StringComparison.OrdinalIgnoreCase)));
         bool isMyth = _document is not null && (_document.SourcePath.Contains("myth", StringComparison.OrdinalIgnoreCase) || _document.DisplayName.Contains("myth", StringComparison.OrdinalIgnoreCase) || _document.Assets.Any(a => a.Name.Contains("myth", StringComparison.OrdinalIgnoreCase)));
 
+        // If a non-TAP Rex or Myth file (such as an old snapshot) was opened, upgrade _document to the canonical modding TAP so the full decoded Level Lab activates
+        // Only the real games are swapped (a loose "rex"/"myth" in a file name is not enough), and the user is told.
+        if (_document is not null && IsGameFile(_document, @"^Rex \(1988\)") && !RexLevelLabProject.TryCreate(_document, out _, out _))
+        {
+            string? defaultRexTap = ProjectVaultService.Instance.FindDefaultRexTapPath(1);
+            if (!string.IsNullOrEmpty(defaultRexTap) && File.Exists(defaultRexTap))
+            {
+                try
+                {
+                    string opened = _document.DisplayName;
+                    _document = SpectrumFileParser.Open(defaultRexTap);
+                    Status($"🦏 {opened} is not a tape the Rex Lab can edit; opened {Path.GetFileName(defaultRexTap)} instead.");
+                }
+                catch { }
+            }
+        }
+        else if (_document is not null && IsGameFile(_document, @"^Myth - History in the Making") && !MythLevelLabProject.TryCreate(_document, out _, out _))
+        {
+            string? defaultMythTap = ProjectVaultService.Instance.FindDefaultMythTapPath();
+            if (!string.IsNullOrEmpty(defaultMythTap) && File.Exists(defaultMythTap))
+            {
+                try
+                {
+                    string opened = _document.DisplayName;
+                    _document = SpectrumFileParser.Open(defaultMythTap);
+                    Status($"🏛 {opened} is not a tape the Myth Lab can edit; opened {Path.GetFileName(defaultMythTap)} instead.");
+                }
+                catch { }
+            }
+        }
+
         if (_document is not null && CybernoidLevelLabProject.TryCreate(_document, out CybernoidLevelLabProject? project, out reason))
         {
             _levelLab = project;
-            _exolonLab = null;
-            _universalRoom = null;
-            _universalRooms = null;
-            _universalRoomIndex = 0;
-            LevelUnavailablePanel.Visibility = Visibility.Collapsed;
-            LevelEditorPanel.Visibility = Visibility.Visible;
-            if (ExolonEditorPanel != null) ExolonEditorPanel.Visibility = Visibility.Collapsed;
-            if (UniversalEditorPanel != null) UniversalEditorPanel.Visibility = Visibility.Collapsed;
-            if (CybernoidLevelFooter != null) CybernoidLevelFooter.Visibility = Visibility.Visible;
-            if (ExolonLevelFooter != null) ExolonLevelFooter.Visibility = Visibility.Collapsed;
-            if (UniversalLevelFooter != null) UniversalLevelFooter.Visibility = Visibility.Collapsed;
-            if (LevelNoGameOverlay != null) LevelNoGameOverlay.Visibility = Visibility.Collapsed;
+            SetActiveStageMode("Cybernoid");
             LevelMatchText.Text = project!.MatchSummary;
 
             _isSyncingRoomBoxes = true;
@@ -1106,76 +1267,25 @@ public partial class MainWindow : Window
         }
         else if (_document is not null && ExolonLevelLabProject.TryCreate(_document, out ExolonLevelLabProject? exolonProject, out reason))
         {
-            _levelLab = null;
             _exolonLab = exolonProject;
-            _universalRoom = null;
-            _universalRooms = null;
-            _universalRoomIndex = 0;
-            LevelUnavailablePanel.Visibility = Visibility.Collapsed;
-            LevelEditorPanel.Visibility = Visibility.Collapsed;
-            if (ExolonEditorPanel != null) ExolonEditorPanel.Visibility = Visibility.Visible;
-            if (UniversalEditorPanel != null) UniversalEditorPanel.Visibility = Visibility.Collapsed;
-            if (CybernoidLevelFooter != null) CybernoidLevelFooter.Visibility = Visibility.Collapsed;
-            if (ExolonLevelFooter != null) ExolonLevelFooter.Visibility = Visibility.Visible;
-            if (UniversalLevelFooter != null) UniversalLevelFooter.Visibility = Visibility.Collapsed;
-            if (LevelNoGameOverlay != null) LevelNoGameOverlay.Visibility = Visibility.Collapsed;
-
+            SetActiveStageMode("Exolon");
             InitExolonUI(exolonProject!);
         }
-        else if (isRex)
+        else if (_document is not null && RexLevelLabProject.TryCreate(_document, out RexLevelLabProject? rexProject, out reason) && rexProject != null)
         {
-            _levelLab = null;
-            _exolonLab = null;
-            _universalRooms = UniversalSpriteRoom.CreateRexRooms();
-            _universalRoomIndex = 0;
-            _universalRoom = _universalRooms[0];
-            LevelUnavailablePanel.Visibility = Visibility.Collapsed;
-            LevelEditorPanel.Visibility = Visibility.Collapsed;
-            if (ExolonEditorPanel != null) ExolonEditorPanel.Visibility = Visibility.Collapsed;
-            if (UniversalEditorPanel != null) UniversalEditorPanel.Visibility = Visibility.Visible;
-            if (CybernoidLevelFooter != null) CybernoidLevelFooter.Visibility = Visibility.Collapsed;
-            if (ExolonLevelFooter != null) ExolonLevelFooter.Visibility = Visibility.Collapsed;
-            if (UniversalLevelFooter != null) UniversalLevelFooter.Visibility = Visibility.Visible;
-            if (LevelNoGameOverlay != null) LevelNoGameOverlay.Visibility = Visibility.Collapsed;
-
-            PopulateUniversalRoomsDropdown();
-            InitUniversalUI(_universalRoom);
+            _rexLab = rexProject;
+            SetActiveStageMode("Rex");
+            InitRexUI(rexProject);
         }
-        else if (isMyth)
+        else if (_document is not null && MythLevelLabProject.TryCreate(_document, out MythLevelLabProject? mythProject, out reason) && mythProject != null)
         {
-            _levelLab = null;
-            _exolonLab = null;
-            _universalRooms = UniversalSpriteRoom.CreateMythRooms();
-            _universalRoomIndex = 0;
-            _universalRoom = _universalRooms[0];
-            LevelUnavailablePanel.Visibility = Visibility.Collapsed;
-            LevelEditorPanel.Visibility = Visibility.Collapsed;
-            if (ExolonEditorPanel != null) ExolonEditorPanel.Visibility = Visibility.Collapsed;
-            if (UniversalEditorPanel != null) UniversalEditorPanel.Visibility = Visibility.Visible;
-            if (CybernoidLevelFooter != null) CybernoidLevelFooter.Visibility = Visibility.Collapsed;
-            if (ExolonLevelFooter != null) ExolonLevelFooter.Visibility = Visibility.Collapsed;
-            if (UniversalLevelFooter != null) UniversalLevelFooter.Visibility = Visibility.Visible;
-            if (LevelNoGameOverlay != null) LevelNoGameOverlay.Visibility = Visibility.Collapsed;
-
-            PopulateUniversalRoomsDropdown();
-            InitUniversalUI(_universalRoom);
+            _mythLab = mythProject;
+            SetActiveStageMode("Myth");
+            InitMythUI(mythProject);
         }
         else
         {
-            _levelLab = null;
-            _exolonLab = null;
-            _universalRoom = null;
-            _universalRooms = null;
-            _universalRoomIndex = 0;
-            LevelUnavailablePanel.Visibility = Visibility.Visible;
-            LevelEditorPanel.Visibility = Visibility.Collapsed;
-            if (ExolonEditorPanel != null) ExolonEditorPanel.Visibility = Visibility.Collapsed;
-            if (UniversalEditorPanel != null) UniversalEditorPanel.Visibility = Visibility.Collapsed;
-            if (CybernoidLevelFooter != null) CybernoidLevelFooter.Visibility = Visibility.Collapsed;
-            if (ExolonLevelFooter != null) ExolonLevelFooter.Visibility = Visibility.Collapsed;
-            if (UniversalLevelFooter != null) UniversalLevelFooter.Visibility = Visibility.Collapsed;
-            if (LevelNoGameOverlay != null) LevelNoGameOverlay.Visibility = Visibility.Visible;
-
+            SetActiveStageMode("None");
             LevelUnavailableText.Text = reason;
 
             if (ViewLevelRadio != null) ViewLevelRadio.IsEnabled = false;
@@ -1183,9 +1293,43 @@ public partial class MainWindow : Window
         }
     }
 
+    private static bool IsGameFile(SpectrumDocument document, string namePattern) =>
+        System.Text.RegularExpressions.Regex.IsMatch(document.DisplayName, namePattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase) ||
+        (document.ZipEntryName != null && System.Text.RegularExpressions.Regex.IsMatch(Path.GetFileName(document.ZipEntryName), namePattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase));
+
     private void LevelRoom_Changed(object sender, SelectionChangedEventArgs e)
     {
         if (_isSyncingRoomBoxes) return;
+
+        if (_rexLab != null)
+        {
+            if (sender == CanvasRoomBox && RexRoomBox != null && RexRoomBox.SelectedIndex != CanvasRoomBox.SelectedIndex)
+            {
+                _isSyncingRoomBoxes = true;
+                RexRoomBox.SelectedIndex = CanvasRoomBox.SelectedIndex;
+                _isSyncingRoomBoxes = false;
+            }
+            if (CanvasRoomBox?.SelectedItem is RexRoom rr)
+            {
+                SelectRexRoom(rr);
+            }
+            return;
+        }
+
+        if (_mythLab != null)
+        {
+            if (sender == CanvasRoomBox && MythAreaList != null && MythAreaList.SelectedIndex != CanvasRoomBox.SelectedIndex)
+            {
+                _isSyncingRoomBoxes = true;
+                MythAreaList.SelectedIndex = CanvasRoomBox.SelectedIndex;
+                _isSyncingRoomBoxes = false;
+            }
+            if (CanvasRoomBox?.SelectedItem is MythArea ma)
+            {
+                SelectMythArea(ma);
+            }
+            return;
+        }
 
         if (_universalRooms != null && _universalRooms.Count > 0)
         {
@@ -1635,6 +1779,41 @@ public partial class MainWindow : Window
     {
         if (sender is not Button { Tag: string directionText }) return;
 
+        if (_rexLab != null && _rexRoom != null)
+        {
+            byte exitTarget = directionText switch
+            {
+                "Left" => _rexRoom.Left,
+                "Right" => _rexRoom.Right,
+                "Up" => _rexRoom.Up,
+                "Down" => _rexRoom.Down,
+                _ => (byte)0
+            };
+            if (exitTarget > 0 && exitTarget < _rexLab.Rooms.Count)
+            {
+                SelectRexRoom(_rexLab.Rooms[exitTarget]);
+                return;
+            }
+            if (directionText == "Left" && _rexRoom.Index > 1)
+                SelectRexRoom(_rexLab.Rooms[_rexRoom.Index - 1]);
+            else if (directionText == "Right" && _rexRoom.Index < _rexLab.Rooms.Count - 1)
+                SelectRexRoom(_rexLab.Rooms[_rexRoom.Index + 1]);
+            return;
+        }
+
+        if (_mythLab != null && _mythLevel != null && _mythArea != null)
+        {
+            if (directionText == "Left" && _mythArea.Index > 0)
+                MythAreaList.SelectedIndex = _mythArea.Index - 1;
+            else if (directionText == "Right" && _mythArea.Index < _mythLevel.Areas.Count - 1)
+                MythAreaList.SelectedIndex = _mythArea.Index + 1;
+            else if (directionText == "Up" && _mythLevel.Number > 1)
+                MythLevelCombo.SelectedIndex = _mythLevel.Number - 2;
+            else if (directionText == "Down" && _mythLevel.Number < _mythLab.Levels.Count)
+                MythLevelCombo.SelectedIndex = _mythLevel.Number;
+            return;
+        }
+
         if (_universalRooms != null && _universalRooms.Count > 0)
         {
             if (directionText == "Left" && _universalRoomIndex > 0)
@@ -1961,6 +2140,32 @@ public partial class MainWindow : Window
 
     private void LevelUndo()
     {
+        if (_rexLab != null)
+        {
+            if (_rexUndo.Count == 0) return;
+            var (roomIdx, cell, old) = _rexUndo.Pop();
+            byte cur = _rexLab.Rooms[roomIdx].Tiles[cell];
+            _rexRedo.Push((roomIdx, cell, cur));
+            _rexLab.SetTile(roomIdx, cell, old);
+            _document?.MarkDirty();
+            SelectRexRoom(_rexLab.Rooms[roomIdx]);
+            UpdateUndoRedoState();
+            Status($"Undid edit in Rex room {roomIdx:00}");
+            return;
+        }
+        if (_mythLab != null)
+        {
+            if (_mythUndo.Count == 0) return;
+            var (level, area, col, row, old) = _mythUndo.Pop();
+            byte cur = level.GetTile(area, col, row);
+            _mythRedo.Push((level, area, col, row, cur));
+            _mythLab.SetTile(level, area, col, row, old);
+            _document?.MarkDirty();
+            RefreshMythArea();
+            UpdateUndoRedoState();
+            Status($"Undid edit in Myth L{level.Number} Area {area.Index + 1}");
+            return;
+        }
         if (_levelLab is null || _levelUndo.Count == 0) return;
         try
         {
@@ -1984,6 +2189,32 @@ public partial class MainWindow : Window
 
     private void LevelRedo()
     {
+        if (_rexLab != null)
+        {
+            if (_rexRedo.Count == 0) return;
+            var (roomIdx, cell, next) = _rexRedo.Pop();
+            byte cur = _rexLab.Rooms[roomIdx].Tiles[cell];
+            _rexUndo.Push((roomIdx, cell, cur));
+            _rexLab.SetTile(roomIdx, cell, next);
+            _document?.MarkDirty();
+            SelectRexRoom(_rexLab.Rooms[roomIdx]);
+            UpdateUndoRedoState();
+            Status($"Redid edit in Rex room {roomIdx:00}");
+            return;
+        }
+        if (_mythLab != null)
+        {
+            if (_mythRedo.Count == 0) return;
+            var (level, area, col, row, next) = _mythRedo.Pop();
+            byte cur = level.GetTile(area, col, row);
+            _mythUndo.Push((level, area, col, row, cur));
+            _mythLab.SetTile(level, area, col, row, next);
+            _document?.MarkDirty();
+            RefreshMythArea();
+            UpdateUndoRedoState();
+            Status($"Redid edit in Myth L{level.Number} Area {area.Index + 1}");
+            return;
+        }
         if (_levelLab is null || _levelRedo.Count == 0) return;
         try
         {
@@ -2009,7 +2240,95 @@ public partial class MainWindow : Window
     private void FlipVertical_Click(object sender, RoutedEventArgs e) => FlipVertical();
     private void SpriteBank_Click(object sender, RoutedEventArgs e) => OpenSpriteBank();
     private void RomRipper_Click(object sender, RoutedEventArgs e) => OpenRomRipper();
+    private void Z80Disasm_Click(object sender, RoutedEventArgs e) => OpenZ80Disassembler();
+    private void Launch8BitAnalyser_Click(object sender, RoutedEventArgs e) => Launch8BitAnalyserDirect();
+
+    private void MythLab_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            SpectrumDocument? document = _document;
+            MythLevelLabProject? lab = null;
+            if (document == null || !MythLevelLabProject.TryCreate(document, out lab, out _) || lab == null)
+            {
+                string? autoTap = ProjectVaultService.Instance.FindDefaultMythTapPath();
+                if (!string.IsNullOrEmpty(autoTap))
+                {
+                    document = SpectrumFileParser.Open(autoTap);
+                    MythLevelLabProject.TryCreate(document, out lab, out _);
+                }
+
+                if (document == null || lab == null)
+                {
+                    var dialog = new OpenFileDialog
+                    {
+                        Title = "Open Myth: History in the Making (System 3, 1989) tape",
+                        Filter = "Spectrum tapes|*.tap;*.zip|All files|*.*"
+                    };
+                    if (dialog.ShowDialog(this) != true) return;
+                    document = SpectrumFileParser.Open(dialog.FileName);
+                    if (!MythLevelLabProject.TryCreate(document, out lab, out string reason) || lab == null)
+                    {
+                        MessageBox.Show(this, reason, "Not a supported Myth tape", MessageBoxButton.OK, MessageBoxImage.Information);
+                        return;
+                    }
+                }
+            }
+            new MythLabWindow(document, lab) { Owner = this }.Show();
+        }
+        catch (Exception ex) { ShowError("Could not open the Myth Lab", ex); }
+    }
+
+    private void RexLab_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            SpectrumDocument? document = _document;
+            RexLevelLabProject? lab = null;
+            if (document == null || !RexLevelLabProject.TryCreate(document, out lab, out _) || lab == null)
+            {
+                string? autoTap = ProjectVaultService.Instance.FindDefaultRexTapPath(1);
+                if (!string.IsNullOrEmpty(autoTap))
+                {
+                    document = SpectrumFileParser.Open(autoTap);
+                    RexLevelLabProject.TryCreate(document, out lab, out _);
+                }
+
+                if (document == null || lab == null)
+                {
+                    var dialog = new OpenFileDialog
+                    {
+                        Title = "Open a Rex (1988) tape (Side A TAP or the full-game TAP)",
+                        Filter = "Spectrum tapes|*.tap;*.zip|All files|*.*"
+                    };
+                    if (dialog.ShowDialog(this) != true) return;
+                    document = SpectrumFileParser.Open(dialog.FileName);
+                    if (!RexLevelLabProject.TryCreate(document, out lab, out string reason) || lab == null)
+                    {
+                        MessageBox.Show(this, reason, "Not a supported Rex tape", MessageBoxButton.OK, MessageBoxImage.Information);
+                        return;
+                    }
+                }
+            }
+            new RexLabWindow(document, lab) { Owner = this }.Show();
+        }
+        catch (Exception ex) { ShowError("Could not open the Rex Lab", ex); }
+    }
+
+    private void UniversalLaunchFullLab_Click(object sender, RoutedEventArgs e)
+    {
+        if (_universalRoom != null && _universalRoom.GameTitle.Contains("Myth", StringComparison.OrdinalIgnoreCase))
+        {
+            MythLab_Click(sender, e);
+        }
+        else
+        {
+            RexLab_Click(sender, e);
+        }
+    }
+
     private void AudioStudio_Click(object sender, RoutedEventArgs e) => OpenAudioStudio();
+    private void AudioScout_Click(object sender, RoutedEventArgs e) => OpenAudioScout();
 
     public void OpenAudioStudio()
     {
@@ -2028,9 +2347,42 @@ public partial class MainWindow : Window
         }
     }
 
+    public void OpenAudioScout()
+    {
+        try
+        {
+            var win = new ChiptuneScoutWindow
+            {
+                Owner = this
+            };
+            win.Show();
+        }
+        catch (Exception ex)
+        {
+            ShowError("Could not open 128K Audio Scout", ex);
+        }
+    }
+
     private void FlipHorizontal()
     {
-        // 1. If Exolon room is active:
+        // 1. If Universal room is active:
+        if (_universalRoom != null)
+        {
+            if (MainLevelCanvas?.SelectedUniversalEntity is UniversalSpriteEntity uTarget)
+            {
+                int oldCol = uTarget.Col;
+                uTarget.Col = Math.Clamp(32 - uTarget.Col - uTarget.WidthCells, 0, 32 - uTarget.WidthCells);
+                ApplyUniversalEntitiesToGame();
+                MainLevelCanvas?.InvalidateVisual();
+                RefreshUniversalEntitiesList();
+                Status($"⇄ Flipped entity '{uTarget.Name}' horizontally: Col {oldCol} → {uTarget.Col}");
+                return;
+            }
+            Status("⇄ Flip H: Select an entity on the canvas to flip its horizontal position (H / X)");
+            return;
+        }
+
+        // 2. If Exolon room is active:
         if (_exolonLab != null && ExolonRoomBox?.SelectedItem is ExolonRoom exolonRoom)
         {
             if (MainLevelCanvas?.SelectedExolonEntity is ExolonEntity target)
@@ -2051,7 +2403,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        // 2. If Cybernoid II is active:
+        // 3. If Cybernoid II is active:
         if (_levelLab != null && LevelRoomBox?.SelectedItem is CybernoidRoom cybRoom)
         {
             FlipCybernoidTile(cybRoom, horizontal: true, vertical: false);
@@ -2060,7 +2412,24 @@ public partial class MainWindow : Window
 
     private void FlipVertical()
     {
-        // 1. If Exolon room is active:
+        // 1. If Universal room is active:
+        if (_universalRoom != null)
+        {
+            if (MainLevelCanvas?.SelectedUniversalEntity is UniversalSpriteEntity uTarget)
+            {
+                int oldRow = uTarget.Row;
+                uTarget.Row = Math.Clamp(24 - uTarget.Row - uTarget.HeightCells, 0, 24 - uTarget.HeightCells);
+                ApplyUniversalEntitiesToGame();
+                MainLevelCanvas?.InvalidateVisual();
+                RefreshUniversalEntitiesList();
+                Status($"⇅ Flipped entity '{uTarget.Name}' vertically: Row {oldRow} → {uTarget.Row}");
+                return;
+            }
+            Status("⇅ Flip V: Select an entity on the canvas to flip its vertical position (V / Y)");
+            return;
+        }
+
+        // 2. If Exolon room is active:
         if (_exolonLab != null && ExolonRoomBox?.SelectedItem is ExolonRoom exolonRoom)
         {
             if (MainLevelCanvas?.SelectedExolonEntity is ExolonEntity target)
@@ -2113,7 +2482,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        // 2. If Cybernoid II is active:
+        // 3. If Cybernoid II is active:
         if (_levelLab != null && LevelRoomBox?.SelectedItem is CybernoidRoom cybRoom)
         {
             FlipCybernoidTile(cybRoom, horizontal: false, vertical: true);
@@ -2223,7 +2592,23 @@ public partial class MainWindow : Window
         }
         catch { }
 
-        if (_universalRoom != null)
+        if (_rexLab != null)
+        {
+            if (ViewLevelRadio != null) ViewLevelRadio.IsChecked = true;
+            if (ToolsTabs != null && LevelLabTab != null) ToolsTabs.SelectedItem = LevelLabTab;
+            if (RexToolSpawnsRadio != null) RexToolSpawnsRadio.IsChecked = true;
+            Status($"🎨 Selected '{item.Name}' — use Rex Spawns mode or metatile brush on the Rex Room stage!");
+            return;
+        }
+        else if (_mythLab != null)
+        {
+            if (ViewLevelRadio != null) ViewLevelRadio.IsChecked = true;
+            if (ToolsTabs != null && LevelLabTab != null) ToolsTabs.SelectedItem = LevelLabTab;
+            if (MythToolObjectsRadio != null) MythToolObjectsRadio.IsChecked = true;
+            Status($"🎨 Selected '{item.Name}' — use Myth Objects mode or metatile brush on the Myth Area stage!");
+            return;
+        }
+        else if (_universalRoom != null)
         {
             SetActiveUniversalBrush(item);
             _universalClipboardEntity = new UniversalSpriteEntity
@@ -2408,6 +2793,61 @@ public partial class MainWindow : Window
         {
             ShowError("Could not open ROM Ripper", ex);
         }
+    }
+
+    public void OpenZ80Disassembler(int? initialAddress = null)
+    {
+        try
+        {
+            int mythIdx = _mythLevel != null && _mythLab != null
+                ? Math.Max(0, _mythLab.Levels.ToList().IndexOf(_mythLevel))
+                : 0;
+
+            var win = new Z80DisassemblerWindow(
+                _document,
+                this,
+                _levelLab,
+                _exolonLab,
+                _rexLab,
+                _mythLab,
+                mythIdx,
+                initialAddress)
+            {
+                Owner = this
+            };
+            win.Show();
+        }
+        catch (Exception ex)
+        {
+            ShowError("Could not open Z80 Disassembler", ex);
+        }
+    }
+
+    private void Launch8BitAnalyserDirect()
+    {
+        try
+        {
+            int mythIdx = _mythLevel != null && _mythLab != null
+                ? Math.Max(0, _mythLab.Levels.ToList().IndexOf(_mythLevel))
+                : 0;
+
+            var session = Z80Disassembler.CreateSession(_document, _levelLab, _exolonLab, _rexLab, _mythLab, mythIdx);
+            SpectrumAnalyserService.ExportLabelsToAnalyser(session);
+            SpectrumAnalyserService.LaunchSpectrumAnalyser(session);
+            Status($"🚀 Launched 8BitAnalysers (SpectrumAnalyser.exe) for '{SpectrumAnalyserService.GetProjectNameForSession(session)}' with pre-configured workspace & symbols.");
+        }
+        catch (Exception ex)
+        {
+            ShowError("Could not launch 8BitAnalysers (SpectrumAnalyser.exe)", ex);
+        }
+    }
+
+    public void NotifyDocumentModifiedFromDisassembler(string statusMessage)
+    {
+        if (SaveButton != null) SaveButton.IsEnabled = true;
+        if (SaveAsButton != null) SaveAsButton.IsEnabled = true;
+        UpdateUndoRedoState();
+        Status(statusMessage);
     }
 
     private static Brush LevelTileBrush(byte tile)
@@ -2658,38 +3098,66 @@ public partial class MainWindow : Window
         if (_document is null) return;
         try
         {
-            string launchPath = _document.SourcePath;
-            if (_document.IsDirty)
+            if (_universalRoom != null)
             {
-                string directory = Path.Combine(Path.GetTempPath(), "SpeccyStudio", "play");
-                Directory.CreateDirectory(directory);
-                launchPath = Path.Combine(directory, Path.GetFileName(_document.SourcePath));
-                _document.Save(launchPath);
-                _document.MarkDirty();
+                ApplyUniversalEntitiesToGame();
             }
 
-            // Close any existing running playtest instance so F5/Play never accumulates multiple windows
-            if (_activeEmulatorProcess != null && !_activeEmulatorProcess.HasExited)
-            {
-                try
-                {
-                    _activeEmulatorProcess.Kill();
-                    _activeEmulatorProcess.WaitForExit(1000);
-                }
-                catch { }
-                _activeEmulatorProcess = null;
-            }
-
-            // Always close any existing instance of SpectrumEmulator-Final to avoid multiple windows
-            foreach (var p in System.Diagnostics.Process.GetProcessesByName("SpectrumEmulator-Final"))
-            {
-                try { p.Kill(); p.WaitForExit(500); } catch { }
-            }
-
-            _activeEmulatorProcess = EmulatorLauncher.Launch(EmulatorPathBox.Text.Trim(), EmulatorArgumentsBox.Text, launchPath);
-            Status($"Launched {Path.GetFileName(launchPath)} in {_settings.EmulatorProfile}");
+            LaunchDocumentInEmulator(_document);
         }
         catch (Exception ex) { ShowError("Could not launch emulator", ex); }
+    }
+
+    public void LaunchDocumentInEmulator(SpectrumDocument doc)
+    {
+        string launchPath = doc.SourcePath;
+        if (doc.IsDirty)
+        {
+            string directory = Path.Combine(Path.GetTempPath(), "SpeccyStudio", "play");
+            Directory.CreateDirectory(directory);
+            launchPath = Path.Combine(directory, Path.GetFileName(doc.SourcePath));
+            doc.Save(launchPath);
+            doc.MarkDirty();
+        }
+
+        // Close any existing running playtest instance so F5/Play never accumulates multiple windows
+        if (_activeEmulatorProcess != null && !_activeEmulatorProcess.HasExited)
+        {
+            try
+            {
+                _activeEmulatorProcess.Kill();
+                _activeEmulatorProcess.WaitForExit(1000);
+            }
+            catch { }
+            _activeEmulatorProcess = null;
+        }
+
+        // Always close any existing instance of SpectrumEmulator-Final to avoid multiple windows
+        foreach (var p in System.Diagnostics.Process.GetProcessesByName("SpectrumEmulator-Final"))
+        {
+            try { p.Kill(); p.WaitForExit(500); } catch { }
+        }
+
+        string effectiveArgs = EmulatorArgumentsBox.Text;
+        bool is128K = Path.GetFileName(launchPath).Contains("128", StringComparison.OrdinalIgnoreCase) ||
+                      (doc.SourcePath.Contains("128", StringComparison.OrdinalIgnoreCase)) ||
+                      (doc.Bytes.Length > 49179 && doc.Format is SpectrumFormat.Sna or SpectrumFormat.Z80);
+        if (is128K && !effectiveArgs.Contains("--machine", StringComparison.OrdinalIgnoreCase) && 
+                      !effectiveArgs.Contains("--model", StringComparison.OrdinalIgnoreCase) && 
+                      !effectiveArgs.Contains("-m "))
+        {
+            if (effectiveArgs.Contains("{file}"))
+            {
+                effectiveArgs = effectiveArgs.Replace("{file}", "--machine plus2 \"{file}\"");
+            }
+            else
+            {
+                effectiveArgs = "--machine plus2 " + effectiveArgs;
+            }
+        }
+
+        _activeEmulatorProcess = EmulatorLauncher.Launch(EmulatorPathBox.Text.Trim(), effectiveArgs, launchPath);
+        Status($"Launched {Path.GetFileName(launchPath)} in {_settings.EmulatorProfile}");
     }
 
     private void Window_DragOver(object sender, DragEventArgs e) => e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
@@ -2754,7 +3222,38 @@ public partial class MainWindow : Window
 
             if (ViewLevelRadio?.IsChecked == true)
             {
-                if (_exolonLab != null && ExolonRoomBox?.SelectedItem is ExolonRoom er)
+                if (_rexLab != null && _rexRoom != null)
+                {
+                    if (RexRoomHost != null && RexRoomHost.ActualWidth > 0 && RexRoomHost.ActualHeight > 0)
+                    {
+                        var rtb = new RenderTargetBitmap((int)RexRoomHost.ActualWidth, (int)RexRoomHost.ActualHeight, 96, 96, PixelFormats.Pbgra32);
+                        rtb.Render(RexRoomHost);
+                        rtb.Freeze();
+                        bmp = rtb;
+                    }
+                    else
+                    {
+                        bmp = _rexLab.RenderRoom(_rexRoom);
+                    }
+                    int partNum = _rexLab.Rooms.Count == 35 ? 1 : 2;
+                    subject = $"Rex_P{partNum}_Room_{_rexRoom.Index:D2}";
+                }
+                else if (_mythLab != null && _mythLevel != null && _mythArea != null)
+                {
+                    if (MythAreaHost != null && MythAreaHost.ActualWidth > 0 && MythAreaHost.ActualHeight > 0)
+                    {
+                        var rtb = new RenderTargetBitmap((int)MythAreaHost.ActualWidth, (int)MythAreaHost.ActualHeight, 96, 96, PixelFormats.Pbgra32);
+                        rtb.Render(MythAreaHost);
+                        rtb.Freeze();
+                        bmp = rtb;
+                    }
+                    else
+                    {
+                        bmp = _mythLab.RenderArea(_mythLevel, _mythArea);
+                    }
+                    subject = $"Myth_L{_mythLevel.Number}_Area_{_mythArea.Index}";
+                }
+                else if (_exolonLab != null && ExolonRoomBox?.SelectedItem is ExolonRoom er)
                 {
                     bmp = MainLevelCanvas.CaptureRoomBitmap(scale: 4);
                     subject = $"Exolon_Z{er.Zone}_S{er.ScreenInZone:D2}";
@@ -3674,6 +4173,13 @@ public partial class MainWindow : Window
 
         if (UniversalTitleText != null) UniversalTitleText.Text = $"{room.GameTitle} · Workshop";
         if (UniversalMatchText != null) UniversalMatchText.Text = $"{room.RoomName} · {room.Subtitle}";
+        if (UniversalLaunchFullLabButton != null)
+        {
+            bool isMythRoom = room.GameTitle.Contains("Myth", StringComparison.OrdinalIgnoreCase);
+            UniversalLaunchFullLabButton.Content = isMythRoom
+                ? "🏛 Open Full Myth Level Lab (4 Levels · 17 Decoded Areas)"
+                : "🦏 Open Full Rex Level Lab (35+26 Decoded Rooms)";
+        }
 
         if (CanvasRoomTitleText != null) CanvasRoomTitleText.Text = $"{room.GameTitle} — {room.RoomName}";
         if (CanvasBudgetText != null) CanvasBudgetText.Text = $"{room.Entities.Count} active entities";
@@ -3911,6 +4417,97 @@ public partial class MainWindow : Window
         PopulateUniversalVisualCatalog(_universalCategoryFilter, UniversalSearchBox?.Text ?? "");
     }
 
+    private void ApplyUniversalEntitiesToGame()
+    {
+        if (_document == null || _universalRooms == null || _universalRooms.Count == 0) return;
+
+        // Determine which room to apply: prefer currently active room, or room 0 if active has none
+        var room = _universalRoom ?? _universalRooms[0];
+        if (room.Entities.Count == 0 && _universalRooms[0].Entities.Count > 0)
+        {
+            room = _universalRooms[0];
+        }
+
+        // If BaseScr was missing on the room, try to grab existing screen bytes from document
+        if (room.BaseScr == null && _document.Bytes.Length >= 30 + 6912)
+        {
+            byte[] existing = new byte[6912];
+            Buffer.BlockCopy(_document.Bytes, 30, existing, 0, 6912);
+            room.BaseScr = existing;
+        }
+
+        byte[] scrBytes = room.RenderRoomScr();
+
+        bool isRex = room.GameTitle.Contains("Rex", StringComparison.OrdinalIgnoreCase) ||
+                     _document.SourcePath.Contains("rex", StringComparison.OrdinalIgnoreCase);
+
+        bool isMyth = room.GameTitle.Contains("Myth", StringComparison.OrdinalIgnoreCase) ||
+                      _document.SourcePath.Contains("myth", StringComparison.OrdinalIgnoreCase);
+
+        if (isRex && _document.Bytes.Length >= 49182)
+        {
+            // Offset 30: active video RAM 0x4000 (ZX Spectrum display buffer)
+            Buffer.BlockCopy(scrBytes, 0, _document.Bytes, 30, 6912);
+
+            // Offset 42269: Rex master shadow screen buffer RAM 0xE4FF (copied to 0x4000 via LDIR at 0xDD54/0xDB96 on game start)
+            Buffer.BlockCopy(scrBytes, 0, _document.Bytes, 42269, 6912);
+
+            // Inject 16x16 sprite bitmaps into Rex native sprite table slots in RAM
+            int[] rexSpriteOffsets = [20072, 20104, 20168, 41236, 41364, 41492, 41684];
+            int slot = 0;
+            foreach (var ent in room.Entities)
+            {
+                if (ent.SpriteItem?.Bitmap != null && ent.SpriteItem.Bitmap.Length >= 32)
+                {
+                    int targetOffset = rexSpriteOffsets[slot % rexSpriteOffsets.Length];
+                    Buffer.BlockCopy(ent.SpriteItem.Bitmap, 0, _document.Bytes, targetOffset, 32);
+                    slot++;
+                }
+            }
+        }
+        else if (isMyth && _document.Bytes.Length >= 49182)
+        {
+            // Offset 30: active video RAM 0x4000 (ZX Spectrum display buffer)
+            Buffer.BlockCopy(scrBytes, 0, _document.Bytes, 30, 6912);
+
+            // Inject 16x16 sprite bitmaps into Myth native sprite slots in RAM
+            int[] mythSpriteOffsets = [7192, 7256, 7320, 14242, 15011, 20394, 25008, 31160];
+            int slot = 0;
+            foreach (var ent in room.Entities)
+            {
+                if (ent.SpriteItem?.Bitmap != null && ent.SpriteItem.Bitmap.Length >= 32)
+                {
+                    int targetOffset = mythSpriteOffsets[slot % mythSpriteOffsets.Length];
+                    int copyLen = Math.Min(ent.SpriteItem.Bitmap.Length, _document.Bytes.Length - targetOffset);
+                    if (copyLen > 0)
+                    {
+                        Buffer.BlockCopy(ent.SpriteItem.Bitmap, 0, _document.Bytes, targetOffset, copyLen);
+                    }
+                    slot++;
+                }
+            }
+        }
+        else if (_document.Format == SpectrumFormat.Z80 && _document.Bytes.Length >= 30 + 6912)
+        {
+            Buffer.BlockCopy(scrBytes, 0, _document.Bytes, 30, 6912);
+        }
+        else if (_document.ScreenOffset is int scrOff && scrOff >= 0 && scrOff + 6912 <= _document.Bytes.Length)
+        {
+            Buffer.BlockCopy(scrBytes, 0, _document.Bytes, scrOff, 6912);
+        }
+
+        _document.Screen?.Replace(scrBytes);
+        _document.MarkDirty();
+
+        if (SaveButton != null) SaveButton.IsEnabled = true;
+        if (SaveAsButton != null) SaveAsButton.IsEnabled = true;
+        if (ScreenCanvas != null)
+        {
+            ScreenCanvas.Screen = _document.Screen;
+            ScreenCanvas.InvalidateVisual();
+        }
+    }
+
     private void PlaceUniversalEntity(int col, int row, SpriteBankItem item)
     {
         if (_universalRoom == null) return;
@@ -3935,6 +4532,7 @@ public partial class MainWindow : Window
         RefreshUniversalEntitiesList();
         RefreshUniversalInRoomSpritesStrip();
         SelectUniversalEntity(entity);
+        ApplyUniversalEntitiesToGame();
         if (CanvasBudgetText != null) CanvasBudgetText.Text = $"{_universalRoom.Entities.Count} active entities";
         Status($"Placed {entity.Name} at ({entity.Col:D2},{entity.Row:D2})");
     }
@@ -3981,6 +4579,7 @@ public partial class MainWindow : Window
         }
         RefreshUniversalEntitiesList();
         RefreshUniversalInRoomSpritesStrip();
+        ApplyUniversalEntitiesToGame();
         if (CanvasBudgetText != null) CanvasBudgetText.Text = $"{_universalRoom.Entities.Count} active entities";
         Status($"Deleted {entity.Name}");
     }
@@ -4042,6 +4641,7 @@ public partial class MainWindow : Window
             SelectUniversalEntity(null);
             RefreshUniversalEntitiesList();
             RefreshUniversalInRoomSpritesStrip();
+            ApplyUniversalEntitiesToGame();
             if (CanvasBudgetText != null) CanvasBudgetText.Text = "0 active entities";
             MainLevelCanvas?.InvalidateVisual();
             Status("Cleared all scene sprites");
@@ -4057,6 +4657,7 @@ public partial class MainWindow : Window
                 entity.Col = Math.Clamp(col, 0, 31 - entity.WidthCells);
                 entity.Row = Math.Clamp(row, 0, 23 - entity.HeightCells);
                 RefreshUniversalEntitiesList();
+                ApplyUniversalEntitiesToGame();
                 MainLevelCanvas?.InvalidateVisual();
                 Status($"Updated position of {entity.Name} to ({entity.Col:D2},{entity.Row:D2})");
             }
@@ -4147,6 +4748,1255 @@ public partial class MainWindow : Window
 
             UniversalQuickSpritesPanel.Children.Add(btn);
         }
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // REX LEVEL LAB (INTEGRATED)
+    // ════════════════════════════════════════════════════════════════════════
+
+    private const double RexScale = 3.0;
+    private sealed record RexTypeChoice(byte Type, string Label);
+
+    private void InitRexUI(RexLevelLabProject lab)
+    {
+        if (ViewLevelRadio != null) ViewLevelRadio.IsEnabled = true;
+        ToolsTabs.SelectedItem = LevelLabTab;
+
+        _rexUndo.Clear();
+        _rexRedo.Clear();
+        _rexSelectedSpawn = null;
+        _rexDraggedSpawn = null;
+        _rexPainting = false;
+
+        bool isPart1 = lab.Rooms.Count == 35;
+        if (RexTitleText != null) RexTitleText.Text = $"Rex · Level Workshop ({lab.Rooms.Count} rooms)";
+        if (RexMatchText != null) RexMatchText.Text = $"{lab.MatchSummary} · {_document?.DisplayName}";
+
+        var accent = (Brush)FindResource("AccentBrush");
+        var border = (Brush)FindResource("BorderBrush");
+        if (RexPart1Button != null && RexPart2Button != null)
+        {
+            RexPart1Button.BorderBrush = isPart1 ? accent : border;
+            RexPart1Button.BorderThickness = new Thickness(isPart1 ? 2 : 1);
+            RexPart2Button.BorderBrush = !isPart1 ? accent : border;
+            RexPart2Button.BorderThickness = new Thickness(!isPart1 ? 2 : 1);
+        }
+        if (RexSidePart1Button != null && RexSidePart2Button != null)
+        {
+            RexSidePart1Button.BorderBrush = isPart1 ? accent : border;
+            RexSidePart1Button.BorderThickness = new Thickness(isPart1 ? 2 : 1);
+            RexSidePart2Button.BorderBrush = !isPart1 ? accent : border;
+            RexSidePart2Button.BorderThickness = new Thickness(!isPart1 ? 2 : 1);
+        }
+
+        _isSyncingRoomBoxes = true;
+        if (RexRoomBox != null) RexRoomBox.ItemsSource = lab.Rooms;
+        if (CanvasRoomBox != null) CanvasRoomBox.ItemsSource = lab.Rooms;
+        if (RexSpawnTypeCombo != null)
+        {
+            RexSpawnTypeCombo.ItemsSource = lab.SpriteTypes.Select(t => new RexTypeChoice(t.TypeId, $"${t.TypeId:X2}  {t.Name}")).ToList();
+            RexSpawnTypeCombo.DisplayMemberPath = nameof(RexTypeChoice.Label);
+        }
+        _isSyncingRoomBoxes = false;
+
+        BuildRexPalette();
+        SetRexBrush(_rexBrush);
+
+        int initialIdx = lab.Rooms.Count > 1 ? 1 : 0;
+        SelectRexRoom(lab.Rooms[initialIdx]);
+        UpdateUndoRedoState();
+    }
+
+    private void BuildRexPalette()
+    {
+        if (_rexLab == null || RexPalettePanel == null) return;
+        RexPalettePanel.Children.Clear();
+        _rexPaletteButtons.Clear();
+        bool usedOnly = RexUsedOnlyCheck?.IsChecked == true;
+        var used = new HashSet<byte>(_rexLab.Rooms.SelectMany(r => r.Tiles));
+        for (int id = 0; id < RexLevelLabProject.MetatileCount; id++)
+        {
+            byte meta = (byte)id;
+            if (usedOnly && !used.Contains(meta)) continue;
+            var image = new Image { Source = _rexLab.RenderMetatile(meta), Width = 44, Height = 44, Stretch = Stretch.Fill };
+            RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.NearestNeighbor);
+            var button = new Button
+            {
+                Content = image,
+                Width = 50,
+                Height = 50,
+                Margin = new Thickness(0, 0, 4, 4),
+                Padding = new Thickness(2),
+                Background = new SolidColorBrush(Color.FromRgb(10, 14, 20)),
+                ToolTip = $"Metatile ${meta:X2} ({meta})",
+                Tag = meta
+            };
+            button.Click += (_, _) =>
+            {
+                SetRexBrush(meta);
+                if (RexToolTilesRadio != null) RexToolTilesRadio.IsChecked = true;
+            };
+            _rexPaletteButtons[meta] = button;
+            RexPalettePanel.Children.Add(button);
+        }
+        HighlightRexBrush();
+    }
+
+    private void RexPalette_Filter(object sender, RoutedEventArgs e)
+    {
+        if (!IsLoaded && _rexLab == null) return;
+        BuildRexPalette();
+    }
+
+    private void SetRexBrush(byte meta)
+    {
+        if (_rexLab == null) return;
+        _rexBrush = meta;
+        if (RexBrushImage != null) RexBrushImage.Source = _rexLab.RenderMetatile(meta);
+        if (RexBrushText != null) RexBrushText.Text = $"${meta:X2}";
+        HighlightRexBrush();
+        RenderRexQuickTiles();
+    }
+
+    private void HighlightRexBrush()
+    {
+        var accent = (Brush)FindResource("AccentBrush");
+        var border = (Brush)FindResource("BorderBrush");
+        foreach (var (id, button) in _rexPaletteButtons)
+        {
+            bool active = id == _rexBrush;
+            button.BorderBrush = active ? accent : border;
+            button.BorderThickness = new Thickness(active ? 2 : 1);
+        }
+    }
+
+    private void RexEmptyBrush_Click(object sender, RoutedEventArgs e)
+    {
+        SetRexBrush(0x00);
+        if (RexToolTilesRadio != null) RexToolTilesRadio.IsChecked = true;
+    }
+
+    private void RexRoomBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isSyncingRoomBoxes || _rexLab == null) return;
+        if (RexRoomBox?.SelectedItem is RexRoom room)
+        {
+            SelectRexRoom(room);
+        }
+    }
+
+    private void SelectRexRoom(RexRoom room)
+    {
+        if (_rexLab == null) return;
+        _rexRoom = room;
+        _rexSelectedSpawn = null;
+
+        _isSyncingRoomBoxes = true;
+        if (RexRoomBox != null) RexRoomBox.SelectedItem = room;
+        if (CanvasRoomBox != null) CanvasRoomBox.SelectedItem = room;
+        _isSyncingRoomBoxes = false;
+
+        RefreshRexRoom();
+        RefreshRexSpawnPanel();
+        RefreshRexExits();
+        RenderRexQuickTiles();
+    }
+
+    private void RefreshRexRoom()
+    {
+        if (_rexRoom == null || _rexLab == null) return;
+        if (RexRoomImage != null) RexRoomImage.Source = _rexLab.RenderRoom(_rexRoom);
+        DrawRexOverlay();
+
+        if (CanvasRoomTitleText != null)
+            CanvasRoomTitleText.Text = $"Rex · Room {_rexRoom.Index:00} · {_rexRoom.Spawns.Count} spawns · exits {_rexRoom.ExitSummary}";
+        if (CanvasBudgetText != null)
+            CanvasBudgetText.Text = $"Spawns {_rexLab.SpawnBytesUsed}/{_rexLab.SpawnBudget} B";
+
+        Status($"Room {_rexRoom.Index:00} · {_rexRoom.Spawns.Count} spawns · exits {_rexRoom.ExitSummary}");
+    }
+
+    private void RenderRexQuickTiles()
+    {
+        if (RexQuickTilePanel == null || _rexLab == null || _rexRoom == null) return;
+        RexQuickTilePanel.Children.Clear();
+        var accent = (Brush)FindResource("AccentBrush");
+
+        foreach (byte meta in _rexRoom.Tiles.Distinct().OrderBy(t => t))
+        {
+            bool isActive = meta == _rexBrush;
+            var btn = new Button
+            {
+                Tag = meta,
+                Height = 28,
+                Padding = new Thickness(4, 2, 6, 2),
+                Margin = new Thickness(2, 0, 2, 0),
+                Background = isActive ? new SolidColorBrush(Color.FromRgb(20, 32, 42)) : new SolidColorBrush(Color.FromRgb(12, 16, 24)),
+                BorderBrush = isActive ? accent : new SolidColorBrush(Color.FromRgb(36, 50, 68)),
+                BorderThickness = new Thickness(isActive ? 2 : 1),
+                ToolTip = $"Metatile ${meta:X2} ({meta})"
+            };
+
+            var panel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+            var img = new Image
+            {
+                Source = _rexLab.RenderMetatile(meta),
+                Width = 20,
+                Height = 20,
+                Margin = new Thickness(0, 0, 4, 0),
+                Stretch = Stretch.Uniform
+            };
+            RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.NearestNeighbor);
+            panel.Children.Add(img);
+            panel.Children.Add(new TextBlock
+            {
+                Text = $"${meta:X2}",
+                Foreground = isActive ? accent : Brushes.White,
+                FontFamily = new FontFamily("Cascadia Mono"),
+                FontSize = 10,
+                FontWeight = FontWeights.Bold,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+            btn.Content = panel;
+
+            byte captured = meta;
+            btn.Click += (_, _) =>
+            {
+                SetRexBrush(captured);
+                if (RexToolTilesRadio != null) RexToolTilesRadio.IsChecked = true;
+            };
+            RexQuickTilePanel.Children.Add(btn);
+        }
+    }
+
+    private void DrawRexOverlay()
+    {
+        if (RexOverlayCanvas == null) return;
+        RexOverlayCanvas.Children.Clear();
+        if (_rexRoom == null || _rexLab == null) return;
+
+        if (RexGridCheck?.IsChecked == true)
+        {
+            var gridBrush = new SolidColorBrush(Color.FromArgb(70, 255, 255, 255));
+            for (int c = 1; c < RexLevelLabProject.RoomColumns; c++)
+                RexOverlayCanvas.Children.Add(new Line { X1 = c * 24 * RexScale, X2 = c * 24 * RexScale, Y1 = 0, Y2 = RexLevelLabProject.PixelHeight * RexScale, Stroke = gridBrush, StrokeThickness = 1 });
+            for (int r = 1; r < RexLevelLabProject.RoomRows; r++)
+                RexOverlayCanvas.Children.Add(new Line { X1 = 0, X2 = RexLevelLabProject.PixelWidth * RexScale, Y1 = r * 24 * RexScale, Y2 = r * 24 * RexScale, Stroke = gridBrush, StrokeThickness = 1 });
+        }
+
+        if (RexPropsCheck?.IsChecked == true)
+        {
+            for (int r = 0; r < RexLevelLabProject.RoomRows; r++)
+            for (int c = 0; c < RexLevelLabProject.RoomColumns; c++)
+            for (int k = 0; k < 9; k++)
+            {
+                byte ch = _rexLab.GetMetatileChar(_rexRoom.Tiles[r * RexLevelLabProject.RoomColumns + c], k);
+                byte prop = _rexLab.GetCharProperty(ch);
+                if (prop == 0) continue;
+                var cell = new Rectangle { Width = 8 * RexScale, Height = 8 * RexScale, Fill = RexPropBrush(prop) };
+                Canvas.SetLeft(cell, (c * 24 + (k % 3) * 8) * RexScale);
+                Canvas.SetTop(cell, (r * 24 + (k / 3) * 8) * RexScale);
+                RexOverlayCanvas.Children.Add(cell);
+                var text = new TextBlock { Text = prop.ToString(CultureInfo.InvariantCulture), Foreground = Brushes.White, FontSize = 9, FontFamily = new FontFamily("Cascadia Mono") };
+                Canvas.SetLeft(text, (c * 24 + (k % 3) * 8) * RexScale + 2);
+                Canvas.SetTop(text, (r * 24 + (k / 3) * 8) * RexScale + 2);
+                RexOverlayCanvas.Children.Add(text);
+            }
+        }
+
+        foreach (var spawn in _rexRoom.Spawns)
+        {
+            var rect = RexSpawnRect(spawn);
+            bool selected = spawn == _rexSelectedSpawn;
+            if (RexSpritesCheck?.IsChecked == true && _rexLab.RenderSprite(spawn.Type) is { } sprite)
+            {
+                var image = new Image { Source = sprite, Width = sprite.PixelWidth * RexScale, Height = sprite.PixelHeight * RexScale, Stretch = Stretch.Fill };
+                RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.NearestNeighbor);
+                if (spawn.FacingLeft)
+                {
+                    image.RenderTransformOrigin = new Point(0.5, 0.5);
+                    image.RenderTransform = new ScaleTransform(-1, 1);
+                }
+                Canvas.SetLeft(image, rect.X);
+                Canvas.SetTop(image, rect.Y);
+                RexOverlayCanvas.Children.Add(image);
+            }
+
+            var frame = new Rectangle
+            {
+                Width = rect.Width,
+                Height = rect.Height,
+                Stroke = selected ? Brushes.Yellow : new SolidColorBrush(Color.FromArgb(200, 255, 75, 75)),
+                StrokeThickness = selected ? 2 : 1,
+                StrokeDashArray = selected ? null : new DoubleCollection { 3, 2 }
+            };
+            Canvas.SetLeft(frame, rect.X);
+            Canvas.SetTop(frame, rect.Y);
+            RexOverlayCanvas.Children.Add(frame);
+
+            var label = new TextBlock { Text = $"{spawn.Type:X2}", Foreground = selected ? Brushes.Yellow : Brushes.White, FontSize = 10, FontFamily = new FontFamily("Cascadia Mono") };
+            Canvas.SetLeft(label, rect.X + 1);
+            Canvas.SetTop(label, rect.Y - 13);
+            RexOverlayCanvas.Children.Add(label);
+        }
+    }
+
+    private static Brush RexPropBrush(byte prop)
+    {
+        Color[] colours =
+        {
+            Color.FromRgb(60, 140, 255), Color.FromRgb(255, 90, 70), Color.FromRgb(70, 220, 120), Color.FromRgb(255, 200, 60),
+            Color.FromRgb(200, 100, 255), Color.FromRgb(60, 220, 220), Color.FromRgb(255, 140, 200), Color.FromRgb(180, 180, 180)
+        };
+        var c = colours[prop % colours.Length];
+        var brush = new SolidColorBrush(Color.FromArgb(105, c.R, c.G, c.B));
+        brush.Freeze();
+        return brush;
+    }
+
+    private Rect RexSpawnRect(RexSpawn spawn)
+    {
+        var sprite = _rexLab?.GetSpriteBits(spawn.Type);
+        double w = (sprite?.WidthBytes ?? 2) * 8, h = sprite?.Height ?? 16;
+        return new Rect((spawn.X - 8) * RexScale, (spawn.Row * 8 - 24) * RexScale, w * RexScale, h * RexScale);
+    }
+
+    private void RexView_Changed(object sender, RoutedEventArgs e)
+    {
+        if (!IsLoaded || _rexLab == null) return;
+        DrawRexOverlay();
+    }
+
+    private void RexTool_Changed(object sender, RoutedEventArgs e)
+    {
+        if (!IsLoaded || _rexLab == null) return;
+        Status(RexToolSpawnsRadio?.IsChecked == true
+            ? "Rex Spawns mode · click an enemy spawn to select it, drag to move it"
+            : "Rex Metatile mode · left-click/drag paints 24×24 metatile, right-click picks metatile");
+    }
+
+    private bool TryRexCell(MouseEventArgs e, out int col, out int row)
+    {
+        var p = e.GetPosition(RexRoomHost);
+        col = (int)(p.X / (24 * RexScale));
+        row = (int)(p.Y / (24 * RexScale));
+        return col >= 0 && col < RexLevelLabProject.RoomColumns && row >= 0 && row < RexLevelLabProject.RoomRows;
+    }
+
+    private void RexRoom_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (_rexRoom == null || _rexLab == null) return;
+        if (RexToolSpawnsRadio?.IsChecked == true)
+        {
+            var p = e.GetPosition(RexRoomHost);
+            var hit = _rexRoom.Spawns.LastOrDefault(s => RexSpawnRect(s).Contains(p));
+            _rexSelectedSpawn = hit;
+            if (hit != null)
+            {
+                var r = RexSpawnRect(hit);
+                _rexDragOffset = new Point(p.X - r.X, p.Y - r.Y);
+                _rexDraggedSpawn = hit;
+                RexRoomHost.CaptureMouse();
+            }
+            SelectRexSpawnInList();
+            DrawRexOverlay();
+            return;
+        }
+
+        _rexPainting = true;
+        RexRoomHost.CaptureMouse();
+        PaintRexAt(e);
+    }
+
+    private void RexRoom_RightDown(object sender, MouseButtonEventArgs e)
+    {
+        if (_rexRoom == null || !TryRexCell(e, out int col, out int row)) return;
+        SetRexBrush(_rexRoom.Tiles[row * RexLevelLabProject.RoomColumns + col]);
+        if (RexToolTilesRadio != null) RexToolTilesRadio.IsChecked = true;
+        Status($"Picked metatile ${_rexBrush:X2}");
+    }
+
+    private void RexRoom_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (_rexRoom == null || _rexLab == null) return;
+        if (_rexPainting && e.LeftButton == MouseButtonState.Pressed) PaintRexAt(e);
+
+        if (_rexDraggedSpawn != null && e.LeftButton == MouseButtonState.Pressed)
+        {
+            var p = e.GetPosition(RexRoomHost);
+            int px = (int)Math.Round((p.X - _rexDragOffset.X) / RexScale) + 8;
+            int row = (int)Math.Round(((p.Y - _rexDragOffset.Y) / RexScale + 24) / 8.0);
+            _rexDraggedSpawn.X = (byte)Math.Clamp(px, 8, 247);
+            _rexDraggedSpawn.Row = (byte)Math.Clamp(row, 3, 23);
+            LoadRexSpawnFields();
+            DrawRexOverlay();
+        }
+        else if (TryRexCell(e, out int col, out int r))
+        {
+            Status($"Room {_rexRoom.Index:00}  ·  cell ({col},{r})  ·  metatile ${_rexRoom.Tiles[r * RexLevelLabProject.RoomColumns + col]:X2}");
+        }
+    }
+
+    private void RexRoom_MouseUp(object sender, MouseButtonEventArgs e)
+    {
+        if (_rexDraggedSpawn != null)
+        {
+            CommitRexSpawns("Moved spawn");
+            _rexDraggedSpawn = null;
+        }
+        _rexPainting = false;
+        RexRoomHost.ReleaseMouseCapture();
+    }
+
+    private void RexRoom_MouseLeave(object sender, MouseEventArgs e)
+    {
+        if (e.LeftButton != MouseButtonState.Pressed)
+        {
+            _rexPainting = false;
+            _rexDraggedSpawn = null;
+        }
+    }
+
+    private void PaintRexAt(MouseEventArgs e)
+    {
+        if (_rexRoom == null || _rexLab == null || !TryRexCell(e, out int col, out int row)) return;
+        int cell = row * RexLevelLabProject.RoomColumns + col;
+        if (_rexRoom.Tiles[cell] == _rexBrush) return;
+        _rexUndo.Push((_rexRoom.Index, cell, _rexRoom.Tiles[cell]));
+        _rexRedo.Clear();
+        _rexLab.SetTile(_rexRoom.Index, cell, _rexBrush);
+        _document?.MarkDirty();
+        if (SaveButton != null) SaveButton.IsEnabled = true;
+        if (SaveAsButton != null) SaveAsButton.IsEnabled = true;
+        UpdateUndoRedoState();
+        RefreshRexRoom();
+        RenderRexQuickTiles();
+    }
+
+    private void RefreshRexSpawnPanel()
+    {
+        if (_rexLab == null) return;
+        _isSyncingRoomBoxes = true;
+        if (RexSpawnList != null)
+        {
+            RexSpawnList.ItemsSource = null;
+            RexSpawnList.ItemsSource = _rexRoom?.Spawns;
+        }
+        if (_rexRoom != null)
+        {
+            if (RexParamCountBox != null) RexParamCountBox.Text = (_rexRoom.SpawnParams[0] & 0x1F).ToString(CultureInfo.InvariantCulture);
+            if (RexParamPeriodBox != null) RexParamPeriodBox.Text = _rexRoom.SpawnParams[1].ToString(CultureInfo.InvariantCulture);
+            if (RexParamVariantBox != null) RexParamVariantBox.Text = _rexRoom.SpawnParams[2].ToString(CultureInfo.InvariantCulture);
+        }
+        _isSyncingRoomBoxes = false;
+        SelectRexSpawnInList();
+        LoadRexSpawnFields();
+        UpdateRexBudget();
+    }
+
+    private void UpdateRexBudget()
+    {
+        if (_rexLab == null) return;
+        if (RexSpawnBudgetText != null)
+        {
+            RexSpawnBudgetText.Text = $"Spawn data: {_rexLab.SpawnBytesUsed} of {_rexLab.SpawnBudget} bytes used across all rooms (3 bytes per spawn).";
+        }
+        if (CanvasBudgetText != null)
+        {
+            CanvasBudgetText.Text = $"Spawns {_rexLab.SpawnBytesUsed}/{_rexLab.SpawnBudget} B";
+        }
+    }
+
+    private void SelectRexSpawnInList()
+    {
+        _isSyncingRoomBoxes = true;
+        if (RexSpawnList != null) RexSpawnList.SelectedItem = _rexSelectedSpawn;
+        _isSyncingRoomBoxes = false;
+        LoadRexSpawnFields();
+    }
+
+    private void LoadRexSpawnFields()
+    {
+        _isSyncingRoomBoxes = true;
+        bool has = _rexSelectedSpawn != null;
+        if (RexSpawnTypeCombo != null) RexSpawnTypeCombo.IsEnabled = has;
+        if (RexSpawnXBox != null) RexSpawnXBox.IsEnabled = has;
+        if (RexSpawnRowBox != null) RexSpawnRowBox.IsEnabled = has;
+        if (RexSpawnFacingCheck != null) RexSpawnFacingCheck.IsEnabled = has;
+        if (has)
+        {
+            if (RexSpawnTypeCombo != null)
+                RexSpawnTypeCombo.SelectedItem = (RexSpawnTypeCombo.ItemsSource as IEnumerable<RexTypeChoice>)?.FirstOrDefault(t => t.Type == _rexSelectedSpawn!.Type);
+            if (RexSpawnXBox != null) RexSpawnXBox.Text = _rexSelectedSpawn!.X.ToString(CultureInfo.InvariantCulture);
+            if (RexSpawnRowBox != null) RexSpawnRowBox.Text = _rexSelectedSpawn!.Row.ToString(CultureInfo.InvariantCulture);
+            if (RexSpawnFacingCheck != null) RexSpawnFacingCheck.IsChecked = _rexSelectedSpawn!.FacingLeft;
+        }
+        else
+        {
+            if (RexSpawnTypeCombo != null) RexSpawnTypeCombo.SelectedItem = null;
+            if (RexSpawnXBox != null) RexSpawnXBox.Text = "";
+            if (RexSpawnRowBox != null) RexSpawnRowBox.Text = "";
+            if (RexSpawnFacingCheck != null) RexSpawnFacingCheck.IsChecked = false;
+        }
+        _isSyncingRoomBoxes = false;
+    }
+
+    private void RexSpawnList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isSyncingRoomBoxes) return;
+        _rexSelectedSpawn = RexSpawnList?.SelectedItem as RexSpawn;
+        LoadRexSpawnFields();
+        DrawRexOverlay();
+    }
+
+    private void RexSpawnField_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_isSyncingRoomBoxes || _rexSelectedSpawn == null) return;
+        if (RexSpawnTypeCombo?.SelectedItem is RexTypeChoice choice) _rexSelectedSpawn.Type = choice.Type;
+        if (RexSpawnXBox != null && byte.TryParse(RexSpawnXBox.Text, out byte x)) _rexSelectedSpawn.X = x;
+        if (RexSpawnRowBox != null && byte.TryParse(RexSpawnRowBox.Text, out byte row)) _rexSelectedSpawn.Row = row;
+        if (RexSpawnFacingCheck != null) _rexSelectedSpawn.FacingLeft = RexSpawnFacingCheck.IsChecked == true;
+        CommitRexSpawns("Edited spawn");
+    }
+
+    private void RexBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter) return;
+        if (sender == RexParamCountBox || sender == RexParamPeriodBox || sender == RexParamVariantBox) RexParam_Changed(sender, e);
+        else if (sender == RexSpawnXBox || sender == RexSpawnRowBox) RexSpawnField_Changed(sender, e);
+        else RexExit_Changed(sender, e);
+    }
+
+    private void RexParam_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_isSyncingRoomBoxes || _rexRoom == null) return;
+        if (RexParamCountBox == null || RexParamPeriodBox == null || RexParamVariantBox == null) return;
+        if (!byte.TryParse(RexParamCountBox.Text, out byte count) || count > 31 ||
+            !byte.TryParse(RexParamPeriodBox.Text, out byte period) ||
+            !byte.TryParse(RexParamVariantBox.Text, out byte variant))
+        {
+            Status("Spawn rules must be numbers: max concurrent 0–31, the others 0–255.");
+            return;
+        }
+        byte flags = (byte)(_rexRoom.SpawnParams[0] & 0xE0);
+        CommitRexSpawns("Changed spawn rules", new[] { (byte)(flags | count), period, variant });
+    }
+
+    private void CommitRexSpawns(string what, byte[]? newParams = null)
+    {
+        if (_rexRoom == null || _rexLab == null) return;
+        try
+        {
+            _rexLab.ApplySpawns(_rexRoom.Index, newParams ?? _rexRoom.SpawnParams.ToArray(), _rexRoom.Spawns.ToList());
+            _document?.MarkDirty();
+            if (SaveButton != null) SaveButton.IsEnabled = true;
+            if (SaveAsButton != null) SaveAsButton.IsEnabled = true;
+            UpdateRexBudget();
+            Status($"{what} · room {_rexRoom.Index:00}");
+        }
+        catch (InvalidOperationException ex)
+        {
+            MessageBox.Show(this, ex.Message, "Spawn data is full", MessageBoxButton.OK, MessageBoxImage.Warning);
+            RefreshRexSpawnPanel();
+        }
+        DrawRexOverlay();
+    }
+
+    private void RexSpawnAdd_Click(object sender, RoutedEventArgs e)
+    {
+        if (_rexRoom == null || _rexLab == null) return;
+        byte type = (byte)(RexSpawnTypeCombo?.SelectedItem is RexTypeChoice c ? c.Type : _rexLab.SpriteTypes.First().TypeId);
+        var spawn = new RexSpawn(type, false, 120, 12);
+        var list = _rexRoom.Spawns.ToList();
+        list.Add(spawn);
+        try
+        {
+            _rexLab.ApplySpawns(_rexRoom.Index, _rexRoom.SpawnParams.ToArray(), list);
+            _document?.MarkDirty();
+            if (SaveButton != null) SaveButton.IsEnabled = true;
+            if (SaveAsButton != null) SaveAsButton.IsEnabled = true;
+        }
+        catch (InvalidOperationException ex)
+        {
+            MessageBox.Show(this, ex.Message, "Spawn data is full", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        _rexSelectedSpawn = spawn;
+        if (RexToolSpawnsRadio != null) RexToolSpawnsRadio.IsChecked = true;
+        RefreshRexSpawnPanel();
+        DrawRexOverlay();
+        Status($"Added spawn ${type:X2} to room {_rexRoom.Index:00}");
+    }
+
+    private void RexSpawnDelete_Click(object sender, RoutedEventArgs e)
+    {
+        if (_rexRoom == null || _rexLab == null || _rexSelectedSpawn == null) return;
+        var list = _rexRoom.Spawns.Where(s => s != _rexSelectedSpawn).ToList();
+        _rexLab.ApplySpawns(_rexRoom.Index, _rexRoom.SpawnParams.ToArray(), list);
+        _document?.MarkDirty();
+        if (SaveButton != null) SaveButton.IsEnabled = true;
+        if (SaveAsButton != null) SaveAsButton.IsEnabled = true;
+        _rexSelectedSpawn = null;
+        RefreshRexSpawnPanel();
+        DrawRexOverlay();
+        Status($"Deleted spawn · room {_rexRoom.Index:00} now {_rexRoom.Spawns.Count} spawns");
+    }
+
+    private void RefreshRexExits()
+    {
+        if (_rexRoom == null || _rexLab == null) return;
+        _isSyncingRoomBoxes = true;
+        if (RexExitUpBox != null) RexExitUpBox.Text = _rexRoom.Up.ToString(CultureInfo.InvariantCulture);
+        if (RexExitRightBox != null) RexExitRightBox.Text = _rexRoom.Right.ToString(CultureInfo.InvariantCulture);
+        if (RexExitDownBox != null) RexExitDownBox.Text = _rexRoom.Down.ToString(CultureInfo.InvariantCulture);
+        if (RexExitLeftBox != null) RexExitLeftBox.Text = _rexRoom.Left.ToString(CultureInfo.InvariantCulture);
+        _isSyncingRoomBoxes = false;
+        if (RexExitHintText != null)
+            RexExitHintText.Text = $"Room count: {_rexLab.Rooms.Count} (valid ids 1–{_rexLab.Rooms.Count - 1}; 99 = end-of-section marker).";
+    }
+
+    private void RexExit_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_isSyncingRoomBoxes || _rexRoom == null || _rexLab == null) return;
+        if (RexExitUpBox == null || RexExitRightBox == null || RexExitDownBox == null || RexExitLeftBox == null) return;
+        if (!byte.TryParse(RexExitUpBox.Text, out byte up) || !byte.TryParse(RexExitRightBox.Text, out byte right) ||
+            !byte.TryParse(RexExitDownBox.Text, out byte down) || !byte.TryParse(RexExitLeftBox.Text, out byte left))
+        {
+            Status("Exits must be room numbers 0–255.");
+            return;
+        }
+        if (up == _rexRoom.Up && right == _rexRoom.Right && down == _rexRoom.Down && left == _rexRoom.Left) return;
+        _rexLab.SetExits(_rexRoom.Index, up, right, down, left);
+        _document?.MarkDirty();
+        if (SaveButton != null) SaveButton.IsEnabled = true;
+        if (SaveAsButton != null) SaveAsButton.IsEnabled = true;
+        RefreshRexRoom();
+        Status($"Exits updated · room {_rexRoom.Index:00} {_rexRoom.ExitSummary}");
+    }
+
+    private void RexPart1_Click(object sender, RoutedEventArgs e) => LoadRexPartTap(1);
+    private void RexPart2_Click(object sender, RoutedEventArgs e) => LoadRexPartTap(2);
+
+    private void LoadRexPartTap(int part)
+    {
+        if (!ConfirmDiscard()) return;
+        string? path = ProjectVaultService.Instance.FindDefaultRexTapPath(part);
+        if (string.IsNullOrEmpty(path)) return;
+        LoadFile(path);
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // MYTH LEVEL LAB (INTEGRATED)
+    // ════════════════════════════════════════════════════════════════════════
+
+    private double MythZoom => MythZoomCombo?.SelectedIndex switch { 0 => 1.0, 2 => 3.0, _ => 2.0 };
+    private double MythCell => 16 * MythZoom;
+
+    private void InitMythUI(MythLevelLabProject lab)
+    {
+        if (ViewLevelRadio != null) ViewLevelRadio.IsEnabled = true;
+        ToolsTabs.SelectedItem = LevelLabTab;
+
+        _mythUndo.Clear();
+        _mythRedo.Clear();
+        _mythSelectedObject = null;
+        _mythDraggedObject = null;
+        _mythPainting = false;
+
+        if (MythTitleText != null) MythTitleText.Text = "Myth · Level Workshop";
+        if (MythMatchText != null) MythMatchText.Text = $"{lab.MatchSummary} · {_document?.DisplayName}";
+
+        _isSyncingRoomBoxes = true;
+        if (MythLevelCombo != null)
+        {
+            MythLevelCombo.ItemsSource = lab.Levels;
+            MythLevelCombo.DisplayMemberPath = nameof(MythLevel.DisplayName);
+            MythLevelCombo.SelectedIndex = 0;
+        }
+        if (MythCanvasLevelCombo != null)
+        {
+            MythCanvasLevelCombo.ItemsSource = lab.Levels;
+            MythCanvasLevelCombo.DisplayMemberPath = nameof(MythLevel.DisplayName);
+            MythCanvasLevelCombo.SelectedIndex = 0;
+        }
+        _isSyncingRoomBoxes = false;
+
+        if (lab.Levels.Count > 0)
+        {
+            _mythLevel = lab.Levels[0];
+            _isSyncingRoomBoxes = true;
+            if (MythAreaList != null) MythAreaList.ItemsSource = _mythLevel.Areas;
+            if (CanvasRoomBox != null) CanvasRoomBox.ItemsSource = _mythLevel.Areas;
+            _isSyncingRoomBoxes = false;
+
+            BuildMythPalette();
+            SetMythBrush(_mythBrush < _mythLevel.MetatileCount ? _mythBrush : (byte)0);
+
+            if (_mythLevel.Areas.Count > 0)
+            {
+                SelectMythArea(_mythLevel.Areas[0]);
+            }
+        }
+        UpdateUndoRedoState();
+    }
+
+    private void MythLevelCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isSyncingRoomBoxes || _mythLab == null) return;
+        MythLevel? selectedLevel = (sender as ComboBox)?.SelectedItem as MythLevel ?? MythLevelCombo?.SelectedItem as MythLevel;
+        if (selectedLevel == null) return;
+
+        _mythLevel = selectedLevel;
+        _isSyncingRoomBoxes = true;
+        if (MythLevelCombo != null) MythLevelCombo.SelectedItem = selectedLevel;
+        if (MythCanvasLevelCombo != null) MythCanvasLevelCombo.SelectedItem = selectedLevel;
+        if (MythAreaList != null) MythAreaList.ItemsSource = _mythLevel.Areas;
+        if (CanvasRoomBox != null) CanvasRoomBox.ItemsSource = _mythLevel.Areas;
+        _isSyncingRoomBoxes = false;
+
+        BuildMythPalette();
+        SetMythBrush(_mythBrush < _mythLevel.MetatileCount ? _mythBrush : (byte)0);
+        if (_mythLevel.Areas.Count > 0)
+        {
+            SelectMythArea(_mythLevel.Areas[0]);
+        }
+    }
+
+    private void MythAreaList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isSyncingRoomBoxes || _mythLab == null) return;
+        if (MythAreaList?.SelectedItem is MythArea area)
+        {
+            SelectMythArea(area);
+        }
+    }
+
+    private void SelectMythArea(MythArea area)
+    {
+        if (_mythLab == null || _mythLevel == null) return;
+        _mythArea = area;
+        _mythSelectedObject = null;
+
+        _isSyncingRoomBoxes = true;
+        if (MythAreaList != null) MythAreaList.SelectedItem = area;
+        if (CanvasRoomBox != null) CanvasRoomBox.SelectedItem = area;
+        _isSyncingRoomBoxes = false;
+
+        RefreshMythArea();
+        RefreshMythObjectPanel();
+        RenderMythQuickTiles();
+        MythStageContainer?.ScrollToHome();
+    }
+
+    private void RefreshMythArea()
+    {
+        if (_mythLab == null || _mythLevel == null || _mythArea == null) return;
+        if (MythAreaImage != null) MythAreaImage.Source = _mythLab.RenderArea(_mythLevel, _mythArea);
+        if (MythAreaHost != null)
+        {
+            MythAreaHost.Width = _mythArea.Width * MythCell;
+            MythAreaHost.Height = _mythArea.Height * MythCell;
+        }
+        DrawMythOverlay();
+        UpdateMythInfo();
+    }
+
+    private void UpdateMythInfo()
+    {
+        if (_mythLab == null || _mythLevel == null || _mythArea == null) return;
+        if (MythInfoText != null)
+        {
+            MythInfoText.Text =
+                $"Area {_mythArea.Index + 1}: {_mythArea.Width}×{_mythArea.Height} metatiles ({_mythArea.Width * 2}×{_mythArea.Height * 2} chars)\n" +
+                $"Start position: col {_mythArea.StartCol}, row {_mythArea.StartRow} · descriptor ${_mythArea.DescriptorAddress:X4}\n" +
+                $"{_mythLevel.CharacterCount} chars · {_mythLevel.MetatileCount} metatiles";
+        }
+        int used = _mythLab.PackEncodedLength(_mythLevel);
+        if (MythPackText != null)
+        {
+            MythPackText.Text = $"Level RLE pack: {used} / {_mythLevel.PackCapacity} bytes used.";
+        }
+        if (MythPackBar != null)
+        {
+            MythPackBar.Maximum = Math.Max(1, _mythLevel.PackCapacity);
+            MythPackBar.Value = Math.Min(used, _mythLevel.PackCapacity);
+        }
+        if (CanvasRoomTitleText != null)
+            CanvasRoomTitleText.Text = $"{_mythLevel.DisplayName} · Area {_mythArea.Index + 1} ({_mythArea.Width}×{_mythArea.Height})";
+        if (CanvasBudgetText != null)
+            CanvasBudgetText.Text = $"Pack {used}/{_mythLevel.PackCapacity} B · Objects {_mythArea.Objects.Count}/{_mythArea.ObjectCapacity}";
+        Status($"{_mythLevel.DisplayName} · Area {_mythArea.Index + 1} · {_mythArea.Objects.Count} objects · pack {used}/{_mythLevel.PackCapacity} bytes");
+    }
+
+    private void BuildMythPalette()
+    {
+        if (_mythLab == null || _mythLevel == null || MythPalettePanel == null) return;
+        MythPalettePanel.Children.Clear();
+        _mythPaletteButtons.Clear();
+        var used = new HashSet<byte>();
+        foreach (var area in _mythLevel.Areas)
+            for (int r = 0; r < area.Height; r++)
+                for (int c = 0; c < area.Width; c++)
+                    used.Add(_mythLevel.GetTile(area, c, r));
+        for (int id = 0; id < _mythLevel.MetatileCount; id++)
+        {
+            byte meta = (byte)id;
+            var image = new Image { Source = _mythLab.RenderMetatile(_mythLevel, meta), Width = 32, Height = 32, Stretch = Stretch.Fill };
+            RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.NearestNeighbor);
+            var button = new Button
+            {
+                Content = image,
+                Width = 38,
+                Height = 38,
+                Margin = new Thickness(0, 0, 3, 3),
+                Padding = new Thickness(2),
+                Background = new SolidColorBrush(Color.FromRgb(10, 14, 20)),
+                ToolTip = $"Metatile ${meta:X2} ({meta}){(used.Contains(meta) ? "" : " — unused in this level")}",
+                Opacity = used.Contains(meta) ? 1.0 : 0.55
+            };
+            button.Click += (_, _) =>
+            {
+                SetMythBrush(meta);
+                if (MythToolTilesRadio != null) MythToolTilesRadio.IsChecked = true;
+            };
+            _mythPaletteButtons[meta] = button;
+            MythPalettePanel.Children.Add(button);
+        }
+        HighlightMythBrush();
+    }
+
+    private void SetMythBrush(byte meta)
+    {
+        if (_mythLab == null) return;
+        _mythBrush = meta;
+        if (_mythLevel != null && MythBrushImage != null) MythBrushImage.Source = _mythLab.RenderMetatile(_mythLevel, meta);
+        if (MythBrushText != null) MythBrushText.Text = $"${meta:X2}";
+        HighlightMythBrush();
+        RenderMythQuickTiles();
+    }
+
+    private void HighlightMythBrush()
+    {
+        var accent = (Brush)FindResource("AccentBrush");
+        var border = (Brush)FindResource("BorderBrush");
+        foreach (var (id, button) in _mythPaletteButtons)
+        {
+            bool active = id == _mythBrush;
+            button.BorderBrush = active ? accent : border;
+            button.BorderThickness = new Thickness(active ? 2 : 1);
+        }
+    }
+
+    private void MythEmptyBrush_Click(object sender, RoutedEventArgs e)
+    {
+        SetMythBrush(0x00);
+        if (MythToolTilesRadio != null) MythToolTilesRadio.IsChecked = true;
+    }
+
+    private void RenderMythQuickTiles()
+    {
+        if (MythQuickTilePanel == null || _mythLab == null || _mythLevel == null || _mythArea == null) return;
+        MythQuickTilePanel.Children.Clear();
+        var accent = (Brush)FindResource("AccentBrush");
+
+        var distinct = new SortedSet<byte>();
+        for (int r = 0; r < _mythArea.Height; r++)
+            for (int c = 0; c < _mythArea.Width; c++)
+                distinct.Add(_mythLevel.GetTile(_mythArea, c, r));
+
+        foreach (byte meta in distinct)
+        {
+            bool isActive = meta == _mythBrush;
+            var btn = new Button
+            {
+                Tag = meta,
+                Height = 28,
+                Padding = new Thickness(4, 2, 6, 2),
+                Margin = new Thickness(2, 0, 2, 0),
+                Background = isActive ? new SolidColorBrush(Color.FromRgb(20, 32, 42)) : new SolidColorBrush(Color.FromRgb(12, 16, 24)),
+                BorderBrush = isActive ? accent : new SolidColorBrush(Color.FromRgb(36, 50, 68)),
+                BorderThickness = new Thickness(isActive ? 2 : 1),
+                ToolTip = $"Metatile ${meta:X2} ({meta})"
+            };
+
+            var panel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+            var img = new Image
+            {
+                Source = _mythLab.RenderMetatile(_mythLevel, meta),
+                Width = 18,
+                Height = 18,
+                Margin = new Thickness(0, 0, 4, 0),
+                Stretch = Stretch.Uniform
+            };
+            RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.NearestNeighbor);
+            panel.Children.Add(img);
+            panel.Children.Add(new TextBlock
+            {
+                Text = $"${meta:X2}",
+                Foreground = isActive ? accent : Brushes.White,
+                FontFamily = new FontFamily("Cascadia Mono"),
+                FontSize = 10,
+                FontWeight = FontWeights.Bold,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+            btn.Content = panel;
+
+            byte captured = meta;
+            btn.Click += (_, _) =>
+            {
+                SetMythBrush(captured);
+                if (MythToolTilesRadio != null) MythToolTilesRadio.IsChecked = true;
+            };
+            MythQuickTilePanel.Children.Add(btn);
+        }
+    }
+
+    private void DrawMythOverlay()
+    {
+        if (MythOverlayCanvas == null) return;
+        MythOverlayCanvas.Children.Clear();
+        if (_mythLevel == null || _mythArea == null) return;
+
+        if (MythGridCheck?.IsChecked == true)
+        {
+            var pen = new SolidColorBrush(Color.FromArgb(55, 255, 255, 255));
+            for (int c = 1; c < _mythArea.Width; c++)
+                MythOverlayCanvas.Children.Add(new Line { X1 = c * MythCell, X2 = c * MythCell, Y1 = 0, Y2 = _mythArea.Height * MythCell, Stroke = pen, StrokeThickness = 1 });
+            for (int r = 1; r < _mythArea.Height; r++)
+                MythOverlayCanvas.Children.Add(new Line { X1 = 0, X2 = _mythArea.Width * MythCell, Y1 = r * MythCell, Y2 = r * MythCell, Stroke = pen, StrokeThickness = 1 });
+        }
+
+        if (MythScreensCheck?.IsChecked == true)
+        {
+            var dash = new DoubleCollection { 4, 3 };
+            var brush = new SolidColorBrush(Color.FromArgb(200, 70, 220, 255));
+            for (int c0 = _mythArea.StartCol % MythLevelLabProject.ViewportColumns; c0 + MythLevelLabProject.ViewportColumns <= _mythArea.Width; c0 += MythLevelLabProject.ViewportColumns)
+                for (int r0 = _mythArea.StartRow % MythLevelLabProject.ViewportRows; r0 + MythLevelLabProject.ViewportRows <= _mythArea.Height; r0 += MythLevelLabProject.ViewportRows)
+                {
+                    var frame = new Rectangle
+                    {
+                        Width = MythLevelLabProject.ViewportColumns * MythCell,
+                        Height = MythLevelLabProject.ViewportRows * MythCell,
+                        Stroke = brush,
+                        StrokeThickness = 1,
+                        StrokeDashArray = dash
+                    };
+                    Canvas.SetLeft(frame, c0 * MythCell);
+                    Canvas.SetTop(frame, r0 * MythCell);
+                    MythOverlayCanvas.Children.Add(frame);
+                }
+
+            var start = new Rectangle
+            {
+                Width = MythLevelLabProject.ViewportColumns * MythCell,
+                Height = MythLevelLabProject.ViewportRows * MythCell,
+                Stroke = new SolidColorBrush(Color.FromRgb(70, 240, 160)),
+                StrokeThickness = 2
+            };
+            Canvas.SetLeft(start, _mythArea.StartCol * MythCell);
+            Canvas.SetTop(start, _mythArea.StartRow * MythCell);
+            MythOverlayCanvas.Children.Add(start);
+        }
+
+        if (MythObjectsCheck?.IsChecked == true)
+        {
+            foreach (var obj in _mythArea.Objects)
+            {
+                var rect = MythObjectRect(obj);
+                bool selected = obj == _mythSelectedObject;
+                var colour = MythAttributeColour(_mythLevel.ObjectAttribute(obj.Type));
+                var sprite = MythSpriteCatalog.Find(_mythLevel.Number, obj.Type);
+                if (sprite != null)
+                {
+                    var image = new Image { Source = sprite.Bitmap, Width = rect.Width, Height = rect.Height, Stretch = Stretch.Fill };
+                    RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.NearestNeighbor);
+                    Canvas.SetLeft(image, rect.X);
+                    Canvas.SetTop(image, rect.Y);
+                    MythOverlayCanvas.Children.Add(image);
+                }
+
+                var frame = new Rectangle
+                {
+                    Width = rect.Width,
+                    Height = rect.Height,
+                    Fill = sprite == null ? new SolidColorBrush(Color.FromArgb(110, colour.R, colour.G, colour.B)) : Brushes.Transparent,
+                    Stroke = selected ? Brushes.Yellow : new SolidColorBrush(Color.FromArgb(sprite == null ? (byte)255 : (byte)120, colour.R, colour.G, colour.B)),
+                    StrokeThickness = selected ? 2 : 1,
+                    StrokeDashArray = selected || sprite == null ? null : new DoubleCollection { 3, 2 }
+                };
+                Canvas.SetLeft(frame, rect.X);
+                Canvas.SetTop(frame, rect.Y);
+                MythOverlayCanvas.Children.Add(frame);
+                var label = new TextBlock { Text = obj.Type.ToString(CultureInfo.InvariantCulture), Foreground = selected ? Brushes.Yellow : Brushes.White, FontSize = Math.Max(9, MythCell * 0.5), FontFamily = new FontFamily("Cascadia Mono") };
+                Canvas.SetLeft(label, rect.X + 1);
+                Canvas.SetTop(label, rect.Y - Math.Max(11, MythCell * 0.6));
+                MythOverlayCanvas.Children.Add(label);
+            }
+        }
+    }
+
+    private static Color MythAttributeColour(int attr)
+    {
+        int ink = attr & 7;
+        if (ink == 0) return Color.FromRgb(160, 160, 160);
+        byte v = (attr & 0x40) != 0 ? (byte)255 : (byte)205;
+        return Color.FromRgb((ink & 2) != 0 ? v : (byte)0, (ink & 4) != 0 ? v : (byte)0, (ink & 1) != 0 ? v : (byte)0);
+    }
+
+    private Rect MythObjectRect(MythObject obj)
+    {
+        var sprite = _mythLevel == null ? null : MythSpriteCatalog.Find(_mythLevel.Number, obj.Type);
+        if (sprite == null) return new Rect(obj.X * 8 * MythZoom, obj.Y * 8 * MythZoom, 16 * MythZoom, 16 * MythZoom);
+        return new Rect((obj.X + sprite.Dx) * 8 * MythZoom, (obj.Y + sprite.Dy) * 8 * MythZoom, sprite.Width * 8 * MythZoom, sprite.Height * 8 * MythZoom);
+    }
+
+    private void MythView_Changed(object sender, RoutedEventArgs e)
+    {
+        if (!IsLoaded || _mythLab == null) return;
+        DrawMythOverlay();
+    }
+
+    private void MythZoom_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (!IsLoaded || _mythArea == null) return;
+        RefreshMythArea();
+    }
+
+    private void MythTool_Changed(object sender, RoutedEventArgs e)
+    {
+        if (!IsLoaded || _mythLab == null) return;
+        Status(MythToolObjectsRadio?.IsChecked == true
+            ? "Myth Objects mode · click an object to select it, drag to move it"
+            : "Myth Metatile mode · left-click/drag paints 16×16 metatile, right-click picks metatile");
+    }
+
+    private bool TryMythCell(MouseEventArgs e, out int col, out int row)
+    {
+        var p = e.GetPosition(MythAreaHost);
+        col = (int)(p.X / MythCell);
+        row = (int)(p.Y / MythCell);
+        return _mythArea != null && col >= 0 && col < _mythArea.Width && row >= 0 && row < _mythArea.Height;
+    }
+
+    private void MythArea_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (_mythArea == null || _mythLevel == null) return;
+        if (MythToolObjectsRadio?.IsChecked == true)
+        {
+            var p = e.GetPosition(MythAreaHost);
+            var hit = _mythArea.Objects.LastOrDefault(o => MythObjectRect(o).Contains(p));
+            _mythSelectedObject = hit;
+            if (hit != null)
+            {
+                var r = MythObjectRect(hit);
+                _mythDragOffset = new Point(p.X - r.X, p.Y - r.Y);
+                _mythDraggedObject = hit;
+                MythAreaHost.CaptureMouse();
+            }
+            SelectMythObjectInList();
+            DrawMythOverlay();
+            return;
+        }
+        _mythPainting = true;
+        MythAreaHost.CaptureMouse();
+        PaintMythAt(e);
+    }
+
+    private void MythArea_RightDown(object sender, MouseButtonEventArgs e)
+    {
+        if (_mythArea == null || _mythLevel == null || !TryMythCell(e, out int col, out int row)) return;
+        SetMythBrush(_mythLevel.GetTile(_mythArea, col, row));
+        if (MythToolTilesRadio != null) MythToolTilesRadio.IsChecked = true;
+        Status($"Picked metatile ${_mythBrush:X2}");
+    }
+
+    private void MythArea_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (_mythArea == null || _mythLevel == null) return;
+        if (_mythPainting && e.LeftButton == MouseButtonState.Pressed) PaintMythAt(e);
+
+        if (_mythDraggedObject != null && e.LeftButton == MouseButtonState.Pressed)
+        {
+            var p = e.GetPosition(MythAreaHost);
+            _mythDraggedObject.X = (byte)Math.Clamp((int)Math.Round((p.X - _mythDragOffset.X) / (8 * MythZoom)), 0, _mythArea.Width * 2 - 1);
+            _mythDraggedObject.Y = (byte)Math.Clamp((int)Math.Round((p.Y - _mythDragOffset.Y) / (8 * MythZoom)), 0, _mythArea.Height * 2 - 1);
+            LoadMythObjectFields();
+            DrawMythOverlay();
+        }
+        else if (TryMythCell(e, out int col, out int row))
+        {
+            Status($"{_mythLevel.DisplayName} · Area {_mythArea.Index + 1} · metatile ({col},{row}) = ${_mythLevel.GetTile(_mythArea, col, row):X2} · viewport column {col % MythLevelLabProject.ViewportColumns}, row {row % MythLevelLabProject.ViewportRows}");
+        }
+    }
+
+    private void MythArea_MouseUp(object sender, MouseButtonEventArgs e)
+    {
+        if (_mythDraggedObject != null)
+        {
+            CommitMythObjects("Moved object");
+            _mythDraggedObject = null;
+        }
+        _mythPainting = false;
+        MythAreaHost.ReleaseMouseCapture();
+    }
+
+    private void PaintMythAt(MouseEventArgs e)
+    {
+        if (_mythArea == null || _mythLevel == null || _mythLab == null || !TryMythCell(e, out int col, out int row)) return;
+        byte old = _mythLevel.GetTile(_mythArea, col, row);
+        if (old == _mythBrush) return;
+        try
+        {
+            _mythLab.SetTile(_mythLevel, _mythArea, col, row, _mythBrush);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _mythPainting = false;
+            MythAreaHost.ReleaseMouseCapture();
+            MessageBox.Show(this, ex.Message, "Level data is full", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        _mythUndo.Push((_mythLevel, _mythArea, col, row, old));
+        _mythRedo.Clear();
+        _document?.MarkDirty();
+        if (SaveButton != null) SaveButton.IsEnabled = true;
+        if (SaveAsButton != null) SaveAsButton.IsEnabled = true;
+        UpdateUndoRedoState();
+        RefreshMythArea();
+        RenderMythQuickTiles();
+    }
+
+    private void RefreshMythObjectPanel()
+    {
+        _isSyncingRoomBoxes = true;
+        if (MythObjectList != null)
+        {
+            MythObjectList.ItemsSource = null;
+            MythObjectList.ItemsSource = _mythArea?.Objects;
+        }
+        _isSyncingRoomBoxes = false;
+        SelectMythObjectInList();
+        UpdateMythObjectBudget();
+    }
+
+    private void UpdateMythObjectBudget()
+    {
+        if (_mythArea == null) return;
+        if (MythObjectBudgetText != null)
+        {
+            MythObjectBudgetText.Text = $"{_mythArea.Objects.Count} of {_mythArea.ObjectCapacity} object slots used in this area ({_mythArea.Width * 2}×{_mythArea.Height * 2} char grid).";
+        }
+    }
+
+    private void SelectMythObjectInList()
+    {
+        _isSyncingRoomBoxes = true;
+        if (MythObjectList != null) MythObjectList.SelectedItem = _mythSelectedObject;
+        _isSyncingRoomBoxes = false;
+        LoadMythObjectFields();
+    }
+
+    private void LoadMythObjectFields()
+    {
+        _isSyncingRoomBoxes = true;
+        bool has = _mythSelectedObject != null;
+        if (MythObjTypeBox != null)
+        {
+            MythObjTypeBox.IsEnabled = has;
+            MythObjTypeBox.Text = has ? _mythSelectedObject!.Type.ToString(CultureInfo.InvariantCulture) : "";
+        }
+        if (MythObjXBox != null)
+        {
+            MythObjXBox.IsEnabled = has;
+            MythObjXBox.Text = has ? _mythSelectedObject!.X.ToString(CultureInfo.InvariantCulture) : "";
+        }
+        if (MythObjYBox != null)
+        {
+            MythObjYBox.IsEnabled = has;
+            MythObjYBox.Text = has ? _mythSelectedObject!.Y.ToString(CultureInfo.InvariantCulture) : "";
+        }
+        _isSyncingRoomBoxes = false;
+    }
+
+    private void MythObjectList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isSyncingRoomBoxes) return;
+        _mythSelectedObject = MythObjectList?.SelectedItem as MythObject;
+        LoadMythObjectFields();
+        DrawMythOverlay();
+    }
+
+    private void MythObjField_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_isSyncingRoomBoxes || _mythSelectedObject == null) return;
+        if (MythObjTypeBox != null && byte.TryParse(MythObjTypeBox.Text, out byte type)) _mythSelectedObject.Type = type;
+        if (MythObjXBox != null && byte.TryParse(MythObjXBox.Text, out byte x)) _mythSelectedObject.X = x;
+        if (MythObjYBox != null && byte.TryParse(MythObjYBox.Text, out byte y)) _mythSelectedObject.Y = y;
+        CommitMythObjects("Edited object");
+    }
+
+    private void MythBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter) MythObjField_Changed(sender, e);
+    }
+
+    private void CommitMythObjects(string what)
+    {
+        if (_mythLevel == null || _mythArea == null || _mythLab == null) return;
+        try
+        {
+            _mythLab.ApplyObjects(_mythLevel, _mythArea, _mythArea.Objects.ToList());
+            _document?.MarkDirty();
+            if (SaveButton != null) SaveButton.IsEnabled = true;
+            if (SaveAsButton != null) SaveAsButton.IsEnabled = true;
+            UpdateMythObjectBudget();
+            UpdateMythInfo();
+            Status($"{what} · area {_mythArea.Index + 1}");
+        }
+        catch (InvalidOperationException ex)
+        {
+            MessageBox.Show(this, ex.Message, "Object list is full", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        DrawMythOverlay();
+    }
+
+    private void MythObjectAdd_Click(object sender, RoutedEventArgs e)
+    {
+        if (_mythLevel == null || _mythArea == null || _mythLab == null) return;
+        var list = _mythArea.Objects.ToList();
+        int x = (_mythArea.StartCol * 2 + 14), y = (_mythArea.StartRow * 2 + 10);
+        var obj = new MythObject(list.FirstOrDefault()?.Type ?? 2, (byte)Math.Min(x, _mythArea.Width * 2 - 2), (byte)Math.Min(y, _mythArea.Height * 2 - 2));
+        list.Add(obj);
+        try
+        {
+            _mythLab.ApplyObjects(_mythLevel, _mythArea, list);
+            _document?.MarkDirty();
+            if (SaveButton != null) SaveButton.IsEnabled = true;
+            if (SaveAsButton != null) SaveAsButton.IsEnabled = true;
+        }
+        catch (InvalidOperationException ex)
+        {
+            MessageBox.Show(this, ex.Message, "Object list is full", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        _mythSelectedObject = obj;
+        if (MythToolObjectsRadio != null) MythToolObjectsRadio.IsChecked = true;
+        RefreshMythObjectPanel();
+        UpdateMythInfo();
+        DrawMythOverlay();
+    }
+
+    private void MythObjectDelete_Click(object sender, RoutedEventArgs e)
+    {
+        if (_mythLevel == null || _mythArea == null || _mythLab == null || _mythSelectedObject == null) return;
+        _mythLab.ApplyObjects(_mythLevel, _mythArea, _mythArea.Objects.Where(o => o != _mythSelectedObject).ToList());
+        _document?.MarkDirty();
+        if (SaveButton != null) SaveButton.IsEnabled = true;
+        if (SaveAsButton != null) SaveAsButton.IsEnabled = true;
+        _mythSelectedObject = null;
+        RefreshMythObjectPanel();
+        UpdateMythInfo();
+        DrawMythOverlay();
     }
 }
 

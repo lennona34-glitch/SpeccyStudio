@@ -20,6 +20,15 @@ public static class ExolonSpriteAtlas
                 return cached;
             }
 
+            // Authentic art comes from the game's own tile-scripts. The PNG files below are only a fallback for
+            // types that have no script (collision-only markers) or that the engine cannot decode.
+            var engineSprite = ExolonEngine.GetTypeSprite(typeId);
+            if (engineSprite != null)
+            {
+                SpriteCache[typeId] = engineSprite;
+                return engineSprite;
+            }
+
             string fileName = $"sprite_{typeId:X2}.png";
             string[] searchPaths = new[]
             {

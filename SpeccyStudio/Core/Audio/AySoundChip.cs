@@ -103,7 +103,7 @@ public sealed class AySoundChip
     public void Reset()
     {
         Array.Clear(_registers, 0, _registers.Length);
-        _registers[7] = 0x3F; // All tone and noise disabled initially
+        _registers[7] = 0x38; // Default: Tone enabled on Channels A, B, C; Noise disabled (bits 3..5 = 1)
         _tonePeriodA = _tonePeriodB = _tonePeriodC = 1;
         _noisePeriod = 1;
         _envPeriod = 1;

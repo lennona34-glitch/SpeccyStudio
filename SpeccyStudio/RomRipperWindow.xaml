@@ -55,6 +55,7 @@
 
           <!-- Auto-Scan & Preset Jump -->
           <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+            <Button x:Name="OpenZ80DisasmButton" Content="⚡ Z80 Disassembler" Click="OpenZ80Disasm_Click" Background="#2A1C08" Foreground="#FBBF24" BorderBrush="#F59E0B" FontWeight="SemiBold" Padding="10,5" Margin="0,0,6,0" ToolTip="Open this address in the Native Z80 Disassembler &amp; Code Lab"/>
             <Button x:Name="AutoScanButton" Content="⚡ Auto-Scan Sprites" Click="AutoScan_Click" Background="#1D2A42" Foreground="{StaticResource AccentBrush}" BorderBrush="{StaticResource AccentBrush}" FontWeight="SemiBold" Padding="10,5" ToolTip="Heuristically scan memory for repeating sprite sheets, tiles &amp; glyphs"/>
           </StackPanel>
         </Grid>

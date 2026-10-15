@@ -1,0 +1,156 @@
+<Window x:Class="SpeccyStudio.RexLabWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Rex Level Lab — Speccy Studio"
+        Width="1460" Height="820" MinWidth="1420" MinHeight="780"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BackgroundBrush}"
+        PreviewKeyDown="Window_PreviewKeyDown">
+  <Grid Margin="14">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+
+    <!-- Header -->
+    <Border Grid.Row="0" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,0,0,10">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <StackPanel Grid.Column="0" Orientation="Vertical">
+          <TextBlock x:Name="TitleText" Text="🦏 Rex Level Lab" FontSize="17" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}"/>
+          <TextBlock x:Name="SubtitleText" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,2,0,0"/>
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+          <Button x:Name="Part1Button" Content="Part 1 (35 rooms)" Click="Part1_Click" ToolTip="Switch to Rex Part 1 (Side A · 35 rooms)"/>
+          <Button x:Name="Part2Button" Content="Part 2 (26 rooms)" Click="Part2_Click" ToolTip="Switch to Rex Part 2 (26 rooms)"/>
+          <Button x:Name="OpenButton" Content="Open Rex TAP…" Click="Open_Click"/>
+          <Button x:Name="UndoButton" Content="↶ Undo" Click="Undo_Click" ToolTip="Undo the last tile edit (Ctrl+Z)"/>
+          <Button x:Name="PlayButton" Content="▶ Playtest (F5)" Click="Play_Click" ToolTip="Launch this Rex tape in the emulator (F5)"/>
+          <Button x:Name="SaveAsButton" Content="💾 Save as…" Click="SaveAs_Click" Style="{StaticResource PrimaryButton}" Margin="0" ToolTip="Write an edited copy. The source tape is never overwritten."/>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Body -->
+    <Grid Grid.Row="1">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="210"/>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="330"/>
+      </Grid.ColumnDefinitions>
+
+      <!-- Rooms -->
+      <Border Grid.Column="0" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="8" Margin="0,0,10,0">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Top" Text="ROOMS" Foreground="{StaticResource MutedBrush}" FontSize="11" FontWeight="SemiBold" Margin="2,0,0,6"/>
+          <ListBox x:Name="RoomList" SelectionChanged="RoomList_SelectionChanged" FontFamily="Cascadia Mono" FontSize="11"
+                   ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
+        </DockPanel>
+      </Border>
+
+      <!-- Room view -->
+      <Border Grid.Column="1" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,10,0">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+            <RadioButton x:Name="ToolTilesRadio" Content="🧱 Tiles" IsChecked="True" GroupName="RexTool" Foreground="{StaticResource TextBrush}" Margin="0,0,14,0" Checked="Tool_Changed" ToolTip="Left click paints the selected metatile, right click picks one"/>
+            <RadioButton x:Name="ToolSpawnsRadio" Content="👾 Spawns" GroupName="RexTool" Foreground="{StaticResource TextBrush}" Margin="0,0,20,0" Checked="Tool_Changed" ToolTip="Click an enemy to select it, drag to move it"/>
+            <CheckBox x:Name="GridCheck" Content="Grid" IsChecked="True" Foreground="{StaticResource TextBrush}" Margin="0,0,12,0" Checked="View_Changed" Unchecked="View_Changed" VerticalAlignment="Center"/>
+            <CheckBox x:Name="SpritesCheck" Content="Enemy sprites" IsChecked="True" Foreground="{StaticResource TextBrush}" Margin="0,0,12,0" Checked="View_Changed" Unchecked="View_Changed" VerticalAlignment="Center"/>
+            <CheckBox x:Name="PropsCheck" Content="Raw cell properties" Foreground="{StaticResource TextBrush}" Checked="View_Changed" Unchecked="View_Changed" VerticalAlignment="Center"
+                      ToolTip="Colour every 8x8 cell by its raw property byte (the game's per-character behaviour value; 0 = empty). Meanings are not decoded yet."/>
+          </StackPanel>
+          <Border Background="Black" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" HorizontalAlignment="Left" VerticalAlignment="Top">
+            <Grid x:Name="RoomHost" Width="720" Height="504" Background="Black" Cursor="Cross"
+                  MouseLeftButtonDown="Room_MouseDown" MouseRightButtonDown="Room_RightDown" MouseMove="Room_MouseMove" MouseLeftButtonUp="Room_MouseUp" MouseLeave="Room_MouseLeave">
+              <Image x:Name="RoomImage" Stretch="Fill" RenderOptions.BitmapScalingMode="NearestNeighbor" IsHitTestVisible="False"/>
+              <Canvas x:Name="OverlayCanvas" IsHitTestVisible="False"/>
+            </Grid>
+          </Border>
+        </DockPanel>
+      </Border>
+
+      <!-- Right panel -->
+      <Border Grid.Column="2" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="8">
+        <TabControl x:Name="RightTabs">
+          <TabItem Header="Tiles">
+            <DockPanel Margin="0,8,0,0">
+              <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
+                <TextBlock Text="Brush:" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <Image x:Name="BrushImage" Width="36" Height="36" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                <TextBlock x:Name="BrushText" VerticalAlignment="Center" Margin="8,0,0,0" FontFamily="Cascadia Mono"/>
+              </StackPanel>
+              <CheckBox DockPanel.Dock="Top" x:Name="UsedOnlyCheck" Content="Only metatiles used by the game" IsChecked="True" Foreground="{StaticResource TextBrush}" Margin="0,0,0,6" Checked="Palette_Filter" Unchecked="Palette_Filter"/>
+              <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <WrapPanel x:Name="PalettePanel"/>
+              </ScrollViewer>
+            </DockPanel>
+          </TabItem>
+          <TabItem Header="Spawns">
+            <DockPanel Margin="0,8,0,0">
+              <TextBlock DockPanel.Dock="Top" x:Name="SpawnBudgetText" Foreground="{StaticResource MutedBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,6"/>
+              <ListBox DockPanel.Dock="Top" x:Name="SpawnList" Height="150" SelectionChanged="SpawnList_SelectionChanged" FontFamily="Cascadia Mono" FontSize="11"/>
+              <WrapPanel DockPanel.Dock="Top" Margin="0,8,0,0">
+                <Button Content="＋ Add" Click="SpawnAdd_Click" Padding="9,4"/>
+                <Button Content="🗑 Delete" Click="SpawnDelete_Click" Padding="9,4"/>
+              </WrapPanel>
+              <Grid DockPanel.Dock="Top" Margin="0,8,0,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="60"/>
+                  <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Text="Type" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/>
+                <ComboBox Grid.Row="0" Grid.Column="1" x:Name="SpawnTypeCombo" Margin="0,2" SelectionChanged="SpawnField_Changed"/>
+                <TextBlock Grid.Row="1" Text="X (px)" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="1" Grid.Column="1" x:Name="SpawnXBox" Margin="0,2" LostFocus="SpawnField_Changed" KeyDown="SpawnBox_KeyDown"/>
+                <TextBlock Grid.Row="2" Text="Row" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="2" Grid.Column="1" x:Name="SpawnRowBox" Margin="0,2" LostFocus="SpawnField_Changed" KeyDown="SpawnBox_KeyDown"/>
+                <CheckBox Grid.Row="3" Grid.Column="1" x:Name="SpawnFacingCheck" Content="Faces left" Foreground="{StaticResource TextBrush}" Margin="0,6,0,0" Checked="SpawnField_Changed" Unchecked="SpawnField_Changed"/>
+              </Grid>
+              <Border DockPanel.Dock="Top" Margin="0,10,0,0" Padding="8" Background="#0F1520" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="5">
+                <StackPanel>
+                  <TextBlock Text="Room spawn rules" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,4"/>
+                  <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                    <TextBlock Text="Max concurrent (0–31)" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" FontSize="11"/>
+                    <TextBox Grid.Column="1" x:Name="ParamCountBox" Margin="0,2" LostFocus="Param_Changed" KeyDown="SpawnBox_KeyDown"/>
+                    <TextBlock Grid.Row="1" Text="Spawn period" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" FontSize="11"/>
+                    <TextBox Grid.Row="1" Grid.Column="1" x:Name="ParamPeriodBox" Margin="0,2" LostFocus="Param_Changed" KeyDown="SpawnBox_KeyDown"/>
+                    <TextBlock Grid.Row="2" Text="Variant byte" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" FontSize="11"/>
+                    <TextBox Grid.Row="2" Grid.Column="1" x:Name="ParamVariantBox" Margin="0,2" LostFocus="Param_Changed" KeyDown="SpawnBox_KeyDown"/>
+                  </Grid>
+                </StackPanel>
+              </Border>
+            </DockPanel>
+          </TabItem>
+          <TabItem Header="Exits">
+            <StackPanel Margin="0,10,0,0">
+              <TextBlock Text="Neighbouring room reached by walking off each edge (0 = wall)." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" FontSize="11" Margin="0,0,0,8"/>
+              <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                <TextBlock Text="↑ Up" VerticalAlignment="Center"/><TextBox Grid.Column="1" x:Name="ExitUpBox" Margin="0,3" LostFocus="Exit_Changed" KeyDown="SpawnBox_KeyDown"/>
+                <TextBlock Grid.Row="1" Text="→ Right" VerticalAlignment="Center"/><TextBox Grid.Row="1" Grid.Column="1" x:Name="ExitRightBox" Margin="0,3" LostFocus="Exit_Changed" KeyDown="SpawnBox_KeyDown"/>
+                <TextBlock Grid.Row="2" Text="↓ Down" VerticalAlignment="Center"/><TextBox Grid.Row="2" Grid.Column="1" x:Name="ExitDownBox" Margin="0,3" LostFocus="Exit_Changed" KeyDown="SpawnBox_KeyDown"/>
+                <TextBlock Grid.Row="3" Text="← Left" VerticalAlignment="Center"/><TextBox Grid.Row="3" Grid.Column="1" x:Name="ExitLeftBox" Margin="0,3" LostFocus="Exit_Changed" KeyDown="SpawnBox_KeyDown"/>
+              </Grid>
+              <TextBlock x:Name="ExitHintText" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" FontSize="11" Margin="0,10,0,0"/>
+            </StackPanel>
+          </TabItem>
+        </TabControl>
+      </Border>
+    </Grid>
+
+    <!-- Status -->
+    <Border Grid.Row="2" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12,6" Margin="0,10,0,0">
+      <TextBlock x:Name="StatusText" Foreground="{StaticResource MutedBrush}" FontSize="12" TextTrimming="CharacterEllipsis"/>
+    </Border>
+  </Grid>
+</Window>

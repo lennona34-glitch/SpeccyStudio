@@ -1192,4 +1192,19 @@ public sealed partial class RomRipperWindow : Window
         double score = 0.3 * (1.0 - Math.Abs(density - 0.40) * 2.0) + 0.5 * vCorrelation + 0.2 * maskScore;
         return Math.Clamp(score, 0.0, 1.0);
     }
+
+    private void OpenZ80Disasm_Click(object sender, RoutedEventArgs e)
+    {
+        int targetAddr = Math.Clamp(_selectedOffset, 0, 0xFFFF);
+        if (_mainWindow != null)
+        {
+            _mainWindow.OpenZ80Disassembler(targetAddr);
+        }
+        else
+        {
+            var doc = new SpectrumDocument(_sourceFileName, SpectrumFormat.Unknown, _memoryBuffer, null, [], "Memory Buffer");
+            var win = new Z80DisassemblerWindow(doc, null, initialAddress: targetAddr) { Owner = this };
+            win.Show();
+        }
+    }
 }

@@ -47,9 +47,14 @@ Stream 128K AY-3-8912 PSG chiptunes and sound effects in real time to external D
   * Room exit and transition graph navigation matching original Z80 engine logic.
   * Recompresses changed rooms with Cybernoid's native token engine (Literal, RLE, Pair, and Triple tokens).
 * **Exolon (1987)**:
-  * Full screen structure decoding, tile attribute mapping, and interactive entity brush.
-* **Rex & Myth**:
-  * Engine screen cleaner, visual entity catalogue parsing, sprite bank extraction, and custom font dumping.
+  * Runs the game's own tile-script engine, so every one of the 125 screens renders exactly as in the game (wrapping columns, full-width floor strips) and entity footprints are real.
+  * Interactive entity brush with art-accurate type names.
+* **Rex (1988)**:
+  * Rex Lab decodes both game parts: all 61 rooms (10x7 metatile grids, verified pixel-exact against the game's own room painter), the four-way room graph, per-room enemy spawn lists and the enemy sprites.
+  * Edit tiles, exits and spawns and save an edited copy of the tape (checksums repaired, source never overwritten).
+* **Myth**:
+  * Myth Lab decodes levels 1-4: the real world maps (areas of 2x2-character metatiles, verified against the game's own decompressor and map builder), per-area object placements, and object sprites captured from the running game.
+  * Edit tiles and objects and save an edited copy of the tape. Level 5 is a different engine and is not covered.
 * **Non-Destructive Tile Flipping**: Isolated tile flipping that clones and remaps without mutating shared atlas tiles.
 
 ### 🎹 Chiptune Audio Studio & Live MIDI Output
@@ -62,6 +67,13 @@ Stream 128K AY-3-8912 PSG chiptunes and sound effects in real time to external D
 * **14-Bit Microtonal Pitch Bending**: Accurately reproduces AY-3-8912 logarithmic frequencies ($F = \frac{1,773,400}{16 \times TP}\text{ Hz}$) with high-resolution pitch bend messages.
 * **Interactive Soundboard**: 16 programmable SFX trigger pads mapped to direct MIDI note outputs.
 * **Hardware Controls**: Live Pulsing Cyan Activity LED, device selector dropdown, and one-click `🚨 MIDI Panic` (All Notes Off).
+
+### ⚡ Native Z80 Disassembler, Code Inspector & 8BitAnalysers Bridge
+* **Full Z80 Instruction Decoder**: Complete decoding of standard, `CB` (bit), `ED` (extended), `DD`/`FD` (`IX`/`IY`), and `DDCB`/`FDCB` indexed bit opcodes across the entire 64K Z80 memory map (`$0000`–`$FFFF`).
+* **Pre-Populated Engine Symbol Tables**: Jump directly to verified routines and data tables for **Exolon**, **Cybernoid II**, **Rex (Part 1 & Part 2)**, and **Myth** (room decompressors, map builders, sprite blitters, entity tables, and AY music drivers).
+* **Live POKE & Hex Byte Patcher**: Edit any byte or instruction in RAM and immediately write the patch back to the underlying `.tap`, `.sna`, or `.z80` document—plus 1-click Trainer POKEs (Infinite Lives, Infinite Ammo, Infinite Shields, Invulnerability) and custom `POKE addr,val` execution.
+* **Bundled `8BitAnalysers` (`SpectrumAnalyser`) Integration**: One-click launch into **TheGoodDoktor's SpectrumAnalyser** with automatic `.z80` snapshot normalization, pre-configured `Workspace/<Game>/Config.json` sprite/tile viewers, `.pok` trainers, and two-way `Analysis.json` label & comment synchronization.
+* **SkoolKit `.skool` & Assembly `.asm` Export**: Export annotated disassembly ranges directly to `.asm` or SkoolKit `.skool` format.
 
 ---
 
