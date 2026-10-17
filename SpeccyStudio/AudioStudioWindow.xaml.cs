@@ -979,12 +979,8 @@ public partial class AudioStudioWindow : Window
             MidiDeviceCombo.Items.Add(item);
         }
 
-        if (MidiDeviceCombo.Items.Count > 1)
-        {
-            // Auto-select first real MIDI device (e.g. Microsoft GS Wavetable Synth or loopMIDI)
-            MidiDeviceCombo.SelectedIndex = 1;
-        }
-        else
+        // Default to Disabled (Index 0) so authentic 128K PC sound plays cleanly without MIDI synth interference
+        if (MidiDeviceCombo.Items.Count > 0)
         {
             MidiDeviceCombo.SelectedIndex = 0;
         }

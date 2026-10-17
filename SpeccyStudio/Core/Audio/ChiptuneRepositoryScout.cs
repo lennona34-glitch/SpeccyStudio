@@ -102,14 +102,15 @@ public static class ScoutCache
             {
                 if (File.Exists(CacheFilePath))
                 {
-                    string json = File.ReadAllText(CacheFilePath);
-                    var items = System.Text.Json.JsonSerializer.Deserialize<List<ScoutCacheItem>>(json);
+                    using var fs = new FileStream(CacheFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                    var items = System.Text.Json.JsonSerializer.Deserialize<List<ScoutCacheItem>>(fs);
                     if (items != null)
                     {
                         foreach (var it in items)
                         {
                             if (!string.IsNullOrEmpty(it.FilePath))
                             {
+                                it.PsgBase64 = null;
                                 _cache[it.FilePath] = it;
                             }
                         }
@@ -135,8 +136,12 @@ public static class ScoutCache
                 string dir = Path.GetDirectoryName(CacheFilePath)!;
                 if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
 
-                string json = System.Text.Json.JsonSerializer.Serialize(_cache.Values.ToList());
-                File.WriteAllText(CacheFilePath, json);
+                string tempFile = CacheFilePath + ".tmp";
+                using (var fs = new FileStream(tempFile, FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    System.Text.Json.JsonSerializer.Serialize(fs, _cache.Values.ToList());
+                }
+                File.Move(tempFile, CacheFilePath, overwrite: true);
             }
             catch (Exception ex)
             {
@@ -241,12 +246,6 @@ public static class ChiptuneRepositoryScout
             };
         }
 
-        string? b64 = null;
-        if (entry.GeneratedPsg != null)
-        {
-            b64 = Convert.ToBase64String(entry.GeneratedPsg.ToBytes());
-        }
-
         return new ScoutCacheItem
         {
             FilePath = filePath,
@@ -266,7 +265,7 @@ public static class ChiptuneRepositoryScout
             PlayAddress = entry.PlayAddress,
             SfxCount = entry.SfxCount,
             Details = entry.Details,
-            PsgBase64 = b64
+            PsgBase64 = null // Lightweight metadata-only cache
         };
     }
 
@@ -382,11 +381,16 @@ public static class ChiptuneRepositoryScout
                     // Throttle progress updates to avoid flooding UI dispatcher
                     if (progress != null && (scannedCount % 20 == 0 || scannedCount == totalFiles || progressData.LastDiscoveredEntry != null))
                     {
-                        progressData.FilesScanned = scannedCount;
-                        progressData.MatchesFound = matchesFound;
-                        progressData.CurrentFile = fileName;
-                        progress.Report(progressData);
+                        var snapshot = new ScoutProgress
+                        {
+                            FilesScanned = scannedCount,
+                            TotalFilesEstimated = totalFiles,
+                            MatchesFound = matchesFound,
+                            CurrentFile = fileName,
+                            LastDiscoveredEntry = progressData.LastDiscoveredEntry
+                        };
                         progressData.LastDiscoveredEntry = null; // Clear after reporting
+                        progress.Report(snapshot);
                     }
                 }
             }
@@ -400,10 +404,14 @@ public static class ChiptuneRepositoryScout
 
             if (progress != null)
             {
-                progressData.FilesScanned = scannedCount;
-                progressData.MatchesFound = matchesFound;
-                progressData.CurrentFile = "Scout Complete";
-                progress.Report(progressData);
+                progress.Report(new ScoutProgress
+                {
+                    FilesScanned = scannedCount,
+                    TotalFilesEstimated = totalFiles,
+                    MatchesFound = matchesFound,
+                    CurrentFile = "Scout Complete",
+                    LastDiscoveredEntry = null
+                });
             }
 
             return results;
@@ -411,9 +419,36 @@ public static class ChiptuneRepositoryScout
     }
 
     /// <summary>
+    /// Ensures that the authentic PSG stream for a scouted entry is available, performing an on-demand AY memory scan if needed.
+    /// </summary>
+    public static PsgSong? EnsurePsg(ScoutedChiptuneEntry entry)
+    {
+        if (entry.GeneratedPsg != null && entry.GeneratedPsg.TotalFrames > 0)
+            return entry.GeneratedPsg;
+        if (entry.RipResult?.GeneratedPsg != null && entry.RipResult.GeneratedPsg.TotalFrames > 0)
+            return entry.RipResult.GeneratedPsg;
+
+        if (string.IsNullOrEmpty(entry.FilePath) || !File.Exists(entry.FilePath))
+            return null;
+
+        var fresh = InspectAndRipFile(entry.FilePath, bypassCache: true);
+        if (fresh?.RipResult?.GeneratedPsg != null)
+        {
+            entry.RipResult = fresh.RipResult;
+            entry.DriverAddress = fresh.DriverAddress;
+            entry.InitAddress = fresh.InitAddress;
+            entry.PlayAddress = fresh.PlayAddress;
+            entry.DetectedEngine = fresh.DetectedEngine;
+            return entry.GeneratedPsg;
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// Inspects a single file or archive and returns a ScoutedChiptuneEntry if an AY audio routine is detected.
     /// </summary>
-    public static ScoutedChiptuneEntry? InspectAndRipFile(string filePath)
+    public static ScoutedChiptuneEntry? InspectAndRipFile(string filePath, bool bypassCache = false)
     {
         if (!File.Exists(filePath)) return null;
 
@@ -422,11 +457,14 @@ public static class ChiptuneRepositoryScout
         string rawName = Path.GetFileNameWithoutExtension(filePath);
 
         // Check persistent scout cache first
-        var cache = ScoutCache.Load();
-        if (cache.TryGetValue(filePath, out var cached) &&
-            cached.FileSize == fileInfo.Length && cached.LastWriteTicks == fileInfo.LastWriteTimeUtc.Ticks)
+        if (!bypassCache)
         {
-            return cached.HasChiptune ? CreateFromCache(cached) : null;
+            var cache = ScoutCache.Load();
+            if (cache.TryGetValue(filePath, out var cached) &&
+                cached.FileSize == fileInfo.Length && cached.LastWriteTicks == fileInfo.LastWriteTimeUtc.Ticks)
+            {
+                return cached.HasChiptune ? CreateFromCache(cached) : null;
+            }
         }
 
         SpectrumDocument? doc = null;
@@ -486,6 +524,7 @@ public static class ChiptuneRepositoryScout
         var rip = AyMemoryRipper.Scan(doc);
         if (!rip.Success || rip.GeneratedPsg == null || !rip.GeneratedPsg.IsFromZ80)
         {
+            var cache = ScoutCache.Load();
             cache[filePath] = ToCacheItem(filePath, fileInfo.Length, fileInfo.LastWriteTimeUtc.Ticks, null);
             return null;
         }
@@ -517,7 +556,8 @@ public static class ChiptuneRepositoryScout
             RipResult = rip
         };
 
-        cache[filePath] = ToCacheItem(filePath, fileInfo.Length, fileInfo.LastWriteTimeUtc.Ticks, scoutEntry);
+        var finalCache = ScoutCache.Load();
+        finalCache[filePath] = ToCacheItem(filePath, fileInfo.Length, fileInfo.LastWriteTimeUtc.Ticks, scoutEntry);
         ScoutCache.Save();
         return scoutEntry;
     }
@@ -691,11 +731,7 @@ public static class ChiptuneRepositoryScout
                 if (cancellationToken.IsCancellationRequested) break;
 
                 var entry = list[i];
-                var psg = entry.GeneratedPsg;
-                if (psg == null && entry.RipResult != null)
-                {
-                    psg = entry.RipResult.GeneratedPsg;
-                }
+                var psg = EnsurePsg(entry);
 
                 if (psg != null)
                 {
@@ -742,7 +778,7 @@ public static class ChiptuneRepositoryScout
                 if (cancellationToken.IsCancellationRequested) break;
 
                 var entry = list[i];
-                var psg = entry.GeneratedPsg;
+                var psg = EnsurePsg(entry);
                 if (psg != null)
                 {
                     string safeTitle = SanitizeFileName($"{entry.DisplayName} ({entry.ComposerBadge})");

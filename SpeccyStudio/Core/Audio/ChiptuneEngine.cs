@@ -36,6 +36,7 @@ public sealed class ChiptuneEngine
     private readonly object _lock = new();
 
     private bool _mutePcmAudio;
+    private Func<short[], int, int>? _activeStreamProvider;
     public bool MutePcmAudio
     {
         get => _mutePcmAudio;
@@ -49,9 +50,16 @@ public sealed class ChiptuneEngine
                     SpeccyWaveOut.Instance.StopMusic();
                     try { _activePlayer?.Stop(); } catch { }
                 }
-                else if (IsPlaying && _activePlayer != null)
+                else if (IsPlaying)
                 {
-                    try { _activePlayer.PlayLooping(); } catch { }
+                    if (_activeStreamProvider != null)
+                    {
+                        SpeccyWaveOut.Instance.PlayStream(_activeStreamProvider);
+                    }
+                    else if (_activePlayer != null)
+                    {
+                        try { _activePlayer.PlayLooping(); } catch { }
+                    }
                 }
             }
         }
@@ -250,52 +258,74 @@ public sealed class ChiptuneEngine
         {
             CurrentTrack = trackName;
             IsPlaying = true;
+            TrackDuration = 30.0;
             _playCts = new CancellationTokenSource();
             var token = _playCts.Token;
+
+            double frameSampleAccumulator = 0;
+            int currentFrame = 0;
+            const int totalFrames = 30 * 50; // 30 seconds at 50Hz = 1500 frames
+
+            int SampleProvider(short[] buffer, int count)
+            {
+                if (token.IsCancellationRequested || !IsPlaying) return 0;
+
+                for (int i = 0; i < count; i++)
+                {
+                    frameSampleAccumulator++;
+                    double spf = (double)AySoundChip.SampleRate / (50.0 * Math.Max(0.2, Chip.TempoMultiplier));
+                    if (frameSampleAccumulator >= spf)
+                    {
+                        frameSampleAccumulator -= spf;
+                        currentFrame++;
+                        if (currentFrame >= totalFrames)
+                        {
+                            if (loop) currentFrame = 0;
+                            else return i;
+                        }
+
+                        UpdateTrackerFrame(Chip, trackName, currentFrame);
+                        DispatchAyToMidi(Chip);
+                    }
+
+                    buffer[i] = Chip.RenderSample();
+                }
+
+                PlaybackPosition = (double)currentFrame / 50.0;
+                return count;
+            }
+
+            _activeStreamProvider = SampleProvider;
 
             Task.Run(() =>
             {
                 try
                 {
-                    // Generate full 30-second authentic rendered audio in memory
-                    byte[] wavBytes = GenerateTrackWav(trackName, durationSeconds: 30);
-                    var ms = new MemoryStream(wavBytes);
-                    var player = new SoundPlayer(ms);
-                    lock (_lock)
-                    {
-                        if (token.IsCancellationRequested)
-                        {
-                            ms.Dispose();
-                            player.Dispose();
-                            return;
-                        }
-                        _activeStream?.Dispose();
-                        _activeStream = ms;
-                        _activePlayer = player;
-                    }
-
                     if (!MutePcmAudio)
                     {
-                        bool waveSuccess = SpeccyWaveOut.Instance.PlayMusic(wavBytes, loop);
-                        if (!waveSuccess)
+                        bool streamOk = SpeccyWaveOut.Instance.PlayStream(SampleProvider);
+                        if (!streamOk)
                         {
+                            byte[] wavBytes = GenerateTrackWav(trackName, durationSeconds: 30);
+                            var ms = new MemoryStream(wavBytes);
+                            var player = new SoundPlayer(ms);
+                            lock (_lock)
+                            {
+                                _activeStream = ms;
+                                _activePlayer = player;
+                            }
                             if (loop) player.PlayLooping();
                             else player.Play();
                         }
                     }
 
-                    // Telemetry and live MIDI streaming update loop (50Hz Spectrum PAL rate)
-                    var sw = System.Diagnostics.Stopwatch.StartNew();
-                    int lastMidiFrame = -1;
-                    while (!token.IsCancellationRequested)
+                    while (!token.IsCancellationRequested && IsPlaying)
                     {
-                        double pos = (sw.Elapsed.TotalSeconds % 30.0);
-                        PlaybackPosition = pos;
-
-                        int currentFrame = (int)(pos * 50.0 * Math.Max(0.2, Chip.TempoMultiplier));
-                        if (currentFrame != lastMidiFrame)
+                        if (MutePcmAudio)
                         {
-                            lastMidiFrame = currentFrame;
+                            currentFrame = (int)((PlaybackPosition * 50.0 * Math.Max(0.2, Chip.TempoMultiplier)) + 1);
+                            if (currentFrame >= totalFrames) currentFrame = loop ? 0 : totalFrames;
+                            PlaybackPosition = (double)currentFrame / 50.0;
                             UpdateTrackerFrame(Chip, trackName, currentFrame);
                             DispatchAyToMidi(Chip);
                         }
@@ -315,6 +345,7 @@ public sealed class ChiptuneEngine
                         if (_playCts?.Token == token)
                         {
                             IsPlaying = false;
+                            SpeccyWaveOut.Instance.StopMusic();
                             SpeccyMidiOut.Instance.SendAllNotesOff();
                             PlaybackStateChanged?.Invoke();
                         }
@@ -334,55 +365,80 @@ public sealed class ChiptuneEngine
         {
             CurrentTrack = song.Title;
             IsPlaying = true;
+            int totalFrames = Math.Max(1, song.TotalFrames);
+            TrackDuration = totalFrames / 50.0;
             _playCts = new CancellationTokenSource();
             var token = _playCts.Token;
+
+            double frameSampleAccumulator = 0;
+            int currentFrame = 0;
+
+            int SampleProvider(short[] buffer, int count)
+            {
+                if (token.IsCancellationRequested || !IsPlaying) return 0;
+
+                for (int i = 0; i < count; i++)
+                {
+                    frameSampleAccumulator++;
+                    double spf = (double)AySoundChip.SampleRate / (50.0 * Math.Max(0.2, Chip.TempoMultiplier));
+                    if (frameSampleAccumulator >= spf)
+                    {
+                        frameSampleAccumulator -= spf;
+                        currentFrame++;
+                        if (currentFrame >= totalFrames)
+                        {
+                            if (loop) currentFrame = 0;
+                            else return i;
+                        }
+
+                        var f = song.Frames[currentFrame % totalFrames];
+                        foreach (var (reg, val) in f.Updates)
+                        {
+                            Chip.WriteRegister(reg, val);
+                        }
+                        DispatchAyToMidi(Chip);
+                    }
+
+                    buffer[i] = Chip.RenderSample();
+                }
+
+                PlaybackPosition = (double)currentFrame / 50.0;
+                return count;
+            }
+
+            _activeStreamProvider = SampleProvider;
 
             Task.Run(() =>
             {
                 try
                 {
-                    byte[] wavBytes = GeneratePsgWav(song);
-                    var ms = new MemoryStream(wavBytes);
-                    var player = new SoundPlayer(ms);
-                    lock (_lock)
-                    {
-                        if (token.IsCancellationRequested)
-                        {
-                            ms.Dispose();
-                            player.Dispose();
-                            return;
-                        }
-                        _activeStream?.Dispose();
-                        _activeStream = ms;
-                        _activePlayer = player;
-                    }
-
                     if (!MutePcmAudio)
                     {
-                        bool waveSuccess = SpeccyWaveOut.Instance.PlayMusic(wavBytes, loop);
-                        if (!waveSuccess)
+                        bool streamOk = SpeccyWaveOut.Instance.PlayStream(SampleProvider);
+                        if (!streamOk)
                         {
+                            byte[] wavBytes = GeneratePsgWav(song);
+                            var ms = new MemoryStream(wavBytes);
+                            var player = new SoundPlayer(ms);
+                            lock (_lock)
+                            {
+                                _activeStream = ms;
+                                _activePlayer = player;
+                            }
                             if (loop) player.PlayLooping();
                             else player.Play();
                         }
                     }
 
-                    var sw = System.Diagnostics.Stopwatch.StartNew();
-                    int lastMidiFrame = -1;
-                    int totalFrames = song.TotalFrames;
-
-                    while (!token.IsCancellationRequested)
+                    while (!token.IsCancellationRequested && IsPlaying)
                     {
-                        double pos = sw.Elapsed.TotalSeconds;
-                        if (totalFrames > 0) pos %= (totalFrames / 50.0);
-                        PlaybackPosition = pos;
-
-                        int currentFrame = (int)(pos * 50.0 * Math.Max(0.2, Chip.TempoMultiplier));
-                        if (currentFrame != lastMidiFrame && totalFrames > 0)
+                        if (MutePcmAudio)
                         {
-                            lastMidiFrame = currentFrame;
-                            var frame = song.Frames[currentFrame % totalFrames];
-                            foreach (var (reg, val) in frame.Updates)
+                            currentFrame = (int)((PlaybackPosition * 50.0 * Math.Max(0.2, Chip.TempoMultiplier)) + 1);
+                            if (currentFrame >= totalFrames) currentFrame = loop ? 0 : totalFrames;
+                            PlaybackPosition = (double)currentFrame / 50.0;
+                            var f = song.Frames[currentFrame % totalFrames];
+                            foreach (var (reg, val) in f.Updates)
                             {
                                 Chip.WriteRegister(reg, val);
                             }
@@ -404,6 +460,7 @@ public sealed class ChiptuneEngine
                         if (_playCts?.Token == token)
                         {
                             IsPlaying = false;
+                            SpeccyWaveOut.Instance.StopMusic();
                             SpeccyMidiOut.Instance.SendAllNotesOff();
                             PlaybackStateChanged?.Invoke();
                         }

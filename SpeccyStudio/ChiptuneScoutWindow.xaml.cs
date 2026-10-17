@@ -123,19 +123,23 @@ public partial class ChiptuneScoutWindow : Window
 
         var progress = new Progress<ScoutProgress>(p =>
         {
-            ScoutProgressBar.Value = p.Percentage;
-            StatusText.Text = $"Scanned: {p.FilesScanned:N0} / {p.TotalFilesEstimated:N0} files · Discovered: {p.MatchesFound:N0} 128K AY tracks";
-            CurrentFileText.Text = p.CurrentFile;
-
-            if (p.LastDiscoveredEntry != null)
+            try
             {
-                _allEntries.Add(p.LastDiscoveredEntry);
-                if (MatchesCurrentFilter(p.LastDiscoveredEntry))
+                ScoutProgressBar.Value = p.Percentage;
+                StatusText.Text = $"Scanned: {p.FilesScanned:N0} / {p.TotalFilesEstimated:N0} files · Discovered: {p.MatchesFound:N0} 128K AY tracks";
+                CurrentFileText.Text = p.CurrentFile;
+
+                if (p.LastDiscoveredEntry != null)
                 {
-                    _filteredEntries.Add(p.LastDiscoveredEntry);
-                    UpdateFilterCount();
+                    _allEntries.Add(p.LastDiscoveredEntry);
+                    if (MatchesCurrentFilter(p.LastDiscoveredEntry))
+                    {
+                        _filteredEntries.Add(p.LastDiscoveredEntry);
+                        UpdateFilterCount();
+                    }
                 }
             }
+            catch { }
         });
 
         var sw = System.Diagnostics.Stopwatch.StartNew();
@@ -375,6 +379,15 @@ public partial class ChiptuneScoutWindow : Window
             PreviewStatusText.Text = "Stopped";
 
             var doc = SpectrumFileParser.Open(_currentEntry.FilePath);
+            if (_currentEntry.GeneratedPsg == null)
+            {
+                var rip = AyMemoryRipper.Scan(doc);
+                if (rip.Success && rip.GeneratedPsg != null)
+                {
+                    _currentEntry.RipResult = rip;
+                }
+            }
+
             var existingStudio = (this.Owner as AudioStudioWindow)
                 ?? Application.Current?.Windows.OfType<AudioStudioWindow>().FirstOrDefault();
 

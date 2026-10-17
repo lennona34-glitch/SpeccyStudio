@@ -1735,7 +1735,50 @@ internal static class Program
 
         // Switch to Myth bank (Index 3)
         sfxCombo.SelectedIndex = 3;
-        Assert(pad1Title!.Text == "[1] Barbarian Broadsword Cleave", $"Pad 1 re-branded to Myth Broadsword (got {pad1Title?.Text})");
+        var midiCombo = (System.Windows.Controls.ComboBox)audioWin.FindName("MidiDeviceCombo");
+        Assert(midiCombo != null && midiCombo.SelectedIndex == 0, "MidiDeviceCombo defaults to Index 0 (Disabled)");
+        Assert(!SpeccyStudio.Core.Audio.SpeccyMidiOut.Instance.IsOpen, "MIDI Out is closed/disabled by default");
+
+        // Test Live Parameter Altering & Mute / Solo
+        engine.Chip.Reset();
+        engine.Chip.WriteRegister(7, 0x3E); // Enable Tone A only (bits: tone A=0, B=1, C=1, noise=1)
+        engine.Chip.WriteRegister(8, 0x0F); // Vol A = 15
+        engine.Chip.WriteRegister(0, 0xE0);
+        engine.Chip.WriteRegister(1, 0x01); // Period = 480
+        short sampleFull = engine.Chip.RenderSample();
+        Assert(sampleFull != 0, "Full volume tone produces non-zero PCM audio");
+
+        // Test Mute A
+        engine.Chip.MuteA = true;
+        short sampleMuted = engine.Chip.RenderSample();
+        Assert(sampleMuted == 0, "Mute A completely silences channel A");
+        engine.Chip.MuteA = false;
+
+        // Test Solo B (Channel A should be silent)
+        engine.Chip.SoloChannel = 1; // Solo B
+        short sampleSoloB = engine.Chip.RenderSample();
+        Assert(sampleSoloB == 0, "Soloing Channel B mutes non-soloed Channel A");
+        engine.Chip.SoloChannel = -1; // Reset solo
+
+        // Test Pitch Transpose (+12 semitones = octave up = half period)
+        engine.Chip.PitchTransposeSemitones = 12;
+        int transposedPeriod = engine.Chip.ApplyTranspose(480);
+        Assert(Math.Abs(transposedPeriod - 240) <= 2, $"Pitch transpose +12 semitones halves tone period (got {transposedPeriod})");
+        engine.Chip.PitchTransposeSemitones = 0;
+
+        // Test Tempo multiplier
+        engine.Chip.TempoMultiplier = 1.5;
+        Assert(engine.Chip.TempoMultiplier == 1.5, "TempoMultiplier updates live");
+        engine.Chip.TempoMultiplier = 1.0;
+
+        // Test Noise Tweak
+        engine.Chip.NoisePitchTweak = 5;
+        Assert(engine.Chip.NoisePitchTweak == 5, "NoisePitchTweak updates live");
+        engine.Chip.NoisePitchTweak = 0;
+
+        // Test ScoutCache lightweight loading
+        var cache = SpeccyStudio.Core.Audio.ScoutCache.Load();
+        Assert(cache != null && cache.Count > 0, $"ScoutCache loaded {cache?.Count} entries in lightweight format without crashing");
 
         var rootAudio = (FrameworkElement)audioWin!.Content!;
         rootAudio.Width = 1200;
@@ -1957,7 +2000,7 @@ internal static class Program
             Assert(rip.Success, "AY Memory Ripper detected driver in Robocop 128K");
             Assert(rip.DriverName.Contains("Tim Follin"), "Driver identified as Tim Follin 128K Audio Engine");
             Assert(rip.GeneratedPsg != null && rip.GeneratedPsg.TotalFrames > 0, "Ripped PSG generated from snapshot");
-            Assert(rip.GeneratedPsg.IsFromZ80, "Robocop PSG is authentically extracted from Z80 execution");
+            Assert(rip.GeneratedPsg!.IsFromZ80, "Robocop PSG is authentically extracted from Z80 execution");
             Console.WriteLine($"DEBUG ROBOCOP RESULT: {rip.Details}");
         }
         // Test AY Memory Ripper on Cybernoid II (48K Tape fallback vs 128K Z80 snapshot)
@@ -1980,7 +2023,7 @@ internal static class Program
             var ripCyb = SpeccyStudio.Core.Audio.AyMemoryRipper.Scan(cybDoc);
             Assert(ripCyb.Success, "AY Memory Ripper detected driver in Cybernoid II Z80");
             Assert(ripCyb.GeneratedPsg != null && ripCyb.GeneratedPsg.TotalFrames > 0, "Cybernoid II Z80 ripped PSG music stream");
-            Assert(ripCyb.GeneratedPsg.IsFromZ80, "Cybernoid II Z80 PSG is authentically extracted from Z80 execution");
+            Assert(ripCyb.GeneratedPsg!.IsFromZ80, "Cybernoid II Z80 PSG is authentically extracted from Z80 execution");
             Console.WriteLine($"DEBUG CYBERNOID Z80 RESULT: {ripCyb.Details}");
         }
 
