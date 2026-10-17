@@ -1501,11 +1501,31 @@ internal static class Program
                 byte[] wallArtAfter = cybProject.TileAtlas.Get(0x21).Bitmap;
                 Assert(wallArtAfter.SequenceEqual(wallArtBefore), "Tile $21 from Visual Tile Atlas is NOT corrupted when copying actor sprite");
 
-                // Case B: Pick cross-game alien sprite REX_01 -> Must allocate a free slot without overwriting tile $21!
+                // Case B: Pick cross-game multi-tile sprite REX_01 (3x2 cells -> 2x1 tiles)
                 var rexSpr = SpriteBank.Instance.Items.First(i => i.Id == "REX_01");
                 applyBrush.Invoke(cybWin, [rexSpr]);
                 Assert(canvas.ActiveTileId != 0x21, $"Allocated dedicated tile slot ${canvas.ActiveTileId:X2} for cross-game sprite REX_01");
                 Assert(cybProject.TileAtlas.Get(0x21).Bitmap.SequenceEqual(wallArtBefore), "Tile $21 remains intact after cross-game sprite injection");
+                Assert(canvas.ActiveMultiTileBrush != null, "ActiveMultiTileBrush is active for 3x2 sprite REX_01");
+                Assert(canvas.MultiTileWidth == 2 && canvas.MultiTileHeight == 1, $"MultiTileWidth is 2, MultiTileHeight is 1 (got {canvas.MultiTileWidth}x{canvas.MultiTileHeight})");
+
+                // Test multi-tile stamping into Cybernoid room
+                var stampMethod = typeof(SpeccyStudio.Controls.LevelCanvas).GetMethod("StampMultiTile", BindingFlags.Instance | BindingFlags.NonPublic)!;
+                stampMethod.Invoke(canvas, [0]); // Stamp at top-left cell 0 (col 0, row 0)
+                byte t0 = canvas.Room!.Tiles[0];
+                byte t1 = canvas.Room!.Tiles[1];
+                Assert(t0 == canvas.ActiveMultiTileBrush[0, 0], "Top-left tile stamped with multi-tile slice (0,0)");
+                Assert(t1 == canvas.ActiveMultiTileBrush[1, 0], "Adjacent tile stamped with multi-tile slice (1,0)");
+
+                // Case B2: Pick large Myth sprite MYTH_01 (2x5 cells -> 1x3 tiles)
+                var mythSpr = SpriteBank.Instance.Items.First(i => i.Id == "MYTH_01");
+                applyBrush.Invoke(cybWin, [mythSpr]);
+                Assert(canvas.ActiveMultiTileBrush != null, "ActiveMultiTileBrush active for 2x5 sprite MYTH_01");
+                Assert(canvas.MultiTileWidth == 1 && canvas.MultiTileHeight == 3, $"MultiTileWidth is 1, MultiTileHeight is 3 (got {canvas.MultiTileWidth}x{canvas.MultiTileHeight})");
+                stampMethod.Invoke(canvas, [16]); // Cell 16 is row 1, col 0
+                Assert(canvas.Room!.Tiles[16] == canvas.ActiveMultiTileBrush[0, 0], "Myth slice (0,0) stamped");
+                Assert(canvas.Room!.Tiles[32] == canvas.ActiveMultiTileBrush[0, 1], "Myth slice (0,1) stamped");
+                Assert(canvas.Room!.Tiles[48] == canvas.ActiveMultiTileBrush[0, 2], "Myth slice (0,2) stamped");
             }
 
             // Case C: Rex Level Workshop -> Copying sprite updates ActiveUniversalSprite cleanly

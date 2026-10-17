@@ -41,6 +41,11 @@ public sealed class LevelCanvas : FrameworkElement
     public HashSet<int>? ProposalChanges { get; set; }
 
     public byte ActiveTileId { get; set; } = 0x21; // Default to wall tile
+    public byte[,]? ActiveMultiTileBrush { get; set; }
+    public SpriteBankItem? ActiveSpriteBrush { get; set; }
+    public int MultiTileWidth => ActiveMultiTileBrush?.GetLength(0) ?? 1;
+    public int MultiTileHeight => ActiveMultiTileBrush?.GetLength(1) ?? 1;
+
     private LevelTool _activeTool = LevelTool.Pencil;
     public LevelTool ActiveTool
     {
@@ -421,14 +426,51 @@ public sealed class LevelCanvas : FrameworkElement
 
             if (ActiveTool == LevelTool.Pencil)
             {
+                int hovCol = HoverCellIndex % RoomWidth;
+                int hovRow = HoverCellIndex / RoomWidth;
+                int spanW = Math.Min(MultiTileWidth, RoomWidth - hovCol);
+                int spanH = Math.Min(MultiTileHeight, RoomHeight - hovRow);
+                Rect stampRect = new Rect(ox + hovCol * ts, oy + hovRow * ts, spanW * ts, spanH * ts);
+
                 if (ShowPastePreview)
                 {
-                    BitmapSource? bmp = _tileBitmaps[ActiveTileId] ?? GetTileBitmap(ActiveTileId);
-                    if (bmp != null)
+                    if (ActiveSpriteBrush != null)
                     {
-                        dc.PushOpacity(0.40);
-                        dc.DrawImage(bmp, hovRect);
-                        dc.Pop();
+                        var spriteBmp = ActiveSpriteBrush.RenderBitmapSource();
+                        if (spriteBmp != null)
+                        {
+                            dc.PushClip(new RectangleGeometry(new Rect(ox, oy, rw, rh)));
+                            dc.PushOpacity(0.55);
+                            dc.DrawImage(spriteBmp, stampRect);
+                            dc.Pop();
+                            dc.Pop();
+                        }
+                    }
+                    else if (ActiveMultiTileBrush != null)
+                    {
+                        for (int ty = 0; ty < spanH; ty++)
+                        for (int tx = 0; tx < spanW; tx++)
+                        {
+                            byte tid = ActiveMultiTileBrush[tx, ty];
+                            BitmapSource? bmp = _tileBitmaps[tid] ?? GetTileBitmap(tid);
+                            if (bmp != null)
+                            {
+                                Rect sliceRect = new Rect(ox + (hovCol + tx) * ts, oy + (hovRow + ty) * ts, ts, ts);
+                                dc.PushOpacity(0.50);
+                                dc.DrawImage(bmp, sliceRect);
+                                dc.Pop();
+                            }
+                        }
+                    }
+                    else
+                    {
+                        BitmapSource? bmp = _tileBitmaps[ActiveTileId] ?? GetTileBitmap(ActiveTileId);
+                        if (bmp != null)
+                        {
+                            dc.PushOpacity(0.40);
+                            dc.DrawImage(bmp, stampRect);
+                            dc.Pop();
+                        }
                     }
                 }
                 var stampPen = new Pen(new SolidColorBrush(Color.FromArgb(200, 53, 208, 186)), 1.5)
@@ -436,7 +478,7 @@ public sealed class LevelCanvas : FrameworkElement
                     DashStyle = DashStyles.Dash
                 };
                 stampPen.Freeze();
-                dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(25, 53, 208, 186)), stampPen, hovRect);
+                dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(25, 53, 208, 186)), stampPen, stampRect);
             }
             else if (ActiveTool == LevelTool.Eraser)
             {
@@ -1171,6 +1213,8 @@ public sealed class LevelCanvas : FrameworkElement
         {
             byte tile = (ProposalTiles ?? Room.Tiles)[cell];
             ActiveTileId = tile;
+            ActiveMultiTileBrush = null;
+            ActiveSpriteBrush = null;
             ActiveTool = LevelTool.Pencil;
             TilePicked?.Invoke(cell, tile);
             InvalidateVisual();
@@ -1183,6 +1227,8 @@ public sealed class LevelCanvas : FrameworkElement
         {
             byte tile = (ProposalTiles ?? Room.Tiles)[cell];
             ActiveTileId = tile;
+            ActiveMultiTileBrush = null;
+            ActiveSpriteBrush = null;
             ActiveTool = LevelTool.Pencil;
             TilePicked?.Invoke(cell, tile);
             InvalidateVisual();
@@ -1214,8 +1260,18 @@ public sealed class LevelCanvas : FrameworkElement
         }
 
         // Paint immediate cell
-        byte paintTile = ActiveTool == LevelTool.Eraser ? (byte)0 : ActiveTileId;
-        PaintSingleCell(cell, paintTile);
+        if (ActiveTool == LevelTool.Eraser)
+        {
+            PaintSingleCell(cell, 0);
+        }
+        else if (ActiveMultiTileBrush != null)
+        {
+            StampMultiTile(cell);
+        }
+        else
+        {
+            PaintSingleCell(cell, ActiveTileId);
+        }
     }
 
     protected override void OnMouseMove(MouseEventArgs e)
@@ -1375,8 +1431,18 @@ public sealed class LevelCanvas : FrameworkElement
 
             if (cell != _lastPaintedCell)
             {
-                byte paintTile = ActiveTool == LevelTool.Eraser ? (byte)0 : ActiveTileId;
-                PaintSingleCell(cell, paintTile);
+                if (ActiveTool == LevelTool.Eraser)
+                {
+                    PaintSingleCell(cell, 0);
+                }
+                else if (ActiveMultiTileBrush != null)
+                {
+                    StampMultiTile(cell);
+                }
+                else
+                {
+                    PaintSingleCell(cell, ActiveTileId);
+                }
             }
         }
     }
@@ -1482,6 +1548,25 @@ public sealed class LevelCanvas : FrameworkElement
 
         Room.Tiles[cellIndex] = tile;
         _lastPaintedCell = cellIndex;
+        InvalidateVisual();
+    }
+
+    private void StampMultiTile(int originCell)
+    {
+        if (Room == null || ActiveMultiTileBrush == null || originCell < 0 || originCell >= TileCount) return;
+        int originCol = originCell % RoomWidth;
+        int originRow = originCell / RoomWidth;
+        int spanW = Math.Min(MultiTileWidth, RoomWidth - originCol);
+        int spanH = Math.Min(MultiTileHeight, RoomHeight - originRow);
+
+        for (int ty = 0; ty < spanH; ty++)
+        for (int tx = 0; tx < spanW; tx++)
+        {
+            int targetCell = (originRow + ty) * RoomWidth + (originCol + tx);
+            byte tile = ActiveMultiTileBrush[tx, ty];
+            Room.Tiles[targetCell] = tile;
+        }
+        _lastPaintedCell = originCell;
         InvalidateVisual();
     }
 

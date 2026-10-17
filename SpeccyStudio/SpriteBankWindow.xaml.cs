@@ -289,17 +289,35 @@ public partial class SpriteBankWindow : Window
         }
 
         var itemToInject = _selectedItem with { Bitmap = bmp, Attributes = attr };
-        bool ok = SpriteBank.Instance.InjectTileIntoCybernoid(_cybernoidProject, _activeTileOrType, itemToInject);
-        if (ok)
+        int tilesW = Math.Max(1, (itemToInject.WidthCells + 1) / 2);
+        int tilesH = Math.Max(1, (itemToInject.HeightCells + 1) / 2);
+
+        if (tilesW > 1 || tilesH > 1)
         {
+            var grid = SpriteBank.Instance.InjectMultiTileIntoCybernoid(_cybernoidProject, itemToInject, _activeTileOrType);
             TileInjected?.Invoke(_activeTileOrType, itemToInject);
-            StatusText.Text = $"✅ Injected '{_selectedItem.Name}' into Cybernoid II tile ${_activeTileOrType:X2}!";
+            StatusText.Text = $"✅ Sliced & injected '{_selectedItem.Name}' ({tilesW}×{tilesH} tiles) into Cybernoid II!";
             MessageBox.Show(
-                $"Successfully injected '{_selectedItem.Name}' into Cybernoid II Tile slot ${_activeTileOrType:X2}!\n\n" +
-                "The tile in your ROM image and level canvas is now updated.",
-                "Sprite Injected",
+                $"Successfully sliced and injected '{_selectedItem.Name}' ({_selectedItem.WidthCells * 8}×{_selectedItem.HeightCells * 8}px, {tilesW}×{tilesH} tiles) into Cybernoid II tile slots starting at ${_activeTileOrType:X2}!\n\n" +
+                "You can now use the active multi-tile brush on the canvas to stamp the sprite across tiles.",
+                "Multi-Tile Sprite Injected",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
+        }
+        else
+        {
+            bool ok = SpriteBank.Instance.InjectTileIntoCybernoid(_cybernoidProject, _activeTileOrType, itemToInject);
+            if (ok)
+            {
+                TileInjected?.Invoke(_activeTileOrType, itemToInject);
+                StatusText.Text = $"✅ Injected '{_selectedItem.Name}' into Cybernoid II tile ${_activeTileOrType:X2}!";
+                MessageBox.Show(
+                    $"Successfully injected '{_selectedItem.Name}' into Cybernoid II Tile slot ${_activeTileOrType:X2}!\n\n" +
+                    "The tile in your ROM image and level canvas is now updated.",
+                    "Sprite Injected",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
         }
     }
 

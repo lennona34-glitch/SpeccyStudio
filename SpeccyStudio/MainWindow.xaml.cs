@@ -95,6 +95,8 @@ public partial class MainWindow : Window
         // Wire up MainLevelCanvas interactive events
         MainLevelCanvas.TilePicked += (cell, tile) =>
         {
+            MainLevelCanvas.ActiveMultiTileBrush = null;
+            MainLevelCanvas.ActiveSpriteBrush = null;
             MainLevelCanvas.ActiveTileId = tile;
             _cybernoidClipboardTile = tile;
             LevelTileValueBox.Text = $"{tile:X2}";
@@ -589,6 +591,8 @@ public partial class MainWindow : Window
         if (sender is Button { Tag: string hex } &&
             byte.TryParse(hex, System.Globalization.NumberStyles.HexNumber, null, out byte tile))
         {
+            MainLevelCanvas.ActiveMultiTileBrush = null;
+            MainLevelCanvas.ActiveSpriteBrush = null;
             MainLevelCanvas.ActiveTileId = tile;
             _cybernoidClipboardTile = tile;
             LevelTileValueBox.Text = $"{tile:X2}";
@@ -707,6 +711,8 @@ public partial class MainWindow : Window
                         _cybernoidClipboardTile = tile;
                         if (MainLevelCanvas != null)
                         {
+                            MainLevelCanvas.ActiveMultiTileBrush = null;
+                            MainLevelCanvas.ActiveSpriteBrush = null;
                             MainLevelCanvas.ActiveTileId = tile;
                             MainLevelCanvas.SelectedCellIndex = targetCell;
                         }
@@ -1497,6 +1503,8 @@ public partial class MainWindow : Window
             LevelTileValueBox.Text = value;
             if (byte.TryParse(value, System.Globalization.NumberStyles.HexNumber, null, out byte tile))
             {
+                MainLevelCanvas.ActiveMultiTileBrush = null;
+                MainLevelCanvas.ActiveSpriteBrush = null;
                 MainLevelCanvas.ActiveTileId = tile;
                 _cybernoidClipboardTile = tile;
                 UpdateActiveTileUI();
@@ -1552,6 +1560,8 @@ public partial class MainWindow : Window
                 RenderOptions.SetBitmapScalingMode(btn, BitmapScalingMode.NearestNeighbor);
                 btn.Click += (s, e) =>
                 {
+                    MainLevelCanvas.ActiveMultiTileBrush = null;
+                    MainLevelCanvas.ActiveSpriteBrush = null;
                     MainLevelCanvas.ActiveTileId = tile;
                     _cybernoidClipboardTile = tile;
                     LevelTileValueBox.Text = $"{tile:X2}";
@@ -1581,6 +1591,8 @@ public partial class MainWindow : Window
     {
         if (sender is Button { Tag: byte tile })
         {
+            MainLevelCanvas.ActiveMultiTileBrush = null;
+            MainLevelCanvas.ActiveSpriteBrush = null;
             MainLevelCanvas.ActiveTileId = tile;
             _cybernoidClipboardTile = tile;
             LevelTileValueBox.Text = $"{tile:X2}";
@@ -1684,6 +1696,8 @@ public partial class MainWindow : Window
             RenderOptions.SetBitmapScalingMode(button, BitmapScalingMode.NearestNeighbor);
             button.Click += (s, e) =>
             {
+                MainLevelCanvas.ActiveMultiTileBrush = null;
+                MainLevelCanvas.ActiveSpriteBrush = null;
                 MainLevelCanvas.ActiveTileId = tile;
                 _cybernoidClipboardTile = tile;
                 LevelTileValueBox.Text = $"{tile:X2}";
@@ -1704,6 +1718,32 @@ public partial class MainWindow : Window
     {
         if (_levelLab == null || MainActiveTileImage == null) return;
         byte tile = MainLevelCanvas.ActiveTileId;
+
+        if (MainLevelCanvas.ActiveMultiTileBrush != null && MainLevelCanvas.ActiveSpriteBrush != null)
+        {
+            var sprite = MainLevelCanvas.ActiveSpriteBrush;
+            var spriteBmp = sprite.RenderBitmapSource();
+            if (spriteBmp != null)
+            {
+                MainActiveTileImage.Source = spriteBmp;
+            }
+            if (MainActiveTileHex != null)
+            {
+                MainActiveTileHex.Text = $"${tile:X2} ({MainLevelCanvas.MultiTileWidth}×{MainLevelCanvas.MultiTileHeight})";
+            }
+            if (MainActiveTileName != null)
+            {
+                MainActiveTileName.Text = sprite.Name;
+            }
+            if (MainActiveTileRoleBorder != null && MainActiveTileRoleText != null)
+            {
+                MainActiveTileRoleBorder.Background = new SolidColorBrush(Color.FromRgb(20, 50, 45));
+                MainActiveTileRoleText.Foreground = new SolidColorBrush(Color.FromRgb(53, 208, 186));
+                MainActiveTileRoleText.Text = "Multi-Tile";
+            }
+            return;
+        }
+
         CybernoidTileArt art = _levelLab.TileAtlas.Get(tile);
         CybernoidTileInfo info = CybernoidGameplayProfile.Describe(tile);
 
@@ -2635,7 +2675,9 @@ public partial class MainWindow : Window
                 !item.Id.StartsWith("CYB_SPR_", StringComparison.OrdinalIgnoreCase) &&
                 byte.TryParse(item.Id[4..], System.Globalization.NumberStyles.HexNumber, null, out byte tid))
             {
-                MainLevelCanvas!.ActiveTileId = tid;
+                MainLevelCanvas!.ActiveMultiTileBrush = null;
+                MainLevelCanvas.ActiveSpriteBrush = null;
+                MainLevelCanvas.ActiveTileId = tid;
                 _cybernoidClipboardTile = tid;
                 LevelTileValueBox.Text = $"{tid:X2}";
                 UpdateActiveTileUI();
@@ -2645,28 +2687,56 @@ public partial class MainWindow : Window
             }
             else
             {
-                byte targetSlot;
-                if (TryGetNativeActorMarkerTile(item, out byte markerTile))
+                int tilesW = Math.Max(1, (item.WidthCells + 1) / 2);
+                int tilesH = Math.Max(1, (item.HeightCells + 1) / 2);
+
+                if (tilesW > 1 || tilesH > 1)
                 {
-                    targetSlot = markerTile;
+                    // Multi-tile sprite (e.g. Rex soldier, Myth barbarian, large boss/hazard)
+                    var multiGrid = SpriteBank.Instance.InjectMultiTileIntoCybernoid(_levelLab, item);
+                    MainLevelCanvas!.ActiveMultiTileBrush = multiGrid;
+                    MainLevelCanvas.ActiveSpriteBrush = item;
+                    byte primarySlot = multiGrid[0, 0];
+                    MainLevelCanvas.ActiveTileId = primarySlot;
+                    _cybernoidClipboardTile = primarySlot;
+                    LevelTileValueBox.Text = $"{primarySlot:X2}";
+                    _document?.MarkDirty();
+                    if (SaveButton != null) SaveButton.IsEnabled = true;
+                    if (SaveAsButton != null) SaveAsButton.IsEnabled = true;
+                    MainLevelCanvas.InvalidateTileCache();
+                    MainLevelCanvas.InvalidateVisual();
+                    RenderTileAtlas();
+                    if (LevelRoomBox?.SelectedItem is CybernoidRoom r) RenderRoomPalette(r);
+                    UpdateActiveTileUI();
+                    Status($"🎨 Multi-tile brush active: '{item.Name}' ({item.WidthCells * 8}×{item.HeightCells * 8}px, {tilesW}×{tilesH} tiles) — click or drag on canvas to stamp!");
                 }
                 else
                 {
-                    targetSlot = AllocateOrFindSpriteTileSlot(_levelLab, item);
-                }
+                    MainLevelCanvas!.ActiveMultiTileBrush = null;
+                    MainLevelCanvas.ActiveSpriteBrush = null;
+                    byte targetSlot;
+                    if (TryGetNativeActorMarkerTile(item, out byte markerTile))
+                    {
+                        targetSlot = markerTile;
+                    }
+                    else
+                    {
+                        targetSlot = AllocateOrFindSpriteTileSlot(_levelLab, item);
+                    }
 
-                MainLevelCanvas!.ActiveTileId = targetSlot;
-                _cybernoidClipboardTile = targetSlot;
-                LevelTileValueBox.Text = $"{targetSlot:X2}";
-                _document?.MarkDirty();
-                if (SaveButton != null) SaveButton.IsEnabled = true;
-                if (SaveAsButton != null) SaveAsButton.IsEnabled = true;
-                MainLevelCanvas?.InvalidateTileCache();
-                MainLevelCanvas?.InvalidateVisual();
-                RenderTileAtlas();
-                if (LevelRoomBox?.SelectedItem is CybernoidRoom r) RenderRoomPalette(r);
-                UpdateActiveTileUI();
-                Status($"🎨 Copied and loaded '{item.Name}' into Cybernoid tile ${targetSlot:X2} brush — ready to paint on canvas!");
+                    MainLevelCanvas!.ActiveTileId = targetSlot;
+                    _cybernoidClipboardTile = targetSlot;
+                    LevelTileValueBox.Text = $"{targetSlot:X2}";
+                    _document?.MarkDirty();
+                    if (SaveButton != null) SaveButton.IsEnabled = true;
+                    if (SaveAsButton != null) SaveAsButton.IsEnabled = true;
+                    MainLevelCanvas?.InvalidateTileCache();
+                    MainLevelCanvas?.InvalidateVisual();
+                    RenderTileAtlas();
+                    if (LevelRoomBox?.SelectedItem is CybernoidRoom r) RenderRoomPalette(r);
+                    UpdateActiveTileUI();
+                    Status($"🎨 Copied and loaded '{item.Name}' into Cybernoid tile ${targetSlot:X2} brush — ready to paint on canvas!");
+                }
             }
 
             if (ToolPencilRadio != null) ToolPencilRadio.IsChecked = true;
@@ -2734,11 +2804,12 @@ public partial class MainWindow : Window
     private byte AllocateOrFindSpriteTileSlot(CybernoidLevelLabProject project, SpriteBankItem item)
     {
         // 1. Check if an identical 32-byte bitmap already exists in the atlas
+        var (sliceBmp, _) = SpriteBank.Instance.ExtractTileSlice(item, 0, 0);
         for (int i = 0; i < 256; i++)
         {
             var existing = project.TileAtlas.Get((byte)i);
-            if (existing.Bitmap.Length == 32 && item.Bitmap.Length >= 32 &&
-                existing.Bitmap.AsSpan(0, 32).SequenceEqual(item.Bitmap.AsSpan(0, 32)))
+            if (existing.Bitmap.Length == 32 &&
+                existing.Bitmap.AsSpan(0, 32).SequenceEqual(sliceBmp))
             {
                 return (byte)i;
             }

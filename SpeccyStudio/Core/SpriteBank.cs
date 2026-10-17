@@ -295,30 +295,94 @@ public sealed class SpriteBank
         }
     }
 
+    /// <summary>
+    /// Extracts a 16x16 pixel (2x2 character cells) slice from any SpriteBankItem with correct row-major strides.
+    /// </summary>
+    public (byte[] Bitmap, byte[] Attributes) ExtractTileSlice(SpriteBankItem item, int tileX = 0, int tileY = 0)
+    {
+        byte[] tileBmp = new byte[32]; // 16 scanlines * 2 bytes
+        byte[] tileAttr = new byte[4];  // 2x2 cells
+
+        int startCellX = tileX * 2;
+        int startCellY = tileY * 2;
+        int startScanlineY = tileY * 16;
+
+        for (int y = 0; y < 16; y++)
+        {
+            int srcY = startScanlineY + y;
+            for (int xByte = 0; xByte < 2; xByte++)
+            {
+                int srcCellX = startCellX + xByte;
+                if (srcCellX < item.WidthCells && srcY < item.HeightCells * 8)
+                {
+                    int srcIdx = srcY * item.WidthCells + srcCellX;
+                    if (srcIdx < item.Bitmap.Length)
+                    {
+                        tileBmp[y * 2 + xByte] = item.Bitmap[srcIdx];
+                    }
+                }
+            }
+        }
+
+        for (int cy = 0; cy < 2; cy++)
+        for (int cx = 0; cx < 2; cx++)
+        {
+            int srcCellX = startCellX + cx;
+            int srcCellY = startCellY + cy;
+            byte attr = 0x47;
+            if (srcCellX < item.WidthCells && srcCellY < item.HeightCells)
+            {
+                int attrIdx = srcCellY * item.WidthCells + srcCellX;
+                if (attrIdx < item.Attributes.Length)
+                {
+                    attr = item.Attributes[attrIdx];
+                }
+            }
+            else if (item.Attributes.Length > 0)
+            {
+                attr = item.Attributes[0];
+            }
+            tileAttr[cy * 2 + cx] = attr;
+        }
+
+        return (tileBmp, tileAttr);
+    }
+
     public bool InjectTileIntoCybernoid(CybernoidLevelLabProject project, byte targetTileId, SpriteBankItem item)
     {
         if (project == null || item == null) return false;
 
-        byte[] bitmap = new byte[32];
-        byte[] attributes = new byte[4];
-
-        if (item.WidthCells == 2 && item.HeightCells == 2 && item.Bitmap.Length >= 32)
-        {
-            Array.Copy(item.Bitmap, 0, bitmap, 0, 32);
-            Array.Copy(item.Attributes, 0, attributes, 0, Math.Min(4, item.Attributes.Length));
-        }
-        else
-        {
-            // Center or adapt smaller / larger graphic into 16x16 2x2 cells
-            int copyBytes = Math.Min(32, item.Bitmap.Length);
-            Array.Copy(item.Bitmap, 0, bitmap, 0, copyBytes);
-            byte attr = item.Attributes.Length > 0 ? item.Attributes[0] : (byte)0x47;
-            for (int i = 0; i < 4; i++)
-                attributes[i] = i < item.Attributes.Length ? item.Attributes[i] : attr;
-        }
-
+        var (bitmap, attributes) = ExtractTileSlice(item, 0, 0);
         project.TileAtlas.WriteTile(targetTileId, bitmap, attributes);
         return true;
+    }
+
+    public byte[,] InjectMultiTileIntoCybernoid(CybernoidLevelLabProject project, SpriteBankItem item, byte startingTileSlot = 0)
+    {
+        int tilesW = Math.Max(1, (item.WidthCells + 1) / 2);
+        int tilesH = Math.Max(1, (item.HeightCells + 1) / 2);
+        var result = new byte[tilesW, tilesH];
+
+        var allUsedTiles = new HashSet<byte>(project.Rooms.SelectMany(r => r.Tiles));
+        byte candidate = startingTileSlot >= 0x20 && startingTileSlot < 0xE2 ? startingTileSlot : (byte)0x20;
+
+        for (int ty = 0; ty < tilesH; ty++)
+        for (int tx = 0; tx < tilesW; tx++)
+        {
+            var (sliceBmp, sliceAttr) = ExtractTileSlice(item, tx, ty);
+
+            while (candidate < 0xE2 && allUsedTiles.Contains(candidate))
+            {
+                candidate++;
+            }
+
+            byte slot = candidate < 0xE2 ? candidate++ : (byte)(0x20 + ty * tilesW + tx);
+            project.TileAtlas.WriteTile(slot, sliceBmp, sliceAttr);
+            allUsedTiles.Add(slot);
+            result[tx, ty] = slot;
+        }
+
+        return result;
     }
 
     public void ExportToFile(string filePath, IEnumerable<SpriteBankItem> itemsToExport)
