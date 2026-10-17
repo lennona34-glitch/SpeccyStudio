@@ -21,6 +21,7 @@ public partial class SoundFxBankWindow : Window
     private readonly List<SfxInfo> _filteredCatalog = [];
     private readonly SfxInfo[] _currentPads = new SfxInfo[8];
     private SfxInfo? _selectedSfx;
+    private bool _isInitialized = false;
 
     public IReadOnlyList<SfxInfo> SelectedPads => _currentPads;
     public bool AppliedChanges { get; private set; }
@@ -42,13 +43,19 @@ public partial class SoundFxBankWindow : Window
             for (int i = 0; i < 8; i++) _currentPads[i] = (i < def.Count) ? def[i] : _allCatalog[0];
         }
 
-        CatalogCountText.Text = $"{_allCatalog.Count} Authentic 128K SFX Available";
+        if (CatalogCountText != null)
+        {
+            CatalogCountText.Text = $"{_allCatalog.Count} Authentic 128K SFX Available";
+        }
+        _isInitialized = true;
         ApplyFilters();
         RenderPads();
     }
 
     private void ApplyFilters()
     {
+        if (!_isInitialized || SfxDataGrid == null) return;
+
         string query = SearchBox?.Text?.Trim() ?? string.Empty;
         string gameFilter = (GameFilterCombo?.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "All Games";
         string catFilter = (CategoryFilterCombo?.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "All Categories";
@@ -87,6 +94,7 @@ public partial class SoundFxBankWindow : Window
 
     private void RenderPads()
     {
+        if (!_isInitialized || PadsContainer == null) return;
         PadsContainer.Children.Clear();
 
         for (int i = 0; i < 8; i++)
@@ -223,6 +231,7 @@ public partial class SoundFxBankWindow : Window
 
     private void SfxDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (!_isInitialized || SelectedSfxTitle == null || SelectedSfxDesc == null) return;
         if (SfxDataGrid.SelectedItem is SfxInfo sfx)
         {
             _selectedSfx = sfx;
@@ -291,6 +300,7 @@ public partial class SoundFxBankWindow : Window
 
     private void PresetCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (!_isInitialized) return;
         if (PresetCombo?.SelectedItem is not ComboBoxItem item || item.Tag is not string tag) return;
 
         var list = ChiptuneEngine.GetSfxForGame(tag);
@@ -298,7 +308,10 @@ public partial class SoundFxBankWindow : Window
         {
             for (int i = 0; i < 8; i++) _currentPads[i] = list[i];
             RenderPads();
-            StatusText.Text = $"✓ Loaded preset pack: {item.Content}";
+            if (StatusText != null)
+            {
+                StatusText.Text = $"✓ Loaded preset pack: {item.Content}";
+            }
         }
     }
 
@@ -349,8 +362,8 @@ public partial class SoundFxBankWindow : Window
         }
     }
 
-    private void SearchBox_TextChanged(object sender, TextChangedEventArgs e) => ApplyFilters();
-    private void Filter_SelectionChanged(object sender, SelectionChangedEventArgs e) => ApplyFilters();
+    private void SearchBox_TextChanged(object sender, TextChangedEventArgs e) { if (_isInitialized) ApplyFilters(); }
+    private void Filter_SelectionChanged(object sender, SelectionChangedEventArgs e) { if (_isInitialized) ApplyFilters(); }
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {

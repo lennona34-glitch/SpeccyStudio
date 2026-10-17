@@ -53,14 +53,23 @@ public sealed class SpeccyWaveOut : IDisposable
     [DllImport("winmm.dll")]
     private static extern int waveOutClose(IntPtr hWaveOut);
 
-    [DllImport("winmm.dll")]
+    [DllImport("winmm.dll", EntryPoint = "waveOutPrepareHeader")]
     private static extern int waveOutPrepareHeader(IntPtr hWaveOut, ref WAVEHDR lpWaveOutHdr, uint uSize);
 
-    [DllImport("winmm.dll")]
+    [DllImport("winmm.dll", EntryPoint = "waveOutPrepareHeader")]
+    private static extern int waveOutPrepareHeaderPtr(IntPtr hWaveOut, IntPtr lpWaveOutHdr, uint uSize);
+
+    [DllImport("winmm.dll", EntryPoint = "waveOutUnprepareHeader")]
     private static extern int waveOutUnprepareHeader(IntPtr hWaveOut, ref WAVEHDR lpWaveOutHdr, uint uSize);
 
-    [DllImport("winmm.dll")]
+    [DllImport("winmm.dll", EntryPoint = "waveOutUnprepareHeader")]
+    private static extern int waveOutUnprepareHeaderPtr(IntPtr hWaveOut, IntPtr lpWaveOutHdr, uint uSize);
+
+    [DllImport("winmm.dll", EntryPoint = "waveOutWrite")]
     private static extern int waveOutWrite(IntPtr hWaveOut, ref WAVEHDR lpWaveOutHdr, uint uSize);
+
+    [DllImport("winmm.dll", EntryPoint = "waveOutWrite")]
+    private static extern int waveOutWritePtr(IntPtr hWaveOut, IntPtr lpWaveOutHdr, uint uSize);
 
     [DllImport("winmm.dll")]
     private static extern int waveOutReset(IntPtr hWaveOut);
@@ -173,24 +182,39 @@ public sealed class SpeccyWaveOut : IDisposable
         }
     }
 
-    private struct StreamSlot
+    private sealed class NativeStreamSlot : IDisposable
     {
-        public IntPtr ptr;
-        public WAVEHDR hdr;
-        public bool isPrepared;
-        public short[] sampleBuf;
-        public byte[] byteBuf;
+        public IntPtr HdrPtr;
+        public IntPtr DataPtr;
+        public bool IsPrepared;
+        public short[] SampleBuf = [];
+        public byte[] ByteBuf = [];
+
+        public void Dispose()
+        {
+            if (HdrPtr != IntPtr.Zero)
+            {
+                try { Marshal.FreeHGlobal(HdrPtr); } catch { }
+                HdrPtr = IntPtr.Zero;
+            }
+            if (DataPtr != IntPtr.Zero)
+            {
+                try { Marshal.FreeHGlobal(DataPtr); } catch { }
+                DataPtr = IntPtr.Zero;
+            }
+        }
     }
 
-    private const int STREAM_BUFFER_COUNT = 3;
+    private const int STREAM_BUFFER_COUNT = 4;
     private const int STREAM_SAMPLES_PER_BUFFER = 2048; // ~46.4ms per buffer at 44100Hz
-    private StreamSlot[]? _streamSlots;
+    private NativeStreamSlot[]? _streamSlots;
     private Thread? _streamThread;
     private CancellationTokenSource? _streamCts;
 
     /// <summary>
     /// Starts live streaming PCM playback rendered dynamically by the sampleProvider callback.
     /// Uses ring buffering to achieve low-latency (~90ms) response to live parameter changes.
+    /// Headers and audio buffers are allocated strictly in native heap to prevent GC relocation.
     /// </summary>
     public bool PlayStream(Func<short[], int, int> sampleProvider)
     {
@@ -219,40 +243,47 @@ public sealed class SpeccyWaveOut : IDisposable
                     return false;
                 }
 
-                _streamSlots = new StreamSlot[STREAM_BUFFER_COUNT];
+                _streamSlots = new NativeStreamSlot[STREAM_BUFFER_COUNT];
                 int byteLen = STREAM_SAMPLES_PER_BUFFER * sizeof(short);
                 uint hdrSize = (uint)Marshal.SizeOf<WAVEHDR>();
 
                 for (int i = 0; i < STREAM_BUFFER_COUNT; i++)
                 {
-                    _streamSlots[i].sampleBuf = new short[STREAM_SAMPLES_PER_BUFFER];
-                    _streamSlots[i].byteBuf = new byte[byteLen];
-                    _streamSlots[i].ptr = Marshal.AllocHGlobal(byteLen);
+                    var slot = new NativeStreamSlot
+                    {
+                        SampleBuf = new short[STREAM_SAMPLES_PER_BUFFER],
+                        ByteBuf = new byte[byteLen],
+                        DataPtr = Marshal.AllocHGlobal(byteLen),
+                        HdrPtr = Marshal.AllocHGlobal((int)hdrSize)
+                    };
 
-                    int samples = sampleProvider(_streamSlots[i].sampleBuf, STREAM_SAMPLES_PER_BUFFER);
+                    int samples = sampleProvider(slot.SampleBuf, STREAM_SAMPLES_PER_BUFFER);
                     if (samples < STREAM_SAMPLES_PER_BUFFER)
                     {
-                        Array.Clear(_streamSlots[i].sampleBuf, samples, STREAM_SAMPLES_PER_BUFFER - samples);
+                        Array.Clear(slot.SampleBuf, samples, STREAM_SAMPLES_PER_BUFFER - samples);
                     }
 
-                    Buffer.BlockCopy(_streamSlots[i].sampleBuf, 0, _streamSlots[i].byteBuf, 0, byteLen);
-                    Marshal.Copy(_streamSlots[i].byteBuf, 0, _streamSlots[i].ptr, byteLen);
+                    Buffer.BlockCopy(slot.SampleBuf, 0, slot.ByteBuf, 0, byteLen);
+                    Marshal.Copy(slot.ByteBuf, 0, slot.DataPtr, byteLen);
 
-                    _streamSlots[i].hdr = new WAVEHDR
+                    var hdr = new WAVEHDR
                     {
-                        lpData = _streamSlots[i].ptr,
+                        lpData = slot.DataPtr,
                         dwBufferLength = (uint)byteLen,
                         dwBytesRecorded = (uint)byteLen,
                         dwFlags = 0,
                         dwLoops = 1
                     };
+                    Marshal.StructureToPtr(hdr, slot.HdrPtr, false);
 
-                    res = waveOutPrepareHeader(_hWaveMusic, ref _streamSlots[i].hdr, hdrSize);
+                    res = waveOutPrepareHeaderPtr(_hWaveMusic, slot.HdrPtr, hdrSize);
                     if (res == 0)
                     {
-                        _streamSlots[i].isPrepared = true;
-                        waveOutWrite(_hWaveMusic, ref _streamSlots[i].hdr, hdrSize);
+                        slot.IsPrepared = true;
+                        waveOutWritePtr(_hWaveMusic, slot.HdrPtr, hdrSize);
                     }
+
+                    _streamSlots[i] = slot;
                 }
 
                 Volume = _volume;
@@ -263,7 +294,6 @@ public sealed class SpeccyWaveOut : IDisposable
 
                 _streamThread = new Thread(() =>
                 {
-                    int currentIdx = 0;
                     while (!token.IsCancellationRequested)
                     {
                         bool wroteAny = false;
@@ -271,36 +301,47 @@ public sealed class SpeccyWaveOut : IDisposable
                         {
                             if (_hWaveMusic != hWave || _streamSlots == null) break;
 
-                            ref var slot = ref _streamSlots[currentIdx];
-                            if (slot.isPrepared && (slot.hdr.dwFlags & WHDR_DONE) != 0)
+                            for (int i = 0; i < _streamSlots.Length; i++)
                             {
-                                waveOutUnprepareHeader(_hWaveMusic, ref slot.hdr, hdrSize);
-                                slot.isPrepared = false;
-
-                                int samples = sampleProvider(slot.sampleBuf, STREAM_SAMPLES_PER_BUFFER);
-                                if (samples <= 0 || token.IsCancellationRequested) break;
-
-                                if (samples < STREAM_SAMPLES_PER_BUFFER)
+                                var slot = _streamSlots[i];
+                                if (slot.IsPrepared && slot.HdrPtr != IntPtr.Zero)
                                 {
-                                    Array.Clear(slot.sampleBuf, samples, STREAM_SAMPLES_PER_BUFFER - samples);
+                                    var hdr = Marshal.PtrToStructure<WAVEHDR>(slot.HdrPtr);
+                                    if ((hdr.dwFlags & WHDR_DONE) != 0)
+                                    {
+                                        waveOutUnprepareHeaderPtr(_hWaveMusic, slot.HdrPtr, hdrSize);
+                                        slot.IsPrepared = false;
+
+                                        int samples = sampleProvider(slot.SampleBuf, STREAM_SAMPLES_PER_BUFFER);
+                                        if (samples <= 0 || token.IsCancellationRequested)
+                                        {
+                                            wroteAny = false;
+                                            break;
+                                        }
+
+                                        if (samples < STREAM_SAMPLES_PER_BUFFER)
+                                        {
+                                            Array.Clear(slot.SampleBuf, samples, STREAM_SAMPLES_PER_BUFFER - samples);
+                                        }
+
+                                        Buffer.BlockCopy(slot.SampleBuf, 0, slot.ByteBuf, 0, byteLen);
+                                        Marshal.Copy(slot.ByteBuf, 0, slot.DataPtr, byteLen);
+
+                                        hdr.dwFlags = 0;
+                                        hdr.dwBufferLength = (uint)byteLen;
+                                        hdr.dwBytesRecorded = (uint)byteLen;
+                                        Marshal.StructureToPtr(hdr, slot.HdrPtr, false);
+
+                                        int prepRes = waveOutPrepareHeaderPtr(_hWaveMusic, slot.HdrPtr, hdrSize);
+                                        if (prepRes == 0)
+                                        {
+                                            slot.IsPrepared = true;
+                                            waveOutWritePtr(_hWaveMusic, slot.HdrPtr, hdrSize);
+                                        }
+
+                                        wroteAny = true;
+                                    }
                                 }
-
-                                Buffer.BlockCopy(slot.sampleBuf, 0, slot.byteBuf, 0, byteLen);
-                                Marshal.Copy(slot.byteBuf, 0, slot.ptr, byteLen);
-
-                                slot.hdr.dwBufferLength = (uint)byteLen;
-                                slot.hdr.dwBytesRecorded = (uint)byteLen;
-                                slot.hdr.dwFlags = 0;
-
-                                int prepRes = waveOutPrepareHeader(_hWaveMusic, ref slot.hdr, hdrSize);
-                                if (prepRes == 0)
-                                {
-                                    slot.isPrepared = true;
-                                    waveOutWrite(_hWaveMusic, ref slot.hdr, hdrSize);
-                                }
-
-                                currentIdx = (currentIdx + 1) % STREAM_BUFFER_COUNT;
-                                wroteAny = true;
                             }
                         }
 
@@ -342,7 +383,7 @@ public sealed class SpeccyWaveOut : IDisposable
     private void CleanupMusicNative()
     {
         _streamCts?.Cancel();
-        try { _streamThread?.Join(100); } catch { }
+        try { _streamThread?.Join(120); } catch { }
         _streamThread = null;
         _streamCts?.Dispose();
         _streamCts = null;
@@ -364,10 +405,11 @@ public sealed class SpeccyWaveOut : IDisposable
                 {
                     for (int i = 0; i < _streamSlots.Length; i++)
                     {
-                        if (_streamSlots[i].isPrepared)
+                        var slot = _streamSlots[i];
+                        if (slot != null && slot.IsPrepared && slot.HdrPtr != IntPtr.Zero)
                         {
-                            waveOutUnprepareHeader(_hWaveMusic, ref _streamSlots[i].hdr, hdrSize);
-                            _streamSlots[i].isPrepared = false;
+                            waveOutUnprepareHeaderPtr(_hWaveMusic, slot.HdrPtr, hdrSize);
+                            slot.IsPrepared = false;
                         }
                     }
                 }
@@ -385,11 +427,7 @@ public sealed class SpeccyWaveOut : IDisposable
         {
             for (int i = 0; i < _streamSlots.Length; i++)
             {
-                if (_streamSlots[i].ptr != IntPtr.Zero)
-                {
-                    try { Marshal.FreeHGlobal(_streamSlots[i].ptr); } catch { }
-                    _streamSlots[i].ptr = IntPtr.Zero;
-                }
+                _streamSlots[i]?.Dispose();
             }
             _streamSlots = null;
         }

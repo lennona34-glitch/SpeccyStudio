@@ -1265,8 +1265,8 @@ public sealed class Z80AudioRunner
             {
                 runner.ExecuteRoutine((ushort)playAddr, maxTStates: 40000, recordWrites: true);
 
-                // Runaway loop protection: real AY sound drivers never write > 32 registers in one 50Hz frame
-                if (runner.CurrentFrameWrites.Count > 32)
+                // Runaway loop protection: abort only if an invalid routine writes an absurd number of registers
+                if (runner.CurrentFrameWrites.Count > 256)
                 {
                     break;
                 }
