@@ -1869,10 +1869,6 @@ public partial class MainWindow : Window
                 ExolonRoomBox.SelectedIndex = exRoom.Index - 1;
             else if (directionText == "Right" && exRoom.Index < _exolonLab.Rooms.Count - 1)
                 ExolonRoomBox.SelectedIndex = exRoom.Index + 1;
-            else if (directionText == "Up" && exRoom.Index - 25 >= 0)
-                ExolonRoomBox.SelectedIndex = exRoom.Index - 25;
-            else if (directionText == "Down" && exRoom.Index + 25 < _exolonLab.Rooms.Count)
-                ExolonRoomBox.SelectedIndex = exRoom.Index + 25;
             return;
         }
 
@@ -3495,8 +3491,10 @@ public partial class MainWindow : Window
         bool canNext = _exolonLab != null && room.Index < _exolonLab.Rooms.Count - 1;
         if (CanvasLeftButton != null) CanvasLeftButton.IsEnabled = canPrev;
         if (CanvasRightButton != null) CanvasRightButton.IsEnabled = canNext;
-        if (CanvasUpButton != null) CanvasUpButton.IsEnabled = room.Index >= 25;
-        if (CanvasDownButton != null) CanvasDownButton.IsEnabled = _exolonLab != null && room.Index + 25 < _exolonLab.Rooms.Count;
+        if (CanvasUpButton != null) CanvasUpButton.IsEnabled = false;
+        if (CanvasDownButton != null) CanvasDownButton.IsEnabled = false;
+
+        RenderExolonZoneMap(room);
 
         ExolonEntitiesList.ItemsSource = null;
         ExolonEntitiesList.ItemsSource = room.Entities;
@@ -3507,6 +3505,73 @@ public partial class MainWindow : Window
 
         RefreshExolonInRoomPartsStrip(room);
         Status($"Exolon · Zone {room.Zone}, Screen {room.ScreenInZone:02} loaded · {room.Entities.Count} entities");
+    }
+
+    private void RenderExolonZoneMap(ExolonRoom room)
+    {
+        if (ExolonZoneMapGrid == null) return;
+
+        int zone = room.Zone;
+        int zoneStart = (zone - 1) * 25;
+        if (ExolonZoneTitleText != null)
+        {
+            string zoneName = zone switch
+            {
+                1 => "Surface Outpost",
+                2 => "Bio-Dome Caverns",
+                3 => "Subterranean Reactor",
+                4 => "Crystal Mines",
+                5 => "Command Citadel",
+                _ => "Outpost"
+            };
+            ExolonZoneTitleText.Text = $"Zone {zone} · {zoneName} (Screens {(zoneStart + 1):02}–{(zoneStart + 25):02})";
+        }
+
+        ExolonZoneMapGrid.Children.Clear();
+        for (int i = 0; i < 25; i++)
+        {
+            int roomIndex = zoneStart + i;
+            bool isCurrent = roomIndex == room.Index;
+            bool isExitGate = (i == 24);
+
+            var btn = new Button
+            {
+                Content = isExitGate ? (isCurrent ? "★25" : "⚑25") : $"{i + 1:02}",
+                Tag = roomIndex,
+                Padding = new Thickness(2, 2, 2, 2),
+                Margin = new Thickness(1),
+                FontSize = 9.5,
+                FontWeight = isCurrent ? FontWeights.Bold : FontWeights.Normal,
+                ToolTip = $"Screen {i + 1:02} (Room {roomIndex:02}){(isExitGate ? " · Exit Teleport Gate" : "")}"
+            };
+
+            if (isCurrent)
+            {
+                btn.Background = new SolidColorBrush(Color.FromRgb(0x35, 0xD0, 0xBA));
+                btn.Foreground = Brushes.Black;
+                btn.BorderBrush = Brushes.White;
+            }
+            else if (isExitGate)
+            {
+                btn.Background = new SolidColorBrush(Color.FromRgb(40, 20, 50));
+                btn.Foreground = new SolidColorBrush(Color.FromRgb(0x35, 0xD0, 0xBA));
+            }
+            else
+            {
+                btn.Background = new SolidColorBrush(Color.FromRgb(0x1B, 0x23, 0x32));
+                btn.Foreground = new SolidColorBrush(Color.FromRgb(0xF3, 0xF5, 0xF7));
+            }
+
+            btn.Click += (s, e) =>
+            {
+                if (s is Button b && b.Tag is int targetRoom && targetRoom >= 0 && _exolonLab != null && targetRoom < _exolonLab.Rooms.Count)
+                {
+                    ExolonRoomBox.SelectedIndex = targetRoom;
+                }
+            };
+
+            ExolonZoneMapGrid.Children.Add(btn);
+        }
     }
 
     private void SelectExolonEntity(ExolonEntity entity)
@@ -4032,6 +4097,76 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             ShowError("Could not reset room", ex);
+        }
+    }
+
+    private void ExolonExportPanoramicMap_Click(object sender, RoutedEventArgs e)
+    {
+        if (_exolonLab == null || _exolonLab.Rooms.Count == 0) return;
+
+        var sfd = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "Export Exolon Panoramic Level Map",
+            Filter = "PNG Image (*.png)|*.png",
+            FileName = "Exolon_Panoramic_Map_5Zones.png"
+        };
+
+        if (sfd.ShowDialog(this) != true) return;
+
+        try
+        {
+            int totalRooms = _exolonLab.Rooms.Count;
+            int screensPerZone = 25;
+            int totalZones = (int)Math.Ceiling(totalRooms / (double)screensPerZone);
+
+            int roomW = 256;
+            int roomH = 176;
+            int fullW = screensPerZone * roomW;
+            int fullH = totalZones * roomH;
+
+            var pixels = new uint[fullW * fullH];
+            Array.Fill(pixels, 0xFF000000u);
+
+            for (int rIdx = 0; rIdx < totalRooms; rIdx++)
+            {
+                var room = _exolonLab.Rooms[rIdx];
+                var render = ExolonEngine.RenderRoom(room.Entities);
+
+                int zone = rIdx / screensPerZone;
+                int screen = rIdx % screensPerZone;
+                int startX = screen * roomW;
+                int startY = zone * roomH;
+
+                var roomBmp = render.Image;
+                var roomPixels = new uint[roomW * roomH];
+                roomBmp.CopyPixels(roomPixels, roomW * 4, 0);
+
+                for (int y = 0; y < roomH; y++)
+                {
+                    int dstRow = (startY + y) * fullW + startX;
+                    int srcRow = y * roomW;
+                    Array.Copy(roomPixels, srcRow, pixels, dstRow, roomW);
+                }
+            }
+
+            var compositeBmp = new WriteableBitmap(fullW, fullH, 96, 96, PixelFormats.Bgr32, null);
+            compositeBmp.WritePixels(new Int32Rect(0, 0, fullW, fullH), pixels, fullW * 4, 0);
+            compositeBmp.Freeze();
+
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(compositeBmp));
+            using (var stream = File.Create(sfd.FileName))
+            {
+                encoder.Save(stream);
+            }
+
+            try { Clipboard.SetImage(compositeBmp); } catch { }
+            System.Media.SystemSounds.Asterisk.Play();
+            Status($"🗺 Exported full Exolon 5-zone panoramic map (125 screens, 6400×880) to {Path.GetFileName(sfd.FileName)} and copied to clipboard!");
+        }
+        catch (Exception ex)
+        {
+            ShowError("Export Panoramic Map", ex);
         }
     }
 

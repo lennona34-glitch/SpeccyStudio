@@ -890,6 +890,11 @@
                       <Button Content="Zone 5" Tag="100" Click="ExolonZone_Click" Padding="4,3" FontSize="10" Margin="1"/>
                     </UniformGrid>
 
+                    <TextBlock x:Name="ExolonZoneTitleText" Text="Zone 1 · Surface Outpost (Screens 01–25)" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold" FontSize="10" Margin="0,0,0,4"/>
+                    <Border Background="#06080D" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="3" Margin="0,0,0,8">
+                      <UniformGrid x:Name="ExolonZoneMapGrid" Columns="5"/>
+                    </Border>
+
                     <Grid>
                       <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -1015,6 +1020,7 @@
                 <GroupBox Header="ACTIONS">
                   <WrapPanel>
                     <Button Content="📸 Export Room PNG" Click="Screenshot_Click" Padding="6,3" FontSize="10" Margin="0,0,4,0"/>
+                    <Button Content="🗺 Export Panoramic Map" Click="ExolonExportPanoramicMap_Click" Padding="6,3" FontSize="10" Margin="0,0,4,0" ToolTip="Export full 6400×880 panoramic level map of all 125 screens across 5 zones"/>
                     <Button Content="↺ Reset to Authentic" Click="ExolonResetRoom_Click" Padding="6,3" FontSize="10" Margin="0,0,4,0" ToolTip="Reset current room to original 1987 Hewson authentic layout"/>
                     <Button Content="▶ Playtest in Emulator (F5)" Click="Play_Click" Style="{StaticResource PrimaryButton}" Padding="6,3" FontSize="10"/>
                   </WrapPanel>

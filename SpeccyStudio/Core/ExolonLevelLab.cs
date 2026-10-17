@@ -290,7 +290,57 @@ public sealed class ExolonLevelLabProject
                             document.Assets.Any(a => a.Name.Contains("EXOLON", StringComparison.OrdinalIgnoreCase) ||
                                                       a.Name.Contains("exolon", StringComparison.OrdinalIgnoreCase));
 
-            // Case 1: Z80/SNA Snapshot with live RAM
+            // Case 1: Z80 v2/v3 (128K) snapshot with normalized RAM pages
+            if (document.Format == SpectrumFormat.Z80 && document.Assets.Any(a => a.Kind == "RAM page"))
+            {
+                foreach (var asset in document.Assets.Where(a => a.Kind == "RAM page"))
+                {
+                    int baseOff = asset.Offset;
+                    if (baseOff + 0x07F4 + 1 < document.Bytes.Length)
+                    {
+                        int p0 = document.Bytes[baseOff + 0x07F4] | (document.Bytes[baseOff + 0x07F4 + 1] << 8);
+                        int p1 = document.Bytes[baseOff + 0x07F6] | (document.Bytes[baseOff + 0x07F7] << 8);
+                        if (p0 == 0xC8EE && (p1 & 0xFF00) == 0xC900)
+                        {
+                            int tblFileOffset = baseOff + 0x07F4;
+                            int roomBaseOffset = baseOff + 0x08EE;
+
+                            var pointers = new int[TotalRooms];
+                            for (int i = 0; i < TotalRooms; i++)
+                                pointers[i] = document.Bytes[tblFileOffset + i * 2] | (document.Bytes[tblFileOffset + i * 2 + 1] << 8);
+
+                            var rooms = new List<ExolonRoom>(TotalRooms);
+                            for (int i = 0; i < TotalRooms; i++)
+                            {
+                                int addr = pointers[i];
+                                int nextAddr = i + 1 < TotalRooms ? pointers[i + 1] : 0xDD19;
+                                int capacity = Math.Max(DefaultRoomCapacity, nextAddr - addr + 40);
+                                int roomFileOffset = roomBaseOffset + (addr - 0xC8EE);
+
+                                var entities = new List<ExolonEntity>();
+                                int pos = roomFileOffset;
+                                while (pos < document.Bytes.Length && document.Bytes[pos] != 0xFF && pos < roomFileOffset + (nextAddr - addr))
+                                {
+                                    byte row = document.Bytes[pos];
+                                    byte col = document.Bytes[pos + 1];
+                                    byte typeId = document.Bytes[pos + 2];
+                                    entities.Add(new ExolonEntity(row, col, typeId));
+                                    pos += 3;
+                                }
+                                int encodedLen = (pos - roomFileOffset) + 1;
+                                byte[] raw = document.Bytes.AsSpan(roomFileOffset, Math.Min(encodedLen, nextAddr - addr)).ToArray();
+                                rooms.Add(new ExolonRoom(i, addr, capacity, encodedLen, entities, raw));
+                            }
+
+                            project = new ExolonLevelLabProject(document, tblFileOffset, roomBaseOffset, rooms, true);
+                            reason = project.MatchSummary;
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            // Case 2: Normalized 48K Z80/SNA Snapshot with contiguous RAM
             if (document.Format == SpectrumFormat.Z80 || document.Format == SpectrumFormat.Sna)
             {
                 int ramOffset = document.Format == SpectrumFormat.Sna ? 27 : 30;
@@ -314,7 +364,7 @@ public sealed class ExolonLevelLabProject
                             int addr = pointers[i];
                             int nextAddr = i + 1 < TotalRooms ? pointers[i + 1] : 0xDD19;
                             int capacity = Math.Max(DefaultRoomCapacity, nextAddr - addr + 40);
-                            int roomFileOffset = ramOffset + (addr - 0x4000);
+                            int roomFileOffset = roomBaseOffset + (addr - 0xC8EE);
 
                             // Decode entities
                             var entities = new List<ExolonEntity>();
@@ -339,7 +389,7 @@ public sealed class ExolonLevelLabProject
                 }
             }
 
-            // Case 2: TAP, TZX, ZIP or any identified Exolon file
+            // Case 3: TAP, TZX, ZIP or any identified Exolon file
             if (isExolon)
             {
                 int tblFileOffset = -1;
@@ -350,6 +400,7 @@ public sealed class ExolonLevelLabProject
                     if (document.Bytes[i] == 0xEE && document.Bytes[i + 1] == 0xC8 && document.Bytes[i + 3] == 0xC9)
                     {
                         tblFileOffset = i;
+                        // In code images, room data begins immediately after the 127 pointer entries (254 bytes)
                         roomBaseOffset = i + 254;
                         break;
                     }
@@ -362,10 +413,8 @@ public sealed class ExolonLevelLabProject
                     int cap = Math.Max(DefaultRoomCapacity, ExolonVerifiedRoomsData.Capacities[i] + 40);
                     ushort addr = ExolonVerifiedRoomsData.Addresses[i];
 
-                    // If file has live data for this room, read from file if pointer is genuine.
-                    // Note: TOSEC TAP files have a 1-byte desync at offset 22120 which shifts pointers for rooms 23-124.
-                    // For authentic unedited files or clean snapshots, liveAddr matches addr exactly.
-                    // For user edits, liveAddr starts at 0xC8EE and stays close to the verified address.
+                    // If the pointer table has a valid pointer, read live room bytes from document.Bytes.
+                    // Falls back to ExolonVerifiedRoomsData if live data is not valid.
                     if (tblFileOffset >= 0 && tblFileOffset + i * 2 + 1 < document.Bytes.Length)
                     {
                         int liveAddr = document.Bytes[tblFileOffset + i * 2] | (document.Bytes[tblFileOffset + i * 2 + 1] << 8);

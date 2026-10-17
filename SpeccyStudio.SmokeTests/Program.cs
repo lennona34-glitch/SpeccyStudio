@@ -18,6 +18,7 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
+
         if (args.Length > 0 && args[0] == "myth-lab")
         {
             string mythRoot = Path.Combine(Path.GetTempPath(), "SpeccyStudioMyth", Guid.NewGuid().ToString("N"));
@@ -671,11 +672,21 @@ internal static class Program
         Assert(ExolonEntityCatalog.GetDimensions(0x02) == (11, 8), "Pod dimensions");
         Assert(ExolonEntityCatalog.GetDimensions(0x05) == (6, 5), "Turret dimensions");
 
-        Console.WriteLine("DEBUG: Catalog assertions passed, starting CaptureExolonWindow");
-        string capturePath = @"C:\Users\adria\.gemini\antigravity\brain\aafadb66-5ecd-48af-adb0-8675ca0b7a6c\speccy-studio-exolon-v3.png";
-        CaptureExolonWindow(tosecExolonZip, capturePath);
-        Console.WriteLine("DEBUG: CaptureExolonWindow finished");
-        Assert(File.Exists(capturePath), "Exolon UI screenshot rendered");
+        // 8. Verify 128K Z80 snapshot loads 125 authentic rooms without offsets
+        string tosecExolon128 = @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[Z80]\Exolon (1987)(Hewson Consultants)[128K].zip";
+        if (File.Exists(tosecExolon128))
+        {
+            var doc128 = SpectrumFileParser.Open(tosecExolon128);
+            bool ok128 = ExolonLevelLabProject.TryCreate(doc128, out var lab128, out string r128);
+            Assert(ok128 && lab128 != null, "Exolon 128K snapshot created project: " + r128);
+            Assert(lab128!.Rooms.Count == 125, "128K snapshot has 125 rooms");
+            Assert(lab128.Rooms[0].Entities.Count == 9, "128K snapshot Room 0 has 9 entities");
+            Assert(lab128.Rooms[24].Entities.Any(e => e.TypeId == 0x2A), "Zone 1 screen 25 has exit gate 0x2A");
+            Assert(lab128.Rooms[49].Entities.Any(e => e.TypeId == 0x2A), "Zone 2 screen 25 has exit gate 0x2A");
+            Assert(lab128.Rooms[74].Entities.Any(e => e.TypeId == 0x2A), "Zone 3 screen 25 has exit gate 0x2A");
+            Assert(lab128.Rooms[99].Entities.Any(e => e.TypeId == 0x2A), "Zone 4 screen 25 has exit gate 0x2A");
+            Assert(lab128.Rooms[124].Entities.Any(e => e.TypeId == 0x2A), "Zone 5 screen 25 has exit gate 0x2A");
+        }
 
         InspectExolonEngine();
     }
