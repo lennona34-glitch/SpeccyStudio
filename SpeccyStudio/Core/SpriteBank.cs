@@ -197,33 +197,47 @@ public sealed class SpriteBank
 
         foreach (var (typeId, name, category) in ExolonEntityCatalog.AllPresets)
         {
-            var (wCells, hCells) = ExolonEntityCatalog.GetDimensions(typeId);
             string id = $"EXO_{typeId:X2}";
+            var art = ExolonEngine.GetTypeArt(typeId);
 
-            // Synthesize representative 16x16 or scaled cell bitmap
-            byte[] syntheticBitmap = new byte[wCells * hCells * 8];
-            byte[] syntheticAttributes = new byte[wCells * hCells];
+            int wCells;
+            int hCells;
+            byte[] bitmap;
+            byte[] attributes;
+            BitmapSource? sprite = null;
 
-            // Default color attribute depending on category
-            byte defaultAttr = category switch
+            if (art != null)
             {
-                "Enemies" => 0x42,     // Bright Red
-                "Hazards" => 0x46,     // Bright Yellow
-                "Interactive" => 0x45, // Bright Cyan
-                "Scenery" => 0x43,     // Bright Magenta
-                _ => 0x44              // Bright Green
-            };
-
-            for (int a = 0; a < syntheticAttributes.Length; a++)
-                syntheticAttributes[a] = defaultAttr;
-
-            // Simple recognizable geometric placeholder if raw bitmap not yet extracted
-            for (int b = 0; b < syntheticBitmap.Length; b++)
-            {
-                syntheticBitmap[b] = (byte)((b % 4 == 0) ? 0xAA : 0x55);
+                wCells = Math.Max(1, art.Bounds.WidthCells);
+                hCells = Math.Max(1, art.Bounds.HeightCells);
+                bitmap = art.RawBitmap;
+                attributes = art.RawAttributes;
+                sprite = art.Sprite;
             }
-
-            var sprite = ExolonSpriteAtlas.GetSprite(typeId);
+            else
+            {
+                // Fallback for marker types without tile-scripts (e.g. 0x16, 0x27)
+                sprite = ExolonSpriteAtlas.GetSprite(typeId);
+                if (sprite != null)
+                {
+                    (bitmap, attributes, wCells, hCells) = ConvertBitmapSourceToSpectrumData(sprite, category);
+                }
+                else
+                {
+                    (wCells, hCells) = ExolonEntityCatalog.GetDimensions(typeId);
+                    bitmap = new byte[wCells * hCells * 8];
+                    attributes = new byte[wCells * hCells];
+                    byte defAttr = category switch
+                    {
+                        "Enemies" => 0x42,
+                        "Hazards" => 0x46,
+                        "Interactive" => 0x45,
+                        "Scenery" => 0x43,
+                        _ => 0x47
+                    };
+                    Array.Fill(attributes, defAttr);
+                }
+            }
 
             var item = new SpriteBankItem(
                 Id: id,
@@ -232,8 +246,8 @@ public sealed class SpriteBank
                 Category: category,
                 WidthCells: wCells,
                 HeightCells: hCells,
-                Bitmap: syntheticBitmap,
-                Attributes: syntheticAttributes,
+                Bitmap: bitmap,
+                Attributes: attributes,
                 Description: $"{name} - {wCells}x{hCells} cells ({wCells * 8}x{hCells * 8} px)",
                 Tags: $"exolon,sprite,{category.ToLowerInvariant()},{wCells}x{hCells}",
                 PreRenderedImage: sprite);
@@ -241,6 +255,64 @@ public sealed class SpriteBank
             Items.Add(item);
             _loadedItemIds.Add(id);
         }
+    }
+
+    private static (byte[] Bitmap, byte[] Attributes, int WidthCells, int HeightCells) ConvertBitmapSourceToSpectrumData(BitmapSource bmp, string category)
+    {
+        int pw = bmp.PixelWidth;
+        int ph = bmp.PixelHeight;
+        int wCells = Math.Max(1, (pw + 7) / 8);
+        int hCells = Math.Max(1, (ph + 7) / 8);
+
+        byte[] bitmap = new byte[wCells * hCells * 8];
+        byte[] attrs = new byte[wCells * hCells];
+
+        byte defAttr = category switch
+        {
+            "Enemies" => 0x42,
+            "Hazards" => 0x46,
+            "Interactive" => 0x45,
+            "Scenery" => 0x43,
+            _ => 0x47
+        };
+        Array.Fill(attrs, defAttr);
+
+        int stride = (pw * 4 + 3) & ~3;
+        byte[] bgra = new byte[stride * ph];
+        bmp.CopyPixels(bgra, stride, 0);
+
+        for (int cy = 0; cy < hCells; cy++)
+        for (int cx = 0; cx < wCells; cx++)
+        {
+            for (int k = 0; k < 8; k++)
+            {
+                int py = cy * 8 + k;
+                if (py >= ph) continue;
+                byte maskByte = 0;
+                for (int bit = 0; bit < 8; bit++)
+                {
+                    int px = cx * 8 + bit;
+                    if (px >= pw) continue;
+
+                    int offset = py * stride + px * 4;
+                    if (offset + 3 < bgra.Length)
+                    {
+                        byte b = bgra[offset];
+                        byte g = bgra[offset + 1];
+                        byte r = bgra[offset + 2];
+                        byte a = bgra[offset + 3];
+
+                        if (a > 64 && (r > 30 || g > 30 || b > 30))
+                        {
+                            maskByte |= (byte)(0x80 >> bit);
+                        }
+                    }
+                }
+                bitmap[(cy * 8 + k) * wCells + cx] = maskByte;
+            }
+        }
+
+        return (bitmap, attrs, wCells, hCells);
     }
 
     public void EnsureRexSpritesLoaded()

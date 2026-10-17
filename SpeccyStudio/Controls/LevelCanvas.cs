@@ -434,19 +434,7 @@ public sealed class LevelCanvas : FrameworkElement
 
                 if (ShowPastePreview)
                 {
-                    if (ActiveSpriteBrush != null)
-                    {
-                        var spriteBmp = ActiveSpriteBrush.RenderBitmapSource();
-                        if (spriteBmp != null)
-                        {
-                            dc.PushClip(new RectangleGeometry(new Rect(ox, oy, rw, rh)));
-                            dc.PushOpacity(0.55);
-                            dc.DrawImage(spriteBmp, stampRect);
-                            dc.Pop();
-                            dc.Pop();
-                        }
-                    }
-                    else if (ActiveMultiTileBrush != null)
+                    if (ActiveMultiTileBrush != null)
                     {
                         for (int ty = 0; ty < spanH; ty++)
                         for (int tx = 0; tx < spanW; tx++)
@@ -456,7 +444,7 @@ public sealed class LevelCanvas : FrameworkElement
                             if (bmp != null)
                             {
                                 Rect sliceRect = new Rect(ox + (hovCol + tx) * ts, oy + (hovRow + ty) * ts, ts, ts);
-                                dc.PushOpacity(0.50);
+                                dc.PushOpacity(0.55);
                                 dc.DrawImage(bmp, sliceRect);
                                 dc.Pop();
                             }

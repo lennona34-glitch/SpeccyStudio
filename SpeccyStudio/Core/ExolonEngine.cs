@@ -251,7 +251,7 @@ public static class ExolonEngine
         return bytes;
     }
 
-    private sealed record ExolonTypeShape(ExolonTypeBounds Bounds, BitmapSource Sprite);
+    public sealed record ExolonTypeShape(ExolonTypeBounds Bounds, BitmapSource Sprite, byte[] RawBitmap, byte[] RawAttributes);
 
     private static ExolonTypeShape? GetShape(byte typeId)
     {
@@ -287,8 +287,22 @@ public static class ExolonEngine
         int wCells = maxC - minC + 1, hCells = maxR - minR + 1;
         int pw = wCells * 8;
         var pixels = new uint[pw * hCells * 8];
+        byte[] rawBitmap = new byte[wCells * hCells * 8];
+        byte[] rawAttrs = new byte[wCells * hCells];
+
         foreach (var ((row, col), (tile, bank, attr)) in cellTiles)
         {
+            int cx = col - minC;
+            int cy = row - minR;
+            if (cx < 0 || cx >= wCells || cy < 0 || cy >= hCells) continue;
+
+            byte a = (byte)attr;
+            if ((a & 0x07) == 0 && ((a >> 3) & 0x07) == 0)
+            {
+                a = 0x47; // Default Bright White on Black if script left attr empty
+            }
+            rawAttrs[cy * wCells + cx] = a;
+
             int bright = (attr >> 6) & 1;
             var pal = bright != 0 ? BrightPalette : NormalPalette;
             uint ink = pal[attr & 7];
@@ -297,7 +311,10 @@ public static class ExolonEngine
             for (int k = 0; k < 8; k++)
             {
                 byte bits = Memory[(gfx + k) & 0xFFFF];
-                int rowBase = ((row - minR) * 8 + k) * pw + (col - minC) * 8;
+                int scanlineY = cy * 8 + k;
+                rawBitmap[scanlineY * wCells + cx] = bits;
+
+                int rowBase = scanlineY * pw + cx * 8;
                 for (int x = 0; x < 8; x++)
                     pixels[rowBase + x] = ((bits >> (7 - x)) & 1) != 0 ? ink : paper;
             }
@@ -305,7 +322,7 @@ public static class ExolonEngine
 
         var bmp = BitmapSource.Create(pw, hCells * 8, 96, 96, PixelFormats.Bgra32, null, ToBytes(pixels), pw * 4);
         bmp.Freeze();
-        return new ExolonTypeShape(new ExolonTypeBounds(minC - anchor, minR - anchor, wCells, hCells), bmp);
+        return new ExolonTypeShape(new ExolonTypeBounds(minC - anchor, minR - anchor, wCells, hCells), bmp, rawBitmap, rawAttrs);
     }
 
     /// <summary>Isolated art for a type (palette thumbnails, stamp brush, clipboard). Black paper is transparent.</summary>
@@ -313,4 +330,7 @@ public static class ExolonEngine
 
     /// <summary>Unclipped bounds of a type relative to its (row, col) anchor, in character cells.</summary>
     public static ExolonTypeBounds? GetTypeBounds(byte typeId) => GetShape(typeId)?.Bounds;
+
+    /// <summary>Authentic full art (bounds, preview sprite, raw 1-bit bitmap, raw color attributes) extracted directly from game scripts.</summary>
+    public static ExolonTypeShape? GetTypeArt(byte typeId) => GetShape(typeId);
 }

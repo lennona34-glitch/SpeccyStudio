@@ -1526,6 +1526,22 @@ internal static class Program
                 Assert(canvas.Room!.Tiles[16] == canvas.ActiveMultiTileBrush[0, 0], "Myth slice (0,0) stamped");
                 Assert(canvas.Room!.Tiles[32] == canvas.ActiveMultiTileBrush[0, 1], "Myth slice (0,1) stamped");
                 Assert(canvas.Room!.Tiles[48] == canvas.ActiveMultiTileBrush[0, 2], "Myth slice (0,2) stamped");
+
+                // Case B3: Pick Exolon giant Landing Craft EXO_02 -> verify authentic non-synthetic graphics & Cybernoid stamping
+                SpriteBank.Instance.EnsureExolonEntitiesLoaded();
+                var exolonCraft = SpriteBank.Instance.Items.First(i => i.Id == "EXO_02");
+                Assert(exolonCraft.Bitmap.Length > 0, "Exolon Landing Craft has extracted bitmap");
+                Assert(!exolonCraft.Bitmap.Take(32).All(b => b == 0xAA || b == 0x55), "Exolon Landing Craft bitmap is authentic (not 0xAA/0x55 placeholder)");
+                applyBrush.Invoke(cybWin, [exolonCraft]);
+                Assert(canvas.ActiveMultiTileBrush != null, "ActiveMultiTileBrush active for Exolon Landing Craft");
+                int craftTilesW = (exolonCraft.WidthCells + 1) / 2;
+                int craftTilesH = (exolonCraft.HeightCells + 1) / 2;
+                Assert(canvas.MultiTileWidth == craftTilesW && canvas.MultiTileHeight == craftTilesH, $"Exolon Landing Craft dimensions ({craftTilesW}x{craftTilesH})");
+                stampMethod.Invoke(canvas, [32]);
+                Assert(canvas.Room!.Tiles[32] == canvas.ActiveMultiTileBrush[0, 0], "Exolon Landing Craft stamped into Cybernoid room");
+                byte craftTile0 = canvas.ActiveMultiTileBrush[0, 0];
+                var craftTileArt = cybProject.TileAtlas.Get(craftTile0);
+                Assert(!craftTileArt.Bitmap.All(b => b == 0xAA || b == 0x55), "Stamped Exolon tile has authentic graphics in Cybernoid atlas (no blue screen)");
             }
 
             // Case C: Rex Level Workshop -> Copying sprite updates ActiveUniversalSprite cleanly
