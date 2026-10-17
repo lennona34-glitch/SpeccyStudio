@@ -34,7 +34,7 @@ public partial class AudioStudioWindow : Window
         set
         {
             _activeDocument = value;
-            if (_activeDocument != null)
+            if (_activeDocument != null && IsLoaded)
             {
                 SetActiveGameFromDocument(_activeDocument);
             }
@@ -196,11 +196,14 @@ public partial class AudioStudioWindow : Window
 
     private void UpdateUiState()
     {
-        PlayButton.IsEnabled = !_engine.IsPlaying;
-        StopButton.IsEnabled = _engine.IsPlaying;
-        StatusText.Text = _engine.IsPlaying
-            ? $"▶ Playing '{_engine.CurrentTrack}'"
-            : "Ready · AY-3-8912 & 48K Beeper Active";
+        if (PlayButton != null) PlayButton.IsEnabled = !_engine.IsPlaying;
+        if (StopButton != null) StopButton.IsEnabled = _engine.IsPlaying;
+        if (StatusText != null)
+        {
+            StatusText.Text = _engine.IsPlaying
+                ? $"▶ Playing '{_engine.CurrentTrack}'"
+                : "Ready · AY-3-8912 & 48K Beeper Active";
+        }
     }
 
     private static readonly Dictionary<string, PsgSong> _vaultPsgCache = new(StringComparer.OrdinalIgnoreCase);
@@ -533,11 +536,79 @@ public partial class AudioStudioWindow : Window
                     new SolidColorBrush(Color.FromRgb(0x2A, 0x1B, 0x14)),
                     new SolidColorBrush(Color.FromRgb(0xFF, 0x91, 0x00)));
         }
+        if (game.Contains("Whittaker", StringComparison.OrdinalIgnoreCase))
+        {
+            return (new SolidColorBrush(Color.FromRgb(0xBA, 0x68, 0xC8)),
+                    new SolidColorBrush(Color.FromRgb(0x26, 0x15, 0x2B)),
+                    new SolidColorBrush(Color.FromRgb(0xBA, 0x68, 0xC8)));
+        }
+        if (game.Contains("Ocean", StringComparison.OrdinalIgnoreCase))
+        {
+            return (new SolidColorBrush(Color.FromRgb(0xFF, 0xD7, 0x00)),
+                    new SolidColorBrush(Color.FromRgb(0x2B, 0x24, 0x15)),
+                    new SolidColorBrush(Color.FromRgb(0xFF, 0xD7, 0x00)));
+        }
 
         // Universal / Speccy
         return (new SolidColorBrush(Color.FromRgb(0x4E, 0xFA, 0x94)),
                 new SolidColorBrush(Color.FromRgb(0x14, 0x2A, 0x1D)),
                 new SolidColorBrush(Color.FromRgb(0x4E, 0xFA, 0x94)));
+    }
+
+    private void OpenSfxBank_Click(object sender, RoutedEventArgs e)
+    {
+        var currentPads = new List<SfxInfo>();
+        Button[] buttons = [ Pad1Btn, Pad2Btn, Pad3Btn, Pad4Btn, Pad5Btn, Pad6Btn, Pad7Btn, Pad8Btn ];
+        foreach (var b in buttons)
+        {
+            string? id = b?.Tag?.ToString();
+            var match = ChiptuneEngine.AvailableSfx.FirstOrDefault(s => s.Id == id);
+            currentPads.Add(match ?? ChiptuneEngine.AvailableSfx[0]);
+        }
+
+        var bankWin = new SoundFxBankWindow(_engine, currentPads)
+        {
+            Owner = this
+        };
+
+        if (bankWin.ShowDialog() == true && bankWin.AppliedChanges)
+        {
+            ApplyCustomSoundboardPads(bankWin.SelectedPads);
+            StatusText.Text = "✓ Sound FX Bank changes applied to live audition soundboard!";
+        }
+    }
+
+    public void ApplyCustomSoundboardPads(IReadOnlyList<SfxInfo> sfxList)
+    {
+        if (sfxList == null || sfxList.Count < 8) return;
+
+        Button[] buttons = [ Pad1Btn, Pad2Btn, Pad3Btn, Pad4Btn, Pad5Btn, Pad6Btn, Pad7Btn, Pad8Btn ];
+        TextBlock[] titles = [ Pad1Title, Pad2Title, Pad3Title, Pad4Title, Pad5Title, Pad6Title, Pad7Title, Pad8Title ];
+        TextBlock[] descs = [ Pad1Desc, Pad2Desc, Pad3Desc, Pad4Desc, Pad5Desc, Pad6Desc, Pad7Desc, Pad8Desc ];
+
+        for (int i = 0; i < 8; i++)
+        {
+            var sfx = sfxList[i];
+            var btn = buttons[i];
+            var title = titles[i];
+            var desc = descs[i];
+
+            if (btn == null || title == null || desc == null || sfx == null) continue;
+
+            btn.Tag = sfx.Id;
+
+            string displayName = sfx.Name;
+            int dashIdx = displayName.IndexOf(" - ");
+            if (dashIdx >= 0) displayName = displayName.Substring(dashIdx + 3);
+
+            title.Text = $"[{i + 1}] {displayName}";
+            desc.Text = sfx.Description;
+
+            var (border, bg, fg) = GetGamePalette(sfx.SourceGame);
+            btn.BorderBrush = border;
+            btn.Background = bg;
+            title.Foreground = fg;
+        }
     }
 
     private void SfxPad_Click(object sender, RoutedEventArgs e)
@@ -864,12 +935,16 @@ public partial class AudioStudioWindow : Window
         _loadedPsg = psg;
         AddAndSelectCustomTrack(psg.Title);
         _engine.PlayPsg(psg, LoopCheck?.IsChecked == true);
-        StatusText.Text = $"▶ Playing Authentic Ripped AY: '{psg.Title}' ({psg.TotalFrames} frames, {psg.Duration:mm\\:ss})";
+        if (StatusText != null)
+        {
+            StatusText.Text = $"▶ Playing Authentic Ripped AY: '{psg.Title}' ({psg.TotalFrames} frames, {psg.Duration:mm\\:ss})";
+        }
         UpdateUiState();
     }
 
     private void AddAndSelectCustomTrack(string trackTitle)
     {
+        if (TrackSelectorCombo == null) return;
         foreach (var item in TrackSelectorCombo.Items)
         {
             if (item is ComboBoxItem cbi && cbi.Content?.ToString() == trackTitle)

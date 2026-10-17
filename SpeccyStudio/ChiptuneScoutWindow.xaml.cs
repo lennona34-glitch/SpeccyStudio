@@ -281,6 +281,7 @@ public partial class ChiptuneScoutWindow : Window
 
     private void DiscoveredDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
+        e.Handled = true;
         PreviewPlay_Click(sender, e);
     }
 
@@ -296,6 +297,28 @@ public partial class ChiptuneScoutWindow : Window
             {
                 return;
             }
+        }
+
+        if (_currentEntry != null && (_currentEntry.GeneratedPsg == null || _currentEntry.GeneratedPsg.TotalFrames == 0))
+        {
+            try
+            {
+                if (File.Exists(_currentEntry.FilePath))
+                {
+                    PreviewStatusText.Text = $"⏳ Analyzing {_currentEntry.DisplayName}...";
+                    var doc = SpectrumFileParser.Open(_currentEntry.FilePath);
+                    var rip = AyMemoryRipper.Scan(doc);
+                    if (rip.Success && rip.GeneratedPsg != null && rip.GeneratedPsg.TotalFrames > 0)
+                    {
+                        _currentEntry.RipResult = rip;
+                        _currentEntry.InitAddress = rip.InitAddress;
+                        _currentEntry.PlayAddress = rip.PlayAddress;
+                        _currentEntry.DriverAddress = rip.DriverAddress;
+                        _currentEntry.DetectedEngine = rip.DriverName;
+                    }
+                }
+            }
+            catch { }
         }
 
         if (_currentEntry?.GeneratedPsg != null)
@@ -348,20 +371,38 @@ public partial class ChiptuneScoutWindow : Window
 
         try
         {
+            _engine.Stop();
+            PreviewStatusText.Text = "Stopped";
+
             var doc = SpectrumFileParser.Open(_currentEntry.FilePath);
-            var audioStudio = new AudioStudioWindow
-            {
-                Owner = Application.Current.MainWindow,
-                ActiveDocument = doc
-            };
+            var existingStudio = (this.Owner as AudioStudioWindow)
+                ?? Application.Current?.Windows.OfType<AudioStudioWindow>().FirstOrDefault();
 
-            audioStudio.Show();
-            audioStudio.Activate();
-
-            // Load and play the authentic scouted PSG directly in the studio
-            if (_currentEntry.GeneratedPsg != null)
+            if (existingStudio != null)
             {
-                audioStudio.LoadAndPlayPsg(_currentEntry.GeneratedPsg);
+                existingStudio.ActiveDocument = doc;
+                if (_currentEntry.GeneratedPsg != null)
+                {
+                    existingStudio.LoadAndPlayPsg(_currentEntry.GeneratedPsg);
+                }
+                existingStudio.Activate();
+            }
+            else
+            {
+                var audioStudio = new AudioStudioWindow
+                {
+                    Owner = this.Owner ?? Application.Current?.MainWindow,
+                    ActiveDocument = doc
+                };
+
+                audioStudio.Show();
+                audioStudio.Activate();
+
+                // Load and play the authentic scouted PSG directly in the studio
+                if (_currentEntry.GeneratedPsg != null)
+                {
+                    audioStudio.LoadAndPlayPsg(_currentEntry.GeneratedPsg);
+                }
             }
         }
         catch (Exception ex)

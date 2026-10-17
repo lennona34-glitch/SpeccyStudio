@@ -220,9 +220,16 @@ public sealed class AySoundChip
         bool chC = (!toneEnC || _toneOutC) && (!noiseEnC || noiseOut);
 
         // Amplitudes R8..R10
-        int volA = (_registers[8] & 0x10) != 0 ? _envVolume : (_registers[8] & 0x0F);
-        int volB = (_registers[9] & 0x10) != 0 ? _envVolume : (_registers[9] & 0x0F);
-        int volC = (_registers[10] & 0x10) != 0 ? _envVolume : (_registers[10] & 0x0F);
+        int r8 = _registers[8];
+        int r9 = _registers[9];
+        int r10 = _registers[10];
+
+        // If hardware envelope is requested (bit 4) but no envelope shape/period is configured,
+        // fall back to the channel's 4-bit volume table to prevent silence on Ben Daglish and Ocean drivers.
+        bool hasActiveEnv = _envPeriod > 0 || _registers[13] > 0 || EnvelopeShapeOverride >= 0;
+        int volA = (r8 & 0x10) != 0 ? (hasActiveEnv && _envVolume > 0 ? _envVolume : (r8 & 0x0F)) : (r8 & 0x0F);
+        int volB = (r9 & 0x10) != 0 ? (hasActiveEnv && _envVolume > 0 ? _envVolume : (r9 & 0x0F)) : (r9 & 0x0F);
+        int volC = (r10 & 0x10) != 0 ? (hasActiveEnv && _envVolume > 0 ? _envVolume : (r10 & 0x0F)) : (r10 & 0x0F);
 
         // Solo / Mute filters
         if (SoloChannel >= 0)
@@ -236,9 +243,10 @@ public sealed class AySoundChip
         if (MuteC) volC = 0;
         if (MuteNoise) { noiseEnA = noiseEnB = noiseEnC = false; }
 
-        int sampleA = chA ? DacTable[volA] : 0;
-        int sampleB = chB ? DacTable[volB] : 0;
-        int sampleC = chC ? DacTable[volC] : 0;
+        // Bipolar AC-coupled audio output mimicking the physical ZX Spectrum 128K DC blocking output capacitor
+        int sampleA = chA ? DacTable[volA] : -DacTable[volA];
+        int sampleB = chB ? DacTable[volB] : -DacTable[volB];
+        int sampleC = chC ? DacTable[volC] : -DacTable[volC];
 
         // Update telemetry levels (smoothed for UI meters)
         LevelA = LevelA * 0.9 + (volA / 15.0) * 0.1;

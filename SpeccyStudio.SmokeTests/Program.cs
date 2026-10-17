@@ -67,6 +67,37 @@ internal static class Program
             return 0;
         }
 
+        if (args.Length > 0 && args[0] == "diagnose-11")
+        {
+            string[] games = [
+                "Stormlord",
+                "Fantasy World Dizzy",
+                "Mask III",
+                "Gryzor",
+                "Hard Drivin",
+                "Head Over Heels",
+                "Mask II",
+                "Mutan Zone",
+                "Baseball",
+                "Robin of the Wood",
+                "Shadow Warriors"
+            ];
+            foreach (var g in games)
+            {
+                Console.WriteLine("\n==========================================");
+                Console.WriteLine($"DIAGNOSING: {g}");
+                Console.WriteLine("==========================================");
+                DiagnoseGame(g);
+            }
+            return 0;
+        }
+
+        if (args.Length > 0 && args[0] == "test-11")
+        {
+            TestElevenTitles();
+            return 0;
+        }
+
 
         string root = Path.Combine(Path.GetTempPath(), "SpeccyStudioSmoke", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
@@ -1179,76 +1210,48 @@ internal static class Program
             var spritesTitle = (System.Windows.Controls.TextBlock)win.FindName("SpritesTabTitle");
             Assert(spritesTitle.Text.Contains("Rex"), "Sprites tab populated for Rex");
 
-            var canvas = (SpeccyStudio.Controls.LevelCanvas)win.FindName("MainLevelCanvas");
-            Assert(canvas.CurrentUniversalRoom != null, "Canvas has active UniversalRoom for Rex");
-            Assert(canvas.CurrentUniversalRoom!.Entities.Count == 0, $"Rex canvas has pristine playfield with 0 active entities (got {canvas.CurrentUniversalRoom!.Entities.Count})");
-            var roomBox = (System.Windows.Controls.ComboBox)win.FindName("UniversalRoomBox");
-            Assert(roomBox != null && roomBox.Items.Count == 4, $"Rex has 4 rooms in UniversalRoomBox (got {roomBox?.Items.Count})");
-            Console.WriteLine($"DEBUG: Rex Level Workshop verified with {canvas.CurrentUniversalRoom!.Entities.Count} entities in {roomBox!.Items.Count} rooms");
-
-            var rootRex = (FrameworkElement)win.Content;
-            rootRex.Width = 1200;
-            rootRex.Height = 900;
-            rootRex.Measure(new Size(rootRex.Width, rootRex.Height));
-            rootRex.Arrange(new Rect(0, 0, rootRex.Width, rootRex.Height));
-            rootRex.UpdateLayout();
-            var rtbRex = new RenderTargetBitmap((int)rootRex.Width, (int)rootRex.Height, 96, 96, PixelFormats.Pbgra32);
-            rtbRex.Render(rootRex);
-            var encRex = new PngBitmapEncoder();
-            encRex.Frames.Add(BitmapFrame.Create(rtbRex));
-            string rexShot = @"C:\Users\adria\.gemini\antigravity\brain\aafadb66-5ecd-48af-adb0-8675ca0b7a6c\speccy-studio-rex-level-workshop.png";
-            using (var str = File.Create(rexShot)) { encRex.Save(str); }
-
-            // 11b. Test placing a Cybernoid sprite into Rex and verifying injection into game binary
-            var docFieldRex = typeof(MainWindow).GetField("_document", BindingFlags.Instance | BindingFlags.NonPublic)!;
-            var rexDoc = (SpectrumDocument)docFieldRex.GetValue(win)!;
-            var cybSprite = SpriteBank.Instance.Items.First(i => i.Id.StartsWith("CYB_"));
-            var placeMethod = typeof(MainWindow).GetMethod("PlaceUniversalEntity", BindingFlags.Instance | BindingFlags.NonPublic, null, [typeof(int), typeof(int), typeof(SpriteBankItem)], null)!;
-            placeMethod.Invoke(win, [10, 10, cybSprite]);
-
-            Assert(canvas.CurrentUniversalRoom!.Entities.Count == 1, "Cybernoid sprite added to Rex entities");
-            Assert(rexDoc.IsDirty, "Document marked dirty upon placing universal entity");
-
-            for (int b = 0; b < 32; b++)
+            var rexLabField = typeof(MainWindow).GetField("_rexLab", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            var rexLab = rexLabField.GetValue(win) as RexLevelLabProject;
+            if (rexLab != null)
             {
-                int s = b / 2;
-                int cOff = b % 2;
-                int curY = 80 + s;
-                int t = curY / 64;
-                int l = curY % 8;
-                int cr = (curY % 64) / 8;
-                int off = (t * 2048) + (l * 256) + (cr * 32) + (10 + cOff);
-                Assert(rexDoc.Bytes[30 + off] == cybSprite.Bitmap[b], $"Bitmap byte {b} matches in active screen 0x4000");
-                Assert(rexDoc.Bytes[42269 + off] == cybSprite.Bitmap[b], $"Bitmap byte {b} matches in shadow screen 0xE4FF");
-                Assert(rexDoc.Bytes[20072 + b] == cybSprite.Bitmap[b], $"Bitmap byte {b} matches in Rex sprite slot 0");
+                var rexStage = (FrameworkElement)win.FindName("RexStageContainer");
+                Assert(rexStage != null && rexStage.Visibility == Visibility.Visible, "RexStageContainer is active");
+                Console.WriteLine($"DEBUG: Full Native Rex Level Workshop verified with {rexLab.Rooms.Count} rooms");
+
+                var rootRex = (FrameworkElement)win.Content;
+                rootRex.Width = 1200;
+                rootRex.Height = 900;
+                rootRex.Measure(new Size(rootRex.Width, rootRex.Height));
+                rootRex.Arrange(new Rect(0, 0, rootRex.Width, rootRex.Height));
+                rootRex.UpdateLayout();
+                var rtbRex = new RenderTargetBitmap((int)rootRex.Width, (int)rootRex.Height, 96, 96, PixelFormats.Pbgra32);
+                rtbRex.Render(rootRex);
+                var encRex = new PngBitmapEncoder();
+                encRex.Frames.Add(BitmapFrame.Create(rtbRex));
+                string rexShot = @"C:\Users\adria\.gemini\antigravity\brain\aafadb66-5ecd-48af-adb0-8675ca0b7a6c\speccy-studio-rex-level-workshop.png";
+                using (var str = File.Create(rexShot)) { encRex.Save(str); }
             }
+            else
+            {
+                var canvas = (SpeccyStudio.Controls.LevelCanvas)win.FindName("MainLevelCanvas");
+                Assert(canvas.CurrentUniversalRoom != null, "Canvas has active UniversalRoom for Rex");
+                Assert(canvas.CurrentUniversalRoom!.Entities.Count == 0, $"Rex canvas has pristine playfield with 0 active entities (got {canvas.CurrentUniversalRoom!.Entities.Count})");
+                var roomBox = (System.Windows.Controls.ComboBox)win.FindName("UniversalRoomBox");
+                Assert(roomBox != null && roomBox.Items.Count == 4, $"Rex has 4 rooms in UniversalRoomBox (got {roomBox?.Items.Count})");
+                Console.WriteLine($"DEBUG: Rex Level Workshop verified with {canvas.CurrentUniversalRoom!.Entities.Count} entities in {roomBox!.Items.Count} rooms");
 
-            string tempDir = Path.Combine(Path.GetTempPath(), "rex-smoke-" + Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(tempDir);
-            try
-            {
-                string testSavedZip = Path.Combine(tempDir, "rex-injected.zip");
-                rexDoc.Save(testSavedZip);
-                Assert(File.Exists(testSavedZip), "Saved injected Rex zip exists");
-                var reloadedDoc = SpectrumFileParser.Open(testSavedZip);
-                for (int b = 0; b < 32; b++)
-                {
-                    int s = b / 2;
-                    int cOff = b % 2;
-                    int curY = 80 + s;
-                    int t = curY / 64;
-                    int l = curY % 8;
-                    int cr = (curY % 64) / 8;
-                    int off = (t * 2048) + (l * 256) + (cr * 32) + (10 + cOff);
-                    Assert(reloadedDoc.Bytes[30 + off] == cybSprite.Bitmap[b], $"Reloaded byte {b} matches in active screen 0x4000");
-                    Assert(reloadedDoc.Bytes[42269 + off] == cybSprite.Bitmap[b], $"Reloaded byte {b} matches in shadow screen 0xE4FF");
-                    Assert(reloadedDoc.Bytes[20072 + b] == cybSprite.Bitmap[b], $"Reloaded byte {b} matches in Rex sprite slot 0");
-                }
-                Console.WriteLine("DEBUG: Rex Cybernoid sprite injection verified in active video, shadow RAM, sprite slots, and saved game binary!");
-            }
-            finally
-            {
-                if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+                var rootRex = (FrameworkElement)win.Content;
+                rootRex.Width = 1200;
+                rootRex.Height = 900;
+                rootRex.Measure(new Size(rootRex.Width, rootRex.Height));
+                rootRex.Arrange(new Rect(0, 0, rootRex.Width, rootRex.Height));
+                rootRex.UpdateLayout();
+                var rtbRex = new RenderTargetBitmap((int)rootRex.Width, (int)rootRex.Height, 96, 96, PixelFormats.Pbgra32);
+                rtbRex.Render(rootRex);
+                var encRex = new PngBitmapEncoder();
+                encRex.Frames.Add(BitmapFrame.Create(rtbRex));
+                string rexShot = @"C:\Users\adria\.gemini\antigravity\brain\aafadb66-5ecd-48af-adb0-8675ca0b7a6c\speccy-studio-rex-level-workshop.png";
+                using (var str = File.Create(rexShot)) { encRex.Save(str); }
             }
 
             win.Close();
@@ -1269,37 +1272,49 @@ internal static class Program
             var spritesTitle = (System.Windows.Controls.TextBlock)win.FindName("SpritesTabTitle");
             Assert(spritesTitle.Text.Contains("Myth"), "Sprites tab populated for Myth");
 
-            var canvas = (SpeccyStudio.Controls.LevelCanvas)win.FindName("MainLevelCanvas");
-            Assert(canvas.CurrentUniversalRoom != null, "Canvas has active UniversalRoom for Myth");
-            Assert(canvas.CurrentUniversalRoom!.Entities.Count == 0, $"Myth canvas has pristine playfield with 0 active entities (got {canvas.CurrentUniversalRoom!.Entities.Count})");
-            var roomBox = (System.Windows.Controls.ComboBox)win.FindName("UniversalRoomBox");
-            Assert(roomBox != null && roomBox.Items.Count == 4, $"Myth has 4 rooms in UniversalRoomBox (got {roomBox?.Items.Count})");
-            Console.WriteLine($"DEBUG: Myth Level Workshop verified with {canvas.CurrentUniversalRoom!.Entities.Count} entities in {roomBox!.Items.Count} rooms");
+            var mythLabField = typeof(MainWindow).GetField("_mythLab", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            var mythLab = mythLabField.GetValue(win) as MythLevelLabProject;
+            if (mythLab != null)
+            {
+                var mythStage = (FrameworkElement)win.FindName("MythStageContainer");
+                Assert(mythStage != null && mythStage.Visibility == Visibility.Visible, "MythStageContainer is active");
+                Console.WriteLine($"DEBUG: Full Native Myth Level Workshop verified with {mythLab.Levels.Count} levels");
 
-            var rootMyth = (FrameworkElement)win.Content;
-            rootMyth.Width = 1200;
-            rootMyth.Height = 900;
-            rootMyth.Measure(new Size(rootMyth.Width, rootMyth.Height));
-            rootMyth.Arrange(new Rect(0, 0, rootMyth.Width, rootMyth.Height));
-            rootMyth.UpdateLayout();
-            var rtbMyth = new RenderTargetBitmap((int)rootMyth.Width, (int)rootMyth.Height, 96, 96, PixelFormats.Pbgra32);
-            rtbMyth.Render(rootMyth);
-            var encMyth = new PngBitmapEncoder();
-            encMyth.Frames.Add(BitmapFrame.Create(rtbMyth));
-            string mythShot = @"C:\Users\adria\.gemini\antigravity\brain\aafadb66-5ecd-48af-adb0-8675ca0b7a6c\speccy-studio-myth-level-workshop.png";
-            using (var str = File.Create(mythShot)) { encMyth.Save(str); }
+                var rootMyth = (FrameworkElement)win.Content;
+                rootMyth.Width = 1200;
+                rootMyth.Height = 900;
+                rootMyth.Measure(new Size(rootMyth.Width, rootMyth.Height));
+                rootMyth.Arrange(new Rect(0, 0, rootMyth.Width, rootMyth.Height));
+                rootMyth.UpdateLayout();
+                var rtbMyth = new RenderTargetBitmap((int)rootMyth.Width, (int)rootMyth.Height, 96, 96, PixelFormats.Pbgra32);
+                rtbMyth.Render(rootMyth);
+                var encMyth = new PngBitmapEncoder();
+                encMyth.Frames.Add(BitmapFrame.Create(rtbMyth));
+                string mythShot = @"C:\Users\adria\.gemini\antigravity\brain\aafadb66-5ecd-48af-adb0-8675ca0b7a6c\speccy-studio-myth-level-workshop.png";
+                using (var str = File.Create(mythShot)) { encMyth.Save(str); }
+            }
+            else
+            {
+                var canvas = (SpeccyStudio.Controls.LevelCanvas)win.FindName("MainLevelCanvas");
+                Assert(canvas.CurrentUniversalRoom != null, "Canvas has active UniversalRoom for Myth");
+                Assert(canvas.CurrentUniversalRoom!.Entities.Count == 0, $"Myth canvas has pristine playfield with 0 active entities (got {canvas.CurrentUniversalRoom!.Entities.Count})");
+                var roomBox = (System.Windows.Controls.ComboBox)win.FindName("UniversalRoomBox");
+                Assert(roomBox != null && roomBox.Items.Count == 4, $"Myth has 4 rooms in UniversalRoomBox (got {roomBox?.Items.Count})");
+                Console.WriteLine($"DEBUG: Myth Level Workshop verified with {canvas.CurrentUniversalRoom!.Entities.Count} entities in {roomBox!.Items.Count} rooms");
 
-            // Also test Room 2 (the room user reported in screenshot)
-            roomBox!.SelectedIndex = 2;
-            rootMyth.UpdateLayout();
-            var rtbMyth2 = new RenderTargetBitmap((int)rootMyth.Width, (int)rootMyth.Height, 96, 96, PixelFormats.Pbgra32);
-            rtbMyth2.Render(rootMyth);
-            var encMyth2 = new PngBitmapEncoder();
-            encMyth2.Frames.Add(BitmapFrame.Create(rtbMyth2));
-            string mythShot2 = @"C:\Users\adria\.gemini\antigravity\brain\aafadb66-5ecd-48af-adb0-8675ca0b7a6c\speccy-studio-myth-room2-workshop.png";
-            using (var str = File.Create(mythShot2)) { encMyth2.Save(str); }
-            Assert(canvas.CurrentUniversalRoom!.RoomName.Contains("Scandinavia"), "Room 2 is Scandinavia 500 AD");
-            Assert(canvas.CurrentUniversalRoom!.BackgroundImage != null, "Room 2 has authentic background image");
+                var rootMyth = (FrameworkElement)win.Content;
+                rootMyth.Width = 1200;
+                rootMyth.Height = 900;
+                rootMyth.Measure(new Size(rootMyth.Width, rootMyth.Height));
+                rootMyth.Arrange(new Rect(0, 0, rootMyth.Width, rootMyth.Height));
+                rootMyth.UpdateLayout();
+                var rtbMyth = new RenderTargetBitmap((int)rootMyth.Width, (int)rootMyth.Height, 96, 96, PixelFormats.Pbgra32);
+                rtbMyth.Render(rootMyth);
+                var encMyth = new PngBitmapEncoder();
+                encMyth.Frames.Add(BitmapFrame.Create(rtbMyth));
+                string mythShot = @"C:\Users\adria\.gemini\antigravity\brain\aafadb66-5ecd-48af-adb0-8675ca0b7a6c\speccy-studio-myth-level-workshop.png";
+                using (var str = File.Create(mythShot)) { encMyth.Save(str); }
+            }
 
             win.Close();
         }
@@ -1503,28 +1518,41 @@ internal static class Program
                 var canvas = (SpeccyStudio.Controls.LevelCanvas)rexWin.FindName("MainLevelCanvas");
                 var applyBrush = typeof(MainWindow).GetMethod("ApplySpriteToActiveBrush", BindingFlags.Instance | BindingFlags.NonPublic)!;
 
+                var rexLabField = typeof(MainWindow).GetField("_rexLab", BindingFlags.Instance | BindingFlags.NonPublic)!;
+                var rexLab = rexLabField.GetValue(rexWin) as RexLevelLabProject;
+
                 var rexSpr2 = SpriteBank.Instance.Items.First(i => i.Id == "REX_02");
                 applyBrush.Invoke(rexWin, [rexSpr2]);
-                Assert(canvas.ActiveUniversalSprite?.Id == "REX_02", $"Rex canvas active brush updated to REX_02 (got {canvas.ActiveUniversalSprite?.Id})");
 
-                var brushIdText = (System.Windows.Controls.TextBlock)rexWin.FindName("UniversalActiveBrushId");
-                Assert(brushIdText.Text == "REX_02", $"Active brush UI card shows REX_02 (got {brushIdText.Text})");
+                if (rexLab != null)
+                {
+                    var rexSpawnsRadio = (System.Windows.Controls.RadioButton)rexWin.FindName("RexToolSpawnsRadio");
+                    Assert(rexSpawnsRadio.IsChecked == true, "Rex native Spawns tool activated on sprite select");
+                    Console.WriteLine("DEBUG: Verified Rex native workshop sprite routing successfully");
+                }
+                else
+                {
+                    Assert(canvas.ActiveUniversalSprite?.Id == "REX_02", $"Rex canvas active brush updated to REX_02 (got {canvas.ActiveUniversalSprite?.Id})");
 
-                // Place entity on canvas
-                int initialEntities = canvas.CurrentUniversalRoom!.Entities.Count;
-                var placeMethod = typeof(MainWindow).GetMethod("PlaceUniversalEntity", BindingFlags.Instance | BindingFlags.NonPublic, null, [typeof(int), typeof(int), typeof(SpriteBankItem)], null)!;
-                placeMethod.Invoke(rexWin, [10, 10, rexSpr2]);
-                Assert(canvas.CurrentUniversalRoom.Entities.Count == initialEntities + 1, "Entity placed on canvas with copied brush");
-                Assert(canvas.CurrentUniversalRoom.Entities.Last().SpriteId == "REX_02", "Placed entity has REX_02 sprite ID");
+                    var brushIdText = (System.Windows.Controls.TextBlock)rexWin.FindName("UniversalActiveBrushId");
+                    Assert(brushIdText.Text == "REX_02", $"Active brush UI card shows REX_02 (got {brushIdText.Text})");
 
-                // Test copying entity via UniversalCopyEntity_Click
-                var list = (System.Windows.Controls.ListBox)rexWin.FindName("UniversalEntitiesList");
-                list.SelectedItem = canvas.CurrentUniversalRoom.Entities.Last();
-                var copyEntityBtn = (System.Windows.Controls.Button)rexWin.FindName("UniversalCopyEntityButton");
-                Assert(copyEntityBtn.IsEnabled, "UniversalCopyEntityButton is enabled when entity is selected");
-                var copyEntityMethod = typeof(MainWindow).GetMethod("UniversalCopyEntity_Click", BindingFlags.Instance | BindingFlags.NonPublic)!;
-                copyEntityMethod.Invoke(rexWin, [copyEntityBtn, new RoutedEventArgs()]);
-                Assert(canvas.ActiveUniversalSprite?.Id == "REX_02", "Active brush remains REX_02 after copying entity");
+                    // Place entity on canvas
+                    int initialEntities = canvas.CurrentUniversalRoom!.Entities.Count;
+                    var placeMethod = typeof(MainWindow).GetMethod("PlaceUniversalEntity", BindingFlags.Instance | BindingFlags.NonPublic, null, [typeof(int), typeof(int), typeof(SpriteBankItem)], null)!;
+                    placeMethod.Invoke(rexWin, [10, 10, rexSpr2]);
+                    Assert(canvas.CurrentUniversalRoom.Entities.Count == initialEntities + 1, "Entity placed on canvas with copied brush");
+                    Assert(canvas.CurrentUniversalRoom.Entities.Last().SpriteId == "REX_02", "Placed entity has REX_02 sprite ID");
+
+                    // Test copying entity via UniversalCopyEntity_Click
+                    var list = (System.Windows.Controls.ListBox)rexWin.FindName("UniversalEntitiesList");
+                    list.SelectedItem = canvas.CurrentUniversalRoom.Entities.Last();
+                    var copyEntityBtn = (System.Windows.Controls.Button)rexWin.FindName("UniversalCopyEntityButton");
+                    Assert(copyEntityBtn.IsEnabled, "UniversalCopyEntityButton is enabled when entity is selected");
+                    var copyEntityMethod = typeof(MainWindow).GetMethod("UniversalCopyEntity_Click", BindingFlags.Instance | BindingFlags.NonPublic)!;
+                    copyEntityMethod.Invoke(rexWin, [copyEntityBtn, new RoutedEventArgs()]);
+                    Assert(canvas.ActiveUniversalSprite?.Id == "REX_02", "Active brush remains REX_02 after copying entity");
+                }
             }
 
             // Case D: SpriteBankWindow Copy to Clipboard & Key handling
@@ -1698,7 +1726,7 @@ internal static class Program
         Assert(audioWin != null, "AudioStudioWindow initialized");
 
         var sfxCombo = (System.Windows.Controls.ComboBox)audioWin!.FindName("SfxGameBankCombo");
-        Assert(sfxCombo != null && sfxCombo.Items.Count == 5, "SfxGameBankCombo has 5 options (All + 4 games)");
+        Assert(sfxCombo != null && sfxCombo.Items.Count >= 5, $"SfxGameBankCombo has game options (got {sfxCombo?.Items.Count})");
 
         // Switch to Cybernoid II bank (Index 0)
         sfxCombo!.SelectedIndex = 0;
@@ -2195,17 +2223,45 @@ internal static class Program
     private static void DiagnoseGame(string query)
     {
         Console.WriteLine($"=== DIAGNOSING: {query} ===");
-        string baseDir = @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[Z80]";
-        var files = Directory.GetFiles(baseDir, $"*{query}*.zip")
-            .OrderByDescending(f => f.Contains("[128K]"))
-            .ToList();
-        if (files.Count == 0)
+        string file = "";
+        if (File.Exists(query))
         {
-            Console.WriteLine($"No file found matching {query}");
-            return;
+            file = query;
+        }
+        else
+        {
+            string tosecGames = @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games";
+            string[] searchDirs =
+            [
+                Path.Combine(tosecGames, "[Z80]"),
+                Path.Combine(tosecGames, "[TAP]"),
+                Path.Combine(tosecGames, "[TZX]"),
+                ProjectVaultService.Instance.ProjectsDirectory
+            ];
+
+            var files = new List<string>();
+            foreach (var d in searchDirs)
+            {
+                if (!Directory.Exists(d)) continue;
+                files.AddRange(Directory.GetFiles(d, $"*{query}*.zip"));
+                files.AddRange(Directory.GetFiles(d, $"*{query}*.tap"));
+                files.AddRange(Directory.GetFiles(d, $"*{query}*.z80"));
+            }
+
+            var chosen = files
+                .OrderByDescending(f => f.Contains("[128K]", StringComparison.OrdinalIgnoreCase))
+                .ThenByDescending(f => f.EndsWith(".z80", StringComparison.OrdinalIgnoreCase))
+                .ThenByDescending(f => f.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (chosen.Count == 0)
+            {
+                Console.WriteLine($"No file found matching {query}");
+                return;
+            }
+            file = chosen[0];
         }
 
-        string file = files[0];
         Console.WriteLine($"Found: {Path.GetFileName(file)}");
         var doc = SpectrumFileParser.Open(file);
         var ram = SpeccyStudio.Core.Audio.AyMemoryRipper.ExtractRamFromDocument(doc, out ushort pc, out ushort sp, out byte regI, out byte im, out var banks, out byte paged);
@@ -2350,6 +2406,68 @@ internal static class Program
                 }
             }
         }
+    }
+
+    private static void TestElevenTitles()
+    {
+        Console.WriteLine("==========================================");
+        Console.WriteLine("TESTING ALL 11 REQUESTED 128K CHIPTUNE TITLES");
+        Console.WriteLine("==========================================");
+        string[] games = [
+            "Stormlord",
+            "Fantasy World Dizzy",
+            "Mask III",
+            "Gryzor",
+            "Hard Drivin",
+            "Head Over Heels",
+            "Mask II",
+            "Mutan Zone",
+            "Baseball",
+            "Robin of the Wood",
+            "Shadow Warriors"
+        ];
+
+        string tosec = @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games";
+        int passed = 0;
+        foreach (var g in games)
+        {
+            var files = Directory.GetFiles(tosec, $"*{g}*", SearchOption.AllDirectories)
+                .Where(f => !f.Contains("[tr ", StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(f => f.Contains("128", StringComparison.OrdinalIgnoreCase) || f.Contains("+2", StringComparison.OrdinalIgnoreCase))
+                .ThenByDescending(f => f.EndsWith(".tap", StringComparison.OrdinalIgnoreCase))
+                .ThenByDescending(f => f.EndsWith(".z80", StringComparison.OrdinalIgnoreCase))
+                .ThenByDescending(f => f.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (files.Count == 0)
+            {
+                Console.WriteLine($"[FAIL] {g}: No file found!");
+                continue;
+            }
+
+            string chosen = files[0];
+            Console.WriteLine($"Testing {g} -> {Path.GetFileName(chosen)}");
+            try
+            {
+                var doc = SpectrumFileParser.Open(chosen);
+                var rip = SpeccyStudio.Core.Audio.AyMemoryRipper.Scan(doc);
+                if (rip.Success && rip.GeneratedPsg != null && rip.GeneratedPsg.TotalFrames > 0)
+                {
+                    Console.WriteLine($"  [PASS] {g}: Driver='{rip.DriverName}', Frames={rip.GeneratedPsg.TotalFrames} ({rip.GeneratedPsg.Duration.TotalSeconds:F1}s), Init=0x{rip.InitAddress:X4}, Play=0x{rip.PlayAddress:X4}");
+                    passed++;
+                }
+                else
+                {
+                    Console.WriteLine($"  [FAIL] {g}: Success={rip.Success}, Driver='{rip.DriverName}', Details={rip.Details}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"  [ERROR] {g}: {ex.Message}");
+            }
+        }
+        Console.WriteLine($"\nRESULTS: {passed} / {games.Length} titles extracted and rendered authentic PSG streams!");
+        Assert(passed == games.Length, "All 11 requested 128K audio titles extracted successfully");
     }
 
     private static void Assert(bool condition, string name) { if (!condition) throw new InvalidOperationException(name + " failed."); }

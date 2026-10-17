@@ -507,12 +507,15 @@ public static class AyMemoryRipper
             return ram;
         }
 
-        // 4. TAP / TZX Tape Images: parse code/data blocks to reconstruct memory
+        // 4. TAP / TZX Tape Images: parse code/data blocks to reconstruct memory and 128K banks
         if (document.Format == SpectrumFormat.Tap || document.Format == SpectrumFormat.Tzx)
         {
             int pos = 0;
             int lastLoadAddress = 0x8000;
+            string lastBlockName = "";
             bool loadedAny = false;
+            int sequentialBankIndex = 1;
+            int dataBlockCount = 0;
 
             while (pos + 2 <= b.Length)
             {
@@ -523,6 +526,10 @@ public static class AyMemoryRipper
                 byte flag = b[pos];
                 if (flag == 0x00 && len >= 18) // Tape header
                 {
+                    byte[] nameBytes = new byte[10];
+                    Buffer.BlockCopy(b, pos + 2, nameBytes, 0, 10);
+                    lastBlockName = System.Text.Encoding.ASCII.GetString(nameBytes).Trim();
+
                     int start = b[pos + 13] | (b[pos + 14] << 8);
                     if (start >= 0x4000)
                     {
@@ -531,14 +538,88 @@ public static class AyMemoryRipper
                 }
                 else if (flag == 0xFF && len >= 2) // Tape data block
                 {
+                    dataBlockCount++;
                     int dataLen = len - 2;
                     int targetAddr = lastLoadAddress;
-                    int copy = Math.Min(dataLen, 65536 - targetAddr);
-                    if (copy > 0)
+
+                    // Detect 128K bank from block header name (e.g. "BANK7", "BANK4", "PAGE 3", "SHADOWWA_0", "r1")
+                    int targetBank = -1;
+                    if (!string.IsNullOrEmpty(lastBlockName))
                     {
-                        Buffer.BlockCopy(b, pos + 1, ram, targetAddr, copy);
-                        lastLoadAddress += copy;
+                        var mBank = System.Text.RegularExpressions.Regex.Match(lastBlockName, @"(?:BANK|PAGE|P|M|B)[_\s\-]?([0-7])", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                        if (mBank.Success && int.TryParse(mBank.Groups[1].Value, out int bNum))
+                        {
+                            targetBank = bNum;
+                        }
+                        else
+                        {
+                            var mSuffix = System.Text.RegularExpressions.Regex.Match(lastBlockName, @".*_([0-7])$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                            if (mSuffix.Success && int.TryParse(mSuffix.Groups[1].Value, out int sNum))
+                            {
+                                targetBank = sNum;
+                            }
+                        }
+                    }
+
+                    if (targetBank >= 0 && targetBank < 8)
+                    {
+                        int copyBank = Math.Min(dataLen, 16384);
+                        Buffer.BlockCopy(b, pos + 1, allBanks[targetBank], 0, copyBank);
+                        if (targetBank == 0 || !allBanks[0].Any(x => x != 0))
+                        {
+                            Buffer.BlockCopy(b, pos + 1, ram, 0xC000, Math.Min(copyBank, 16384));
+                        }
                         loadedAny = true;
+                    }
+                    else if (dataLen == 6912 && (targetAddr == 0x4000 || dataBlockCount <= 3))
+                    {
+                        // Screen$
+                        Buffer.BlockCopy(b, pos + 1, ram, 0x4000, 6912);
+                        loadedAny = true;
+                    }
+                    else if (dataLen >= 12000 && targetAddr >= 0xC000)
+                    {
+                        // 16K bank data loaded to C000 in 128K tape
+                        if (allBanks[0].Any(x => x != 0) && sequentialBankIndex < 8)
+                        {
+                            while (sequentialBankIndex == 2 || sequentialBankIndex == 5) sequentialBankIndex++;
+                            if (sequentialBankIndex < 8)
+                            {
+                                Buffer.BlockCopy(b, pos + 1, allBanks[sequentialBankIndex], 0, Math.Min(dataLen, 16384));
+                                sequentialBankIndex++;
+                            }
+                        }
+                        else
+                        {
+                            int copy = Math.Min(dataLen, 65536 - targetAddr);
+                            if (copy > 0)
+                            {
+                                Buffer.BlockCopy(b, pos + 1, ram, targetAddr, copy);
+                                Buffer.BlockCopy(b, pos + 1, allBanks[0], 0, Math.Min(copy, 16384));
+                            }
+                        }
+
+                        // Also store in next empty 128K bank for safety
+                        for (int k = 1; k < 8; k++)
+                        {
+                            if (k == 2 || k == 5) continue;
+                            if (!allBanks[k].Any(x => x != 0))
+                            {
+                                Buffer.BlockCopy(b, pos + 1, allBanks[k], 0, Math.Min(dataLen, 16384));
+                                break;
+                            }
+                        }
+                        loadedAny = true;
+                    }
+                    else
+                    {
+                        int copy = Math.Min(dataLen, 65536 - targetAddr);
+                        if (copy > 0)
+                        {
+                            Buffer.BlockCopy(b, pos + 1, ram, targetAddr, copy);
+                            lastLoadAddress += copy;
+                            loadedAny = true;
+                        }
                     }
                 }
                 pos += len;
@@ -546,7 +627,10 @@ public static class AyMemoryRipper
 
             Buffer.BlockCopy(ram, 0x4000, allBanks[5], 0, 16384);
             Buffer.BlockCopy(ram, 0x8000, allBanks[2], 0, 16384);
-            Buffer.BlockCopy(ram, 0xC000, allBanks[0], 0, 16384);
+            if (!allBanks[0].Any(x => x != 0))
+            {
+                Buffer.BlockCopy(ram, 0xC000, allBanks[0], 0, 16384);
+            }
 
             if (loadedAny)
             {
@@ -955,15 +1039,48 @@ public static class AyMemoryRipper
             }
         }
 
-        // 3. Exolon (Nick Jones / Hewson 1987)
+        // 3a. Stormlord (Nick Jones / Hewson 1989)
+        bool isStormlord = name.Contains("Stormlord", StringComparison.OrdinalIgnoreCase);
+        if (isStormlord)
+        {
+            int initAddr = 0xEF60;
+            int playAddr = 0xEF63;
+            if (docRam[0xEF60] != 0xC3 && docRam[0x4FBB] == 0xC3)
+            {
+                initAddr = 0x4FBB;
+                playAddr = 0x4FC0;
+            }
+            var psg = RenderAuthentic(
+                docRam, initAddr, playAddr, regI, im,
+                $"Nick Jones - {name} (Authentic 128K AY)",
+                banks: allBanks, pagedBank: pagedBank, preferredSong: 1);
+
+            if (psg != null)
+            {
+                int actualInit = psg.InitAddress > 0 ? psg.InitAddress : initAddr;
+                int actualPlay = psg.PlayAddress > 0 ? psg.PlayAddress : playAddr;
+                return new AyRipResult(
+                    true,
+                    "Nick Jones 128K March & Chiptune Driver (Hewson Consultants)",
+                    actualInit,
+                    actualInit,
+                    actualPlay,
+                    $"Stormlord Sound Driver at 0x{actualInit:X4} · Play: 0x{actualPlay:X4} · Authentic Z80 stream extracted ({psg.TotalFrames} frames, {psg.Duration.TotalSeconds:F1}s).",
+                    psg,
+                    mem.Length > 1024 ? mem.AsSpan(0, Math.Min(4096, mem.Length)).ToArray() : null,
+                    ChiptuneEngine.GetSfxForGame("Exolon")
+                );
+            }
+        }
+
+        // 3b. Exolon & Zynaps (Nick Jones / Hewson 1987)
         bool isExolon = name.Contains("Exolon", StringComparison.OrdinalIgnoreCase) ||
-                        name.Contains("Zynaps", StringComparison.OrdinalIgnoreCase) ||
-                        name.Contains("Stormlord", StringComparison.OrdinalIgnoreCase);
+                        name.Contains("Zynaps", StringComparison.OrdinalIgnoreCase);
         if (isExolon)
         {
             int initAddr = 0xB6EC;
             int playAddr = 0xB767;
-            if (name.Contains("Zynaps", StringComparison.OrdinalIgnoreCase) || name.Contains("Stormlord", StringComparison.OrdinalIgnoreCase))
+            if (name.Contains("Zynaps", StringComparison.OrdinalIgnoreCase))
             {
                 initAddr = 0x4FBB;
                 playAddr = 0x4FC0;
@@ -1270,6 +1387,271 @@ public static class AyMemoryRipper
                     actualInit,
                     actualPlay,
                     $"Ben Daglish Audio Driver at 0x{actualInit:X4} · Play: 0x{actualPlay:X4} · Authentic Z80 stream extracted ({psg.TotalFrames} frames, {psg.Duration.TotalSeconds:F1}s).",
+                    psg,
+                    mem.Length > 1024 ? mem.AsSpan(0, Math.Min(4096, mem.Length)).ToArray() : null,
+                    ChiptuneEngine.GetSfxForGame("All")
+                );
+            }
+        }
+
+        // 8b. Gryzor (Konami / Ocean 1987 in Bank 2)
+        bool isGryzor = name.Contains("Gryzor", StringComparison.OrdinalIgnoreCase);
+        if (isGryzor)
+        {
+            byte[] gzRam = (byte[])docRam.Clone();
+            byte gzBank = 2;
+            if (allBanks != null && allBanks[2] != null && allBanks[2].Length == 16384 && allBanks[2].Any(x => x != 0))
+            {
+                Buffer.BlockCopy(allBanks[2], 0, gzRam, 0xC000, 16384);
+            }
+            var psg = RenderAuthentic(
+                gzRam, 0xC008, 0xC044, regI, im,
+                $"Konami / Ocean - {name} (Authentic 128K AY)",
+                banks: allBanks, pagedBank: gzBank, preferredSong: 1);
+
+            if (psg == null || psg.TotalFrames == 0)
+            {
+                psg = RenderAuthentic(
+                    gzRam, 0xC010, 0xC044, regI, im,
+                    $"Konami / Ocean - {name} (Authentic 128K AY)",
+                    banks: allBanks, pagedBank: gzBank, preferredSong: 1);
+            }
+
+            if (psg != null)
+            {
+                return new AyRipResult(
+                    true,
+                    "Konami / Ocean 128K Audio Engine (Gryzor)",
+                    0xC008, 0xC008, 0xC044,
+                    $"Gryzor Sound Driver at 0xC008 · Play: 0xC044 · Authentic Z80 stream extracted ({psg.TotalFrames} frames, {psg.Duration.TotalSeconds:F1}s).",
+                    psg,
+                    mem.Length > 1024 ? mem.AsSpan(0, Math.Min(4096, mem.Length)).ToArray() : null,
+                    ChiptuneEngine.GetSfxForGame("Ocean")
+                );
+            }
+        }
+
+        // 8c. Hard Drivin' (Domark 1989 in Bank 3)
+        bool isHardDrivin = name.Contains("Hard Drivin", StringComparison.OrdinalIgnoreCase) ||
+                            name.Contains("Hard-Drivin", StringComparison.OrdinalIgnoreCase);
+        if (isHardDrivin)
+        {
+            byte[] hdRam = (byte[])docRam.Clone();
+            byte hdBank = 3;
+            if (allBanks != null && allBanks[3] != null && allBanks[3].Length == 16384 && allBanks[3].Any(x => x != 0))
+            {
+                Buffer.BlockCopy(allBanks[3], 0, hdRam, 0xC000, 16384);
+            }
+            var psg = RenderAuthentic(
+                hdRam, 0xCD9D, 0xC000, regI, im,
+                $"Domark - {name} (Authentic 128K AY)",
+                banks: allBanks, pagedBank: hdBank, preferredSong: 1);
+
+            if (psg != null)
+            {
+                return new AyRipResult(
+                    true,
+                    "Domark 128K Audio Engine (Hard Drivin')",
+                    0xCD9D, 0xCD9D, 0xC000,
+                    $"Domark Sound Driver at 0xCD9D · Play: 0xC000 · Authentic Z80 stream extracted ({psg.TotalFrames} frames, {psg.Duration.TotalSeconds:F1}s).",
+                    psg,
+                    mem.Length > 1024 ? mem.AsSpan(0, Math.Min(4096, mem.Length)).ToArray() : null,
+                    ChiptuneEngine.GetSfxForGame("All")
+                );
+            }
+        }
+
+        // 8d. Head Over Heels (Ocean 1987 in Bank 1)
+        bool isHeadOverHeels = name.Contains("Head Over Heels", StringComparison.OrdinalIgnoreCase);
+        if (isHeadOverHeels)
+        {
+            byte[] hohRam = (byte[])docRam.Clone();
+            byte hohBank = 1;
+            if (allBanks != null && allBanks[1] != null && allBanks[1].Length == 16384 && allBanks[1].Any(x => x != 0))
+            {
+                Buffer.BlockCopy(allBanks[1], 0, hohRam, 0xC000, 16384);
+            }
+            var psg = RenderAuthentic(
+                hohRam, 0xC216, 0xC035, regI, im,
+                $"Colin Dooley / Ocean - {name} (Authentic 128K AY)",
+                banks: allBanks, pagedBank: hohBank, preferredSong: 1);
+
+            if (psg != null)
+            {
+                return new AyRipResult(
+                    true,
+                    "Colin Dooley / Ocean 128K Audio Engine (Head Over Heels)",
+                    0xC216, 0xC216, 0xC035,
+                    $"Head Over Heels Sound Driver at 0xC216 · Play: 0xC035 · Authentic Z80 stream extracted ({psg.TotalFrames} frames, {psg.Duration.TotalSeconds:F1}s).",
+                    psg,
+                    mem.Length > 1024 ? mem.AsSpan(0, Math.Min(4096, mem.Length)).ToArray() : null,
+                    ChiptuneEngine.GetSfxForGame("Ocean")
+                );
+            }
+        }
+
+        // 8e. Shadow Warriors (Ocean 1990 in Bank 6)
+        bool isShadowWarriors = name.Contains("Shadow Warriors", StringComparison.OrdinalIgnoreCase) ||
+                                name.Contains("Ninja Gaiden", StringComparison.OrdinalIgnoreCase);
+        if (isShadowWarriors)
+        {
+            byte[] swRam = (byte[])docRam.Clone();
+            byte swBank = 6;
+            if (allBanks != null && allBanks[6] != null && allBanks[6].Length == 16384 && allBanks[6].Any(x => x != 0))
+            {
+                Buffer.BlockCopy(allBanks[6], 0, swRam, 0xC000, 16384);
+            }
+            int initAddr = 0xBF7E;
+            int playAddr = 0xC0D3;
+            var psg = RenderAuthentic(
+                swRam, initAddr, playAddr, regI, im,
+                $"Ocean - {name} (Authentic 128K AY)",
+                banks: allBanks, pagedBank: swBank, preferredSong: 1);
+
+            if (psg == null || psg.TotalFrames == 0)
+            {
+                initAddr = 0xC150;
+                psg = RenderAuthentic(
+                    swRam, initAddr, playAddr, regI, im,
+                    $"Ocean - {name} (Authentic 128K AY)",
+                    banks: allBanks, pagedBank: swBank, preferredSong: 1);
+            }
+
+            if (psg != null)
+            {
+                return new AyRipResult(
+                    true,
+                    "Ocean 128K Audio Engine (Shadow Warriors)",
+                    initAddr, initAddr, playAddr,
+                    $"Shadow Warriors Sound Driver at 0x{initAddr:X4} · Play: 0x{playAddr:X4} · Authentic Z80 stream extracted ({psg.TotalFrames} frames, {psg.Duration.TotalSeconds:F1}s).",
+                    psg,
+                    mem.Length > 1024 ? mem.AsSpan(0, Math.Min(4096, mem.Length)).ToArray() : null,
+                    ChiptuneEngine.GetSfxForGame("Ocean")
+                );
+            }
+        }
+
+        // 8f. Robin of the Wood (David Whittaker / Odin 1986 in Bank 6)
+        bool isRobinOfTheWood = name.Contains("Robin of the Wood", StringComparison.OrdinalIgnoreCase) ||
+                                name.Contains("Robin Of The Wood", StringComparison.OrdinalIgnoreCase);
+        if (isRobinOfTheWood)
+        {
+            byte[] rowRam = (byte[])docRam.Clone();
+            byte rowBank = 6;
+            if (allBanks != null && allBanks[6] != null && allBanks[6].Length == 16384 && allBanks[6].Any(x => x != 0))
+            {
+                Buffer.BlockCopy(allBanks[6], 0, rowRam, 0xC000, 16384);
+            }
+            var psg = RenderAuthentic(
+                rowRam, 0xC150, 0xC0D3, regI, im,
+                $"David Whittaker / Odin - {name} (Authentic 128K AY)",
+                banks: allBanks, pagedBank: rowBank, preferredSong: 1);
+
+            if (psg != null)
+            {
+                return new AyRipResult(
+                    true,
+                    "David Whittaker / Odin 128K Audio Engine (Robin of the Wood)",
+                    0xC150, 0xC150, 0xC0D3,
+                    $"Robin of the Wood Sound Driver at 0xC150 · Play: 0xC0D3 · Authentic Z80 stream extracted ({psg.TotalFrames} frames, {psg.Duration.TotalSeconds:F1}s).",
+                    psg,
+                    mem.Length > 1024 ? mem.AsSpan(0, Math.Min(4096, mem.Length)).ToArray() : null,
+                    ChiptuneEngine.GetSfxForGame("Whittaker")
+                );
+            }
+        }
+
+        // 8g. Mutan Zone (Opera Soft 1988)
+        bool isMutanZone = name.Contains("Mutan Zone", StringComparison.OrdinalIgnoreCase) ||
+                           name.Contains("Mutan-Zone", StringComparison.OrdinalIgnoreCase);
+        if (isMutanZone)
+        {
+            int initAddr = 0xAF5E;
+            int playAddr = 0xFCFC;
+            var psg = RenderAuthentic(
+                docRam, initAddr, playAddr, regI, im,
+                $"Opera Soft - {name} (Authentic 128K AY)",
+                banks: allBanks, pagedBank: pagedBank, preferredSong: 1);
+
+            if (psg == null || psg.TotalFrames == 0)
+            {
+                initAddr = 0xC000;
+                playAddr = 0xC003;
+                psg = RenderAuthentic(
+                    docRam, initAddr, playAddr, regI, im,
+                    $"Opera Soft - {name} (Authentic 128K AY)",
+                    banks: allBanks, pagedBank: pagedBank, preferredSong: 1);
+            }
+
+            if (psg != null)
+            {
+                return new AyRipResult(
+                    true,
+                    "Opera Soft 128K Audio Engine (Mutan Zone)",
+                    initAddr, initAddr, playAddr,
+                    $"Mutan Zone Sound Driver at 0x{initAddr:X4} · Play: 0x{playAddr:X4} · Authentic Z80 stream extracted ({psg.TotalFrames} frames, {psg.Duration.TotalSeconds:F1}s).",
+                    psg,
+                    mem.Length > 1024 ? mem.AsSpan(0, Math.Min(4096, mem.Length)).ToArray() : null,
+                    ChiptuneEngine.GetSfxForGame("All")
+                );
+            }
+        }
+
+        // 8h. R.B.I. 2 Baseball (Domark 1991)
+        bool isBaseball = name.Contains("Baseball", StringComparison.OrdinalIgnoreCase) ||
+                          name.Contains("R.B.I", StringComparison.OrdinalIgnoreCase) ||
+                          name.Contains("RBI", StringComparison.OrdinalIgnoreCase);
+        if (isBaseball)
+        {
+            int initAddr = 0x4FBB;
+            int playAddr = 0xC144;
+            var psg = RenderAuthentic(
+                docRam, initAddr, playAddr, regI, im,
+                $"Domark - {name} (Authentic 128K AY)",
+                banks: allBanks, pagedBank: pagedBank, preferredSong: 1);
+
+            if (psg == null || psg.TotalFrames == 0)
+            {
+                initAddr = 0xC000;
+                playAddr = 0xC003;
+                psg = RenderAuthentic(
+                    docRam, initAddr, playAddr, regI, im,
+                    $"Domark - {name} (Authentic 128K AY)",
+                    banks: allBanks, pagedBank: pagedBank, preferredSong: 1);
+            }
+
+            if (psg != null)
+            {
+                return new AyRipResult(
+                    true,
+                    "Domark 128K Audio Engine (RBI Baseball)",
+                    initAddr, initAddr, playAddr,
+                    $"RBI 2 Baseball Sound Driver at 0x{initAddr:X4} · Play: 0x{playAddr:X4} · Authentic Z80 stream extracted ({psg.TotalFrames} frames, {psg.Duration.TotalSeconds:F1}s).",
+                    psg,
+                    mem.Length > 1024 ? mem.AsSpan(0, Math.Min(4096, mem.Length)).ToArray() : null,
+                    ChiptuneEngine.GetSfxForGame("All")
+                );
+            }
+        }
+
+        // 8i. Dizzy Series / Fantasy World Dizzy (Codemasters 1989)
+        bool isDizzy = name.Contains("Dizzy", StringComparison.OrdinalIgnoreCase);
+        if (isDizzy)
+        {
+            int initAddr = 0xC000;
+            int playAddr = 0xC003;
+            var psg = RenderAuthentic(
+                docRam, initAddr, playAddr, regI, im,
+                $"Codemasters - {name} (Authentic 128K AY)",
+                banks: allBanks, pagedBank: pagedBank, preferredSong: 1);
+
+            if (psg != null)
+            {
+                return new AyRipResult(
+                    true,
+                    "Codemasters 128K Audio Engine (Dizzy Series)",
+                    initAddr, initAddr, playAddr,
+                    $"Dizzy Sound Driver at 0x{initAddr:X4} · Play: 0x{playAddr:X4} · Authentic Z80 stream extracted ({psg.TotalFrames} frames, {psg.Duration.TotalSeconds:F1}s).",
                     psg,
                     mem.Length > 1024 ? mem.AsSpan(0, Math.Min(4096, mem.Length)).ToArray() : null,
                     ChiptuneEngine.GetSfxForGame("All")

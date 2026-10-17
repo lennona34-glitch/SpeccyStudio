@@ -276,6 +276,7 @@
                   <ColumnDefinition Width="Auto"/>
                   <ColumnDefinition Width="*"/>
                   <ColumnDefinition Width="Auto"/>
+                  <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="Game Sound Bank:" VerticalAlignment="Center" FontSize="11" Foreground="{StaticResource MutedBrush}" Margin="0,0,8,0"/>
                 <ComboBox x:Name="SfxGameBankCombo" Grid.Column="1" SelectionChanged="SfxGameBankCombo_SelectionChanged" FontSize="11">
@@ -283,9 +284,12 @@
                   <ComboBoxItem Content="Exolon [128K] (8 SFX)" Tag="Exolon"/>
                   <ComboBoxItem Content="Rex [128K] (8 SFX)" Tag="Rex"/>
                   <ComboBoxItem Content="Myth: History in the Making (8 SFX)" Tag="Myth"/>
+                  <ComboBoxItem Content="David Whittaker 128K (8 SFX)" Tag="Whittaker"/>
+                  <ComboBoxItem Content="Jonathan Dunn / Ocean (8 SFX)" Tag="Ocean"/>
                   <ComboBoxItem Content="All Games / Highlights Bank" Tag="All" IsSelected="True"/>
                 </ComboBox>
-                <Button x:Name="RipCurrentGameAudioBtn" Grid.Column="2" Content="⚡ Rip Current" Click="RipCurrentGameAudio_Click" Margin="8,0,0,0" Padding="8,2" Background="#2E1A47" Foreground="#E040FB" FontSize="10" ToolTip="Quick-rip authentic music &amp; SFX from currently loaded project or selected game"/>
+                <Button x:Name="OpenSfxBankBtn" Grid.Column="2" Content="🎛 SFX Bank &amp; Swapper" Click="OpenSfxBank_Click" Margin="6,0,0,0" Padding="8,2" Background="#1A334D" Foreground="#00D2FF" FontSize="10.5" ToolTip="Open dedicated Sound FX Bank &amp; Swapper to audition, catalog, and swap effects"/>
+                <Button x:Name="RipCurrentGameAudioBtn" Grid.Column="3" Content="⚡ Rip Current" Click="RipCurrentGameAudio_Click" Margin="6,0,0,0" Padding="8,2" Background="#2E1A47" Foreground="#E040FB" FontSize="10" ToolTip="Quick-rip authentic music &amp; SFX from currently loaded project or selected game"/>
               </Grid>
             </Border>
 

@@ -46,6 +46,7 @@ public sealed class ChiptuneEngine
             {
                 if (_mutePcmAudio)
                 {
+                    SpeccyWaveOut.Instance.StopMusic();
                     try { _activePlayer?.Stop(); } catch { }
                 }
                 else if (IsPlaying && _activePlayer != null)
@@ -222,6 +223,7 @@ public sealed class ChiptuneEngine
         {
             _playCts?.Cancel();
             _playCts = null;
+            SpeccyWaveOut.Instance.StopMusic();
             if (_activePlayer != null)
             {
                 try { _activePlayer.Stop(); _activePlayer.Dispose(); } catch { }
@@ -274,8 +276,12 @@ public sealed class ChiptuneEngine
 
                     if (!MutePcmAudio)
                     {
-                        if (loop) player.PlayLooping();
-                        else player.Play();
+                        bool waveSuccess = SpeccyWaveOut.Instance.PlayMusic(wavBytes, loop);
+                        if (!waveSuccess)
+                        {
+                            if (loop) player.PlayLooping();
+                            else player.Play();
+                        }
                     }
 
                     // Telemetry and live MIDI streaming update loop (50Hz Spectrum PAL rate)
@@ -353,8 +359,12 @@ public sealed class ChiptuneEngine
 
                     if (!MutePcmAudio)
                     {
-                        if (loop) player.PlayLooping();
-                        else player.Play();
+                        bool waveSuccess = SpeccyWaveOut.Instance.PlayMusic(wavBytes, loop);
+                        if (!waveSuccess)
+                        {
+                            if (loop) player.PlayLooping();
+                            else player.Play();
+                        }
                     }
 
                     var sw = System.Diagnostics.Stopwatch.StartNew();
@@ -537,9 +547,7 @@ public sealed class ChiptuneEngine
                     int frames = Math.Max(1, durationMs / 20); // 50 Hz PAL frames
                     var sw = System.Diagnostics.Stopwatch.StartNew();
 
-                    using var ms = new MemoryStream(wav);
-                    using var player = new SoundPlayer(ms);
-                    if (!MutePcmAudio) player.Play();
+                    if (!MutePcmAudio) SpeccyWaveOut.Instance.PlaySfx(wav);
 
                     for (int f = 0; f < frames; f++)
                     {
@@ -557,9 +565,7 @@ public sealed class ChiptuneEngine
                 {
                     if (!MutePcmAudio)
                     {
-                        using var ms = new MemoryStream(wav);
-                        using var player = new SoundPlayer(ms);
-                        player.PlaySync();
+                        SpeccyWaveOut.Instance.PlaySfx(wav);
                     }
                 }
             }

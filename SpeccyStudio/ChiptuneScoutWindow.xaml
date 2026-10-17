@@ -187,7 +187,7 @@
 
     <!-- Discovered Games DataGrid -->
     <Border Grid.Row="3" Background="#101724" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="6" Margin="0,0,0,10">
-      <DataGrid x:Name="DiscoveredDataGrid" SelectionChanged="DiscoveredDataGrid_SelectionChanged" MouseDoubleClick="DiscoveredDataGrid_MouseDoubleClick">
+      <DataGrid x:Name="DiscoveredDataGrid" IsReadOnly="True" SelectionChanged="DiscoveredDataGrid_SelectionChanged" MouseDoubleClick="DiscoveredDataGrid_MouseDoubleClick">
         <DataGrid.Columns>
           <DataGridTextColumn Header="Game Title" Binding="{Binding DisplayName}" FontWeight="Bold" Width="190"/>
           <DataGridTextColumn Header="Year" Binding="{Binding Year}" Width="55"/>
