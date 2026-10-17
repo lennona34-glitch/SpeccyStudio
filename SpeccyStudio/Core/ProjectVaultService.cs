@@ -167,6 +167,19 @@ public sealed class ProjectVaultService
         return candidates.FirstOrDefault(File.Exists);
     }
 
+    public string? FindDefaultRebelstarPath()
+    {
+        string[] candidates =
+        [
+            Path.Combine(_projectsDir, "Rebel Star II (1988).z80"),
+            Path.Combine(_projectsDir, "Rebel Star II (1988).tap"),
+            @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[Z80]\Rebel Star II - Alien Encounter - 1 Player (1988)(Silverbird Software).zip",
+            @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[TAP]\Rebel Star II - Alien Encounter - 1 Player (1988)(Silverbird Software).zip",
+            @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[TAP]\Rebelstar Raiders (1984)(Red Shift).zip"
+        ];
+        return candidates.FirstOrDefault(File.Exists);
+    }
+
     private static void CopyFirstFound(IEnumerable<string> candidates, string destination)
     {
         foreach (var c in candidates)

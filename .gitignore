@@ -47,3 +47,7 @@ screenshot-*.png
 !visual-test.scr
 !docs/
 !docs/**
+
+level-lab/*.bin
+level-lab/*.bmp
+

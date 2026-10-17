@@ -361,6 +361,16 @@
                 </Grid>
               </ScrollViewer>
 
+              <!-- Rebelstar II Decoded Tactical Battlefield Stage (1280x800, 80x50 tiles) -->
+              <ScrollViewer x:Name="RebelstarStageContainer" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="#06080D" Visibility="Collapsed">
+                <Grid x:Name="RebelstarHost" Width="1280" Height="800" HorizontalAlignment="Left" VerticalAlignment="Top" Background="Black" Cursor="Cross"
+                      MouseLeftButtonDown="Rebelstar_MouseDown" MouseRightButtonDown="Rebelstar_RightDown"
+                      MouseMove="Rebelstar_MouseMove" MouseLeftButtonUp="Rebelstar_MouseUp">
+                  <Image x:Name="RebelstarMapImage" Stretch="Fill" RenderOptions.BitmapScalingMode="NearestNeighbor" IsHitTestVisible="False"/>
+                  <Canvas x:Name="RebelstarOverlayCanvas" IsHitTestVisible="False"/>
+                </Grid>
+              </ScrollViewer>
+
               <!-- Interactive Edge Step Buttons -->
               <Button Content="◀" HorizontalAlignment="Left" VerticalAlignment="Center" Width="24" Height="48" Padding="0" Opacity="0.55" Tag="Left" Click="LevelNavigate_Click" ToolTip="Step West (Left Room / Area)"/>
               <Button Content="▶" HorizontalAlignment="Right" VerticalAlignment="Center" Width="24" Height="48" Padding="0" Opacity="0.55" Tag="Right" Click="LevelNavigate_Click" ToolTip="Step East (Right Room / Area)"/>
@@ -538,6 +548,37 @@
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
               <Button Content="Empty · $00" Click="MythEmptyBrush_Click" Padding="7,4" FontSize="10"/>
               <Button Content="➕ Add Object" Click="MythObjectAdd_Click" Style="{StaticResource PrimaryButton}" Padding="8,4" FontSize="10" Margin="6,0,0,0"/>
+            </StackPanel>
+          </Grid>
+
+          <!-- Level Footer: Rebelstar II -->
+          <Grid x:Name="RebelstarLevelFooter" Grid.Row="2" Margin="0,10,0,0" Visibility="Collapsed">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto"/>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="#111722" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="5" Padding="8,4" Margin="0,0,12,0"
+                    ToolTip="Active 16×16 Terrain Brush · Left-click canvas to paint · Right-click battlefield to sample">
+              <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Border Width="32" Height="32" Background="#06080D" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="3" Margin="0,0,8,0">
+                  <Image x:Name="RebelstarFooterBrushImage" Width="32" Height="32" Stretch="Fill" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock x:Name="RebelstarFooterBrushText" Text="Active Brush: River Bank ($01)" FontWeight="SemiBold" FontSize="11"/>
+                  <TextBlock x:Name="RebelstarFooterBrushSubtext" Text="16×16 · 4 character cells (32 bytes)" Foreground="{StaticResource MutedBrush}" FontSize="9"/>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+              <TextBlock x:Name="RebelstarStatusText" Text="Julian Gollop 80×50 Battlefield (4,000 tiles) · 55 Deployed Units" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+              <Button Content="🗺 Export Panoramic Map" Click="RebelstarExportMap_Click" Padding="8,4" FontSize="10" Style="{StaticResource PrimaryButton}" Margin="0,0,6,0"/>
+              <Button Content="🎵 128K Audio" Click="RebelstarAudio_Click" Padding="8,4" FontSize="10"/>
             </StackPanel>
           </Grid>
 
@@ -1220,6 +1261,75 @@
                 <GroupBox Header="ACTIONS">
                   <WrapPanel>
                     <Button Content="📸 Export Area PNG" Click="Screenshot_Click" Padding="6,3" FontSize="10" Margin="0,0,4,0"/>
+                    <Button Content="▶ Playtest in Emulator (F5)" Click="Play_Click" Style="{StaticResource PrimaryButton}" Padding="6,3" FontSize="10"/>
+                  </WrapPanel>
+                </GroupBox>
+              </StackPanel>
+
+              <!-- Rebelstar II Level Workshop Panel -->
+              <StackPanel x:Name="RebelstarEditorPanel" Visibility="Collapsed">
+                <TextBlock x:Name="RebelstarTitleText" Text="Rebelstar II · Tactical Level Workshop" FontSize="18" FontWeight="SemiBold"/>
+                <TextBlock x:Name="RebelstarMatchText" Foreground="{StaticResource AccentBrush}" TextWrapping="Wrap" FontSize="10" Margin="0,3,0,8" Text="Rebelstar II: Alien Encounter (1988 Julian Gollop) · 80×50 Battlefield · 55 Units"/>
+
+                <!-- 1. Tactical Battlefield Controls -->
+                <GroupBox Header="TACTICAL BATTLEFIELD (80×50 TILES · 4,000 CELLS)">
+                  <StackPanel>
+                    <TextBlock x:Name="RebelstarMapInfoText" Foreground="{StaticResource MutedBrush}" FontSize="10" TextWrapping="Wrap" Text="1280×800 bit-perfect strategic map · Click to stamp terrain or place units"/>
+                    <WrapPanel Margin="0,6,0,6">
+                      <Button Content="🗺 Export Panoramic Map" Click="RebelstarExportMap_Click" Padding="7,4" FontSize="10" Style="{StaticResource PrimaryButton}" Margin="0,0,4,0"/>
+                      <ToggleButton x:Name="RebelstarGridToggle" Content="Grid" Click="RebelstarToggleGrid_Click" Padding="6,3" FontSize="10" Margin="0,0,4,0"/>
+                      <ToggleButton x:Name="RebelstarUnitsToggle" Content="Units" IsChecked="True" Click="RebelstarToggleUnits_Click" Padding="6,3" FontSize="10"/>
+                    </WrapPanel>
+                  </StackPanel>
+                </GroupBox>
+
+                <!-- 2. Visual Terrain & Feature Palette -->
+                <GroupBox Header="TERRAIN &amp; FEATURE BRUSH PALETTE (80 TILES)">
+                  <StackPanel>
+                    <WrapPanel Margin="0,0,0,6">
+                      <Button Content="All" Click="RebelstarFilter_Click" Tag="All" Padding="5,3" FontSize="9"/>
+                      <Button Content="Water" Click="RebelstarFilter_Click" Tag="Water" Padding="5,3" FontSize="9"/>
+                      <Button Content="Jungle &amp; Swamp" Click="RebelstarFilter_Click" Tag="Jungle &amp; Swamp" Padding="5,3" FontSize="9"/>
+                      <Button Content="Citadel" Click="RebelstarFilter_Click" Tag="Citadel" Padding="5,3" FontSize="9"/>
+                      <Button Content="Drop Ship" Click="RebelstarFilter_Click" Tag="Drop Ship" Padding="5,3" FontSize="9"/>
+                      <Button Content="Ruins" Click="RebelstarFilter_Click" Tag="Ruins" Padding="5,3" FontSize="9"/>
+                    </WrapPanel>
+                    <Border Background="#070A0F" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="4">
+                      <ScrollViewer MaxHeight="180" VerticalScrollBarVisibility="Auto">
+                        <WrapPanel x:Name="RebelstarPalettePanel"/>
+                      </ScrollViewer>
+                    </Border>
+                    <TextBlock x:Name="RebelstarActiveBrushText" Text="Active Brush: River Bank ($01)" Foreground="{StaticResource AccentBrush}" FontSize="10" Margin="1,5,0,0"/>
+                  </StackPanel>
+                </GroupBox>
+
+                <!-- 3. Deployed Units & Characters -->
+                <GroupBox Header="DEPLOYED UNITS (55 INITIAL UNITS)">
+                  <StackPanel>
+                    <ListBox x:Name="RebelstarUnitList" Height="140" SelectionChanged="RebelstarUnitList_SelectionChanged" FontFamily="Cascadia Mono" FontSize="11"/>
+                    <Grid Margin="0,6,0,4">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="40"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="40"/>
+                        <ColumnDefinition Width="*"/>
+                      </Grid.ColumnDefinitions>
+                      <TextBlock Text="X (col):" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center"/>
+                      <TextBox Grid.Column="1" x:Name="RebelstarUnitXBox" Margin="0,2" FontFamily="Cascadia Mono" FontSize="11" LostFocus="RebelstarUnitField_Changed"/>
+                      <TextBlock Grid.Column="2" Text="Y (row):" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                      <TextBox Grid.Column="3" x:Name="RebelstarUnitYBox" Margin="0,2" FontFamily="Cascadia Mono" FontSize="11" LostFocus="RebelstarUnitField_Changed"/>
+                    </Grid>
+                    <WrapPanel Margin="0,4,0,0">
+                      <Button Content="📍 Jump to Unit" Click="RebelstarJumpToUnit_Click" Padding="6,3" FontSize="10" Margin="0,0,4,0"/>
+                      <Button Content="👑 Select Queen" Click="RebelstarSelectQueen_Click" Padding="6,3" FontSize="10"/>
+                    </WrapPanel>
+                  </StackPanel>
+                </GroupBox>
+
+                <!-- 4. Audio & Actions -->
+                <GroupBox Header="ACTIONS &amp; AUDIO">
+                  <WrapPanel>
+                    <Button Content="🎵 Audio Studio (128K AY)" Click="RebelstarAudio_Click" Padding="6,3" FontSize="10" Margin="0,0,4,0"/>
                     <Button Content="▶ Playtest in Emulator (F5)" Click="Play_Click" Style="{StaticResource PrimaryButton}" Padding="6,3" FontSize="10"/>
                   </WrapPanel>
                 </GroupBox>

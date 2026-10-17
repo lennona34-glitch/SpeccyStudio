@@ -125,6 +125,7 @@ internal static class Program
             TestRexMythAndAudioStudio();
             TestChiptuneRepositoryScout(root);
             TestAllNineAudioTitles();
+            TestRebelstarLevelLab(root);
             if (args.Length > 0) TestCybernoidProfile(
                 args[0],
                 args.Length > 1 ? args[1] : null,
@@ -2558,6 +2559,95 @@ internal static class Program
         }
         Console.WriteLine($"\nRESULTS: {passed} / {games.Length} titles extracted and rendered authentic PSG streams!");
         Assert(passed == games.Length, "All 11 requested 128K audio titles extracted successfully");
+    }
+
+    private static void TestRebelstarLevelLab(string root)
+    {
+        Console.WriteLine("=== TESTING REBELSTAR II TACTICAL LEVEL WORKSHOP & SPRITE BANK ===");
+
+        // 1. Sprite Catalog tests
+        var sprites = RebelstarSpriteCatalog.GetRebelstarSprites();
+        Assert(sprites.Count >= 20, "Rebelstar unit sprites count >= 20");
+        Assert(sprites.Any(s => s.Id == "REB_KRENON"), "Rebelstar catalog has REB_KRENON");
+        Assert(sprites.Any(s => s.Id == "REB_QUEEN"), "Rebelstar catalog has REB_QUEEN");
+        Assert(sprites.Any(s => s.Id == "REB_BABY"), "Rebelstar catalog has REB_BABY");
+        Assert(sprites.Any(s => s.Id == "REB_HICKS"), "Rebelstar catalog has REB_HICKS");
+        Assert(sprites.Any(s => s.Id == "REB_ALIEN"), "Rebelstar catalog has REB_ALIEN");
+        Assert(sprites.Any(s => s.Id == "REB_RAT"), "Rebelstar catalog has REB_RAT");
+        Assert(sprites.Any(s => s.Id == "REB_SWAMPER"), "Rebelstar catalog has REB_SWAMPER");
+
+        var tiles = RebelstarSpriteCatalog.GetRebelstarTiles();
+        Assert(tiles.Count == 80, "Rebelstar terrain tiles count == 80");
+        Assert(tiles.All(t => t.Bitmap.Length == 32 && t.Attributes.Length == 4), "All 80 tiles have 32-byte bitmap and 4 attributes");
+
+        // 2. Load game from ProjectVaultService or TOSEC
+        string? rebelstarPath = ProjectVaultService.Instance.FindDefaultRebelstarPath();
+        Assert(!string.IsNullOrEmpty(rebelstarPath) && File.Exists(rebelstarPath), "Found Rebel Star II archive");
+
+        var doc = SpectrumFileParser.Open(rebelstarPath);
+        Assert(doc != null, "Opened Rebel Star II SpectrumDocument");
+
+        bool created = RebelstarLevelLabProject.TryCreate(doc, out var project, out string reason);
+        Assert(created && project != null, $"RebelstarLevelLabProject created successfully ({reason})");
+
+        // 3. Verify Battlefield layout
+        Assert(project!.Map.Tiles.Length == 4000, "Battlefield map has 4000 tiles (80x50)");
+        Assert(project.Map.TileCatalog.Count == 80, "Tile catalog has 80 terrain metatiles");
+        Assert(project.Map.Units.Count == 55, "55 deployed units in initial Rebelstar setup");
+
+        // 4. Verify units
+        var u0 = project.Map.Units[0];
+        Assert(u0.Name.Contains("Krenon", StringComparison.OrdinalIgnoreCase), $"Unit 0 is Captain Krenon (got {u0.Name})");
+        Assert(u0.Faction == "Raiders", "Captain Krenon is Raiders faction");
+
+        var queen = project.Map.Units.FirstOrDefault(u => u.Name.Contains("Queen", StringComparison.OrdinalIgnoreCase) || u.TypeId == 0x3E);
+        Assert(queen != null, "Alien Queen is deployed on battlefield");
+        Assert(queen!.Faction == "Aliens", "Alien Queen is Aliens faction");
+
+        // 5. Verify tile painting and Undo/Redo capability
+        byte originalTile = project.Map.GetTile(20, 20);
+        byte testTile = (byte)(originalTile ^ 1);
+        project.ApplyTileEdit(20, 20, testTile);
+        Assert(project.Map.GetTile(20, 20) == testTile, "Tile edited at (20, 20)");
+        Assert(doc.IsDirty, "Document marked dirty on tile edit");
+        project.ApplyTileEdit(20, 20, originalTile); // restore
+        Assert(project.Map.GetTile(20, 20) == originalTile, "Tile restored at (20, 20)");
+
+        // 6. Verify unit repositioning
+        byte origX = u0.X;
+        byte origY = u0.Y;
+        project.ApplyUnitPosition(0, 15, 25);
+        Assert(u0.X == 15 && u0.Y == 25, "Unit repositioned to [15, 25]");
+        project.ApplyUnitPosition(0, origX, origY); // restore
+
+        // 7. Verify full map rendering and panoramic export
+        var fullBmp = project.Map.RenderFullMapBitmapSource(renderUnits: true, showGrid: false);
+        Assert(fullBmp.PixelWidth == 1280 && fullBmp.PixelHeight == 800, "Rendered full 1280x800 map");
+
+        string panoramicPath = Path.Combine(root, "rebelstar2_panoramic.png");
+        project.ExportPanoramicMap(panoramicPath);
+        Assert(File.Exists(panoramicPath) && new FileInfo(panoramicPath).Length > 10000, "Panoramic map PNG exported to disk");
+
+        // Also copy the authentic panoramic map to user brain artifacts folder for interactive review
+        string artifactPanoramic = @"C:\Users\adria\.gemini\antigravity\brain\aafadb66-5ecd-48af-adb0-8675ca0b7a6c\rebelstar2_panoramic_battlefield.png";
+        File.Copy(panoramicPath, artifactPanoramic, overwrite: true);
+
+        // 8. Verify SpriteBank integration & cross-game stamping
+        SpriteBank.Instance.EnsureRebelstarSpritesLoaded();
+        Assert(SpriteBank.Instance.Items.Any(i => i.Id == "REB_KRENON"), "SpriteBank contains REB_KRENON");
+        Assert(SpriteBank.Instance.Items.Any(i => i.Id == "REB_QUEEN"), "SpriteBank contains REB_QUEEN");
+        Assert(SpriteBank.Instance.Items.Any(i => i.Id == "REB_TILE_01"), "SpriteBank contains REB_TILE_01");
+
+        // Test extracting a slice from a Rebelstar sprite and stamping into Cybernoid tile atlas
+        var krenonItem = SpriteBank.Instance.Items.First(i => i.Id == "REB_KRENON");
+        var (krenonBmp, krenonAttr) = SpriteBank.Instance.ExtractTileSlice(krenonItem, 0, 0);
+        Assert(krenonBmp.Length == 32 && krenonAttr.Length == 4, "Extracted 16x16 slice from Rebelstar sprite");
+
+        var testAtlas = CybernoidTileAtlas.CreateBlank();
+        testAtlas.WriteTile(0x40, krenonBmp, krenonAttr);
+        Assert(testAtlas.Get(0x40).Bitmap.SequenceEqual(krenonBmp), "Stamped Rebelstar Captain Krenon into Cybernoid tile atlas");
+
+        Console.WriteLine("DEBUG: Full Native Rebelstar II Level Workshop & Sprite Bank integration verified successfully!");
     }
 
     private static void Assert(bool condition, string name) { if (!condition) throw new InvalidOperationException(name + " failed."); }

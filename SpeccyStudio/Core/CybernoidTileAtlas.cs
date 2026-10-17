@@ -67,6 +67,17 @@ public sealed class CybernoidTileAtlas
         _collisionRoles = ReadCollisionRoles();
     }
 
+    public static CybernoidTileAtlas CreateBlank()
+    {
+        byte[] buffer = new byte[65536];
+        int colOffset = CybernoidLevelLabProject.LoadAddress + CollisionTableAddress - CybernoidLevelLabProject.LoadAddress;
+        if (colOffset >= 0 && colOffset < buffer.Length)
+        {
+            buffer[colOffset] = 0xFF;
+        }
+        return new CybernoidTileAtlas(buffer, CybernoidLevelLabProject.LoadAddress);
+    }
+
     public int ImageDataOffset { get; }
 
     public CybernoidTileArt Get(byte tileId)
@@ -254,7 +265,9 @@ public sealed class CybernoidTileAtlas
     {
         var result = new Dictionary<byte, CybernoidCollisionRole>();
         int address = CollisionTableAddress;
-        while (ReadByte(address) is byte tile and not 0xFF)
+        while (address + 4 < 0x10000 && 
+               ImageDataOffset + address + 4 - CybernoidLevelLabProject.LoadAddress < _image.Length && 
+               ReadByte(address) is byte tile and not 0xFF)
         {
             byte topLeft = ReadByte(address + 1);
             byte topRight = ReadByte(address + 2);

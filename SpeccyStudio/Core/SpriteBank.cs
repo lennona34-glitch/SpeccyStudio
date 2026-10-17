@@ -367,6 +367,31 @@ public sealed class SpriteBank
         }
     }
 
+    public void EnsureRebelstarSpritesLoaded()
+    {
+        if (!_loadedItemIds.Contains("REB_KRENON"))
+        {
+            foreach (var item in RebelstarSpriteCatalog.GetRebelstarSprites())
+            {
+                if (_loadedItemIds.Add(item.Id))
+                {
+                    Items.Add(item);
+                }
+            }
+        }
+
+        if (!_loadedItemIds.Contains("REB_TILE_00"))
+        {
+            foreach (var item in RebelstarSpriteCatalog.GetRebelstarTiles())
+            {
+                if (_loadedItemIds.Add(item.Id))
+                {
+                    Items.Add(item);
+                }
+            }
+        }
+    }
+
     /// <summary>
     /// Extracts a 16x16 pixel (2x2 character cells) slice from any SpriteBankItem with correct row-major strides.
     /// </summary>

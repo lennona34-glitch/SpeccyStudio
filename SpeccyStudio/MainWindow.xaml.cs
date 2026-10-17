@@ -41,6 +41,15 @@ public partial class MainWindow : Window
     private readonly Stack<(MythLevel Level, MythArea Area, int Col, int Row, byte Old)> _mythUndo = new();
     private readonly Stack<(MythLevel Level, MythArea Area, int Col, int Row, byte New)> _mythRedo = new();
     private readonly Dictionary<byte, Button> _mythPaletteButtons = new();
+    private RebelstarLevelLabProject? _rebelstarLab;
+    private byte _rebelstarBrush = 1;
+    private RebelstarUnit? _rebelstarSelectedUnit;
+    private bool _rebelstarShowGrid;
+    private bool _rebelstarShowUnits = true;
+    private bool _rebelstarPainting;
+    private readonly Stack<(int Col, int Row, byte Old)> _rebelstarUndo = new();
+    private readonly Stack<(int Col, int Row, byte New)> _rebelstarRedo = new();
+    private readonly Dictionary<byte, Button> _rebelstarPaletteButtons = new();
     private readonly Stack<(int RoomIndex, byte[] Tiles)> _levelUndo = new();
     private readonly Stack<(int RoomIndex, byte[] Tiles)> _levelRedo = new();
     private CybernoidRoomProposal? _levelProposal;
@@ -523,6 +532,10 @@ public partial class MainWindow : Window
             {
                 RefreshMythArea();
             }
+            else if (_rebelstarLab != null)
+            {
+                RefreshRebelstarStage();
+            }
             else if (_universalRoom != null)
             {
                 MainLevelCanvas.InvalidateVisual();
@@ -964,6 +977,11 @@ public partial class MainWindow : Window
                 UndoButton.IsEnabled = _mythUndo.Count > 0;
                 RedoButton.IsEnabled = _mythRedo.Count > 0;
             }
+            else if (_rebelstarLab != null)
+            {
+                UndoButton.IsEnabled = _rebelstarUndo.Count > 0;
+                RedoButton.IsEnabled = _rebelstarRedo.Count > 0;
+            }
             else
             {
                 UndoButton.IsEnabled = _levelUndo.Count > 0;
@@ -1152,7 +1170,8 @@ public partial class MainWindow : Window
         bool isRex = mode == "Rex";
         bool isMyth = mode == "Myth";
         bool isUniversal = mode == "Universal";
-        bool hasAny = isCybernoid || isExolon || isRex || isMyth || isUniversal;
+        bool isRebelstar = mode == "Rebelstar";
+        bool hasAny = isCybernoid || isExolon || isRex || isMyth || isUniversal || isRebelstar;
 
         LevelUnavailablePanel.Visibility = hasAny ? Visibility.Collapsed : Visibility.Visible;
         LevelEditorPanel.Visibility = isCybernoid ? Visibility.Visible : Visibility.Collapsed;
@@ -1160,6 +1179,7 @@ public partial class MainWindow : Window
         if (RexEditorPanel != null) RexEditorPanel.Visibility = isRex ? Visibility.Visible : Visibility.Collapsed;
         if (MythEditorPanel != null) MythEditorPanel.Visibility = isMyth ? Visibility.Visible : Visibility.Collapsed;
         if (UniversalEditorPanel != null) UniversalEditorPanel.Visibility = isUniversal ? Visibility.Visible : Visibility.Collapsed;
+        if (RebelstarEditorPanel != null) RebelstarEditorPanel.Visibility = isRebelstar ? Visibility.Visible : Visibility.Collapsed;
 
         if (CybernoidExolonToolbar != null) CybernoidExolonToolbar.Visibility = (isCybernoid || isExolon || isUniversal) ? Visibility.Visible : Visibility.Collapsed;
         if (RexToolbar != null) RexToolbar.Visibility = isRex ? Visibility.Visible : Visibility.Collapsed;
@@ -1170,12 +1190,14 @@ public partial class MainWindow : Window
         if (MainLevelCanvas != null) MainLevelCanvas.Visibility = (isCybernoid || isExolon || isUniversal) ? Visibility.Visible : Visibility.Collapsed;
         if (RexStageContainer != null) RexStageContainer.Visibility = isRex ? Visibility.Visible : Visibility.Collapsed;
         if (MythStageContainer != null) MythStageContainer.Visibility = isMyth ? Visibility.Visible : Visibility.Collapsed;
+        if (RebelstarStageContainer != null) RebelstarStageContainer.Visibility = isRebelstar ? Visibility.Visible : Visibility.Collapsed;
 
         if (CybernoidLevelFooter != null) CybernoidLevelFooter.Visibility = isCybernoid ? Visibility.Visible : Visibility.Collapsed;
         if (ExolonLevelFooter != null) ExolonLevelFooter.Visibility = isExolon ? Visibility.Visible : Visibility.Collapsed;
         if (RexLevelFooter != null) RexLevelFooter.Visibility = isRex ? Visibility.Visible : Visibility.Collapsed;
         if (MythLevelFooter != null) MythLevelFooter.Visibility = isMyth ? Visibility.Visible : Visibility.Collapsed;
         if (UniversalLevelFooter != null) UniversalLevelFooter.Visibility = isUniversal ? Visibility.Visible : Visibility.Collapsed;
+        if (RebelstarLevelFooter != null) RebelstarLevelFooter.Visibility = isRebelstar ? Visibility.Visible : Visibility.Collapsed;
 
         if (LevelNoGameOverlay != null) LevelNoGameOverlay.Visibility = hasAny ? Visibility.Collapsed : Visibility.Visible;
     }
@@ -1190,6 +1212,9 @@ public partial class MainWindow : Window
         _mythLevel = null;
         _mythArea = null;
         _universalRoom = null;
+        _rebelstarLab = null;
+        _rebelstarSelectedUnit = null;
+        _rebelstarPainting = false;
         _universalRooms = null;
         _universalRoomIndex = 0;
 
@@ -1288,6 +1313,12 @@ public partial class MainWindow : Window
             _mythLab = mythProject;
             SetActiveStageMode("Myth");
             InitMythUI(mythProject);
+        }
+        else if (_document is not null && RebelstarLevelLabProject.TryCreate(_document, out RebelstarLevelLabProject? rebelstarProject, out reason) && rebelstarProject != null)
+        {
+            _rebelstarLab = rebelstarProject;
+            SetActiveStageMode("Rebelstar");
+            InitRebelstarUI(rebelstarProject);
         }
         else
         {
@@ -2202,6 +2233,19 @@ public partial class MainWindow : Window
             Status($"Undid edit in Myth L{level.Number} Area {area.Index + 1}");
             return;
         }
+        if (_rebelstarLab != null)
+        {
+            if (_rebelstarUndo.Count == 0) return;
+            var (col, row, old) = _rebelstarUndo.Pop();
+            byte cur = _rebelstarLab.Map.GetTile(col, row);
+            _rebelstarRedo.Push((col, row, cur));
+            _rebelstarLab.ApplyTileEdit(col, row, old);
+            _document?.MarkDirty();
+            RefreshRebelstarStage();
+            UpdateUndoRedoState();
+            Status($"Undid edit at col {col}, row {row}");
+            return;
+        }
         if (_levelLab is null || _levelUndo.Count == 0) return;
         try
         {
@@ -2249,6 +2293,19 @@ public partial class MainWindow : Window
             RefreshMythArea();
             UpdateUndoRedoState();
             Status($"Redid edit in Myth L{level.Number} Area {area.Index + 1}");
+            return;
+        }
+        if (_rebelstarLab != null)
+        {
+            if (_rebelstarRedo.Count == 0) return;
+            var (col, row, next) = _rebelstarRedo.Pop();
+            byte cur = _rebelstarLab.Map.GetTile(col, row);
+            _rebelstarUndo.Push((col, row, cur));
+            _rebelstarLab.ApplyTileEdit(col, row, next);
+            _document?.MarkDirty();
+            RefreshRebelstarStage();
+            UpdateUndoRedoState();
+            Status($"Redid edit at col {col}, row {row}");
             return;
         }
         if (_levelLab is null || _levelRedo.Count == 0) return;
@@ -4191,11 +4248,16 @@ public partial class MainWindow : Window
         bool isCybernoid = _levelLab != null ||
                            _document.SourcePath.Contains("cybernoid", StringComparison.OrdinalIgnoreCase) ||
                            _document.DisplayName.Contains("cybernoid", StringComparison.OrdinalIgnoreCase);
+        bool isRebelstar = _rebelstarLab != null ||
+                           _document.SourcePath.Contains("rebel", StringComparison.OrdinalIgnoreCase) ||
+                           _document.DisplayName.Contains("rebel", StringComparison.OrdinalIgnoreCase) ||
+                           _document.Assets.Any(a => a.Name.Contains("rebel", StringComparison.OrdinalIgnoreCase));
 
         SpriteBank.Instance.EnsureCybernoidTilesLoaded(_levelLab?.TileAtlas);
         SpriteBank.Instance.EnsureExolonEntitiesLoaded();
         SpriteBank.Instance.EnsureRexSpritesLoaded();
         SpriteBank.Instance.EnsureMythSpritesLoaded();
+        SpriteBank.Instance.EnsureRebelstarSpritesLoaded();
 
         if (isRex)
         {
@@ -4220,6 +4282,12 @@ public partial class MainWindow : Window
             _currentFileSprites = SpriteBank.Instance.Items.Where(i => i.SourceGame.StartsWith("Cybernoid", StringComparison.OrdinalIgnoreCase)).ToList();
             SpritesTabTitle.Text = "Cybernoid II (1988) · Tiles";
             SpritesTabSubtitle.Text = "250+ authentic native 16×16 tiles & actors · Raffaele Cecco (Hewson)";
+        }
+        else if (isRebelstar)
+        {
+            _currentFileSprites = SpriteBank.Instance.Items.Where(i => i.SourceGame.StartsWith("Rebel Star", StringComparison.OrdinalIgnoreCase)).ToList();
+            SpritesTabTitle.Text = "Rebel Star II (1988) · Sprites & Terrain";
+            SpritesTabSubtitle.Text = "80 authentic terrain tiles & units · Julian Gollop (Silverbird)";
         }
         else
         {
@@ -6203,6 +6271,313 @@ public partial class MainWindow : Window
         RefreshMythObjectPanel();
         UpdateMythInfo();
         DrawMythOverlay();
+    }
+
+    // =========================================================================
+    // REBELSTAR II · TACTICAL LEVEL WORKSHOP IMPLEMENTATION
+    // =========================================================================
+
+    private void InitRebelstarUI(RebelstarLevelLabProject lab)
+    {
+        if (ViewLevelRadio != null) ViewLevelRadio.IsEnabled = true;
+        ToolsTabs.SelectedItem = LevelLabTab;
+
+        _rebelstarUndo.Clear();
+        _rebelstarRedo.Clear();
+        _rebelstarSelectedUnit = null;
+        _rebelstarPainting = false;
+
+        if (RebelstarTitleText != null) RebelstarTitleText.Text = "Rebelstar II · Tactical Level Workshop";
+        if (RebelstarMatchText != null) RebelstarMatchText.Text = $"{lab.MatchSummary} · {_document?.DisplayName}";
+
+        if (RebelstarUnitList != null)
+        {
+            RebelstarUnitList.ItemsSource = lab.Map.Units;
+            if (lab.Map.Units.Count > 0)
+            {
+                RebelstarUnitList.SelectedIndex = 0;
+            }
+        }
+
+        BuildRebelstarPalette("All");
+        SetRebelstarBrush(1); // Default: River Bank
+
+        RefreshRebelstarStage();
+        UpdateUndoRedoState();
+        Status($"🛸 Julian Gollop Rebel Star II battlefield loaded: 80×50 tiles (1280×800) · {lab.Map.Units.Count} units deployed");
+    }
+
+    private void BuildRebelstarPalette(string filter = "All")
+    {
+        if (RebelstarPalettePanel == null || _rebelstarLab == null) return;
+        RebelstarPalettePanel.Children.Clear();
+        _rebelstarPaletteButtons.Clear();
+
+        foreach (var tile in _rebelstarLab.Map.TileCatalog)
+        {
+            if (filter != "All" && !string.Equals(tile.Category, filter, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var btn = new Button
+            {
+                Width = 28,
+                Height = 28,
+                Margin = new Thickness(2),
+                Padding = new Thickness(1),
+                Background = new SolidColorBrush(Color.FromRgb(0x10, 0x16, 0x22)),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(0x2B, 0x35, 0x48)),
+                BorderThickness = new Thickness(1),
+                ToolTip = $"{tile.Name} (${tile.Index:X2}) · [{tile.Category}]",
+                Tag = tile.Index
+            };
+
+            var img = new Image
+            {
+                Source = tile.Sprite,
+                Stretch = Stretch.Fill
+            };
+            RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.NearestNeighbor);
+            btn.Content = img;
+            byte capturedId = (byte)tile.Index;
+            btn.Click += (_, _) => SetRebelstarBrush(capturedId);
+
+            _rebelstarPaletteButtons[capturedId] = btn;
+            RebelstarPalettePanel.Children.Add(btn);
+        }
+
+        HighlightRebelstarBrushButton();
+    }
+
+    private void SetRebelstarBrush(byte tileId)
+    {
+        _rebelstarBrush = tileId;
+        HighlightRebelstarBrushButton();
+
+        if (_rebelstarLab != null && tileId < _rebelstarLab.Map.TileCatalog.Count)
+        {
+            var tile = _rebelstarLab.Map.TileCatalog[tileId];
+            if (RebelstarActiveBrushText != null)
+                RebelstarActiveBrushText.Text = $"Active Brush: {tile.Name} (${tileId:X2})";
+            if (RebelstarFooterBrushText != null)
+                RebelstarFooterBrushText.Text = $"Active Brush: {tile.Name} (${tileId:X2})";
+            if (RebelstarFooterBrushImage != null)
+                RebelstarFooterBrushImage.Source = tile.Sprite;
+        }
+    }
+
+    private void HighlightRebelstarBrushButton()
+    {
+        foreach (var (id, btn) in _rebelstarPaletteButtons)
+        {
+            bool isSel = id == _rebelstarBrush;
+            btn.BorderBrush = isSel ? new SolidColorBrush(Color.FromRgb(0x42, 0xD3, 0x92)) : new SolidColorBrush(Color.FromRgb(0x2B, 0x35, 0x48));
+            btn.BorderThickness = isSel ? new Thickness(2) : new Thickness(1);
+        }
+    }
+
+    private void RefreshRebelstarStage()
+    {
+        if (_rebelstarLab == null) return;
+        if (RebelstarMapImage != null)
+        {
+            RebelstarMapImage.Source = _rebelstarLab.Map.RenderFullMapBitmapSource(
+                renderUnits: _rebelstarShowUnits,
+                showGrid: _rebelstarShowGrid);
+        }
+        DrawRebelstarOverlay();
+    }
+
+    private void DrawRebelstarOverlay()
+    {
+        if (RebelstarOverlayCanvas == null) return;
+        RebelstarOverlayCanvas.Children.Clear();
+
+        if (_rebelstarSelectedUnit != null)
+        {
+            var rect = new System.Windows.Shapes.Rectangle
+            {
+                Width = 16,
+                Height = 16,
+                Stroke = new SolidColorBrush(Color.FromArgb(230, 255, 230, 0)),
+                StrokeThickness = 2,
+                Fill = new SolidColorBrush(Color.FromArgb(40, 255, 230, 0))
+            };
+            Canvas.SetLeft(rect, _rebelstarSelectedUnit.X * 16);
+            Canvas.SetTop(rect, _rebelstarSelectedUnit.Y * 16);
+            RebelstarOverlayCanvas.Children.Add(rect);
+        }
+    }
+
+    private void Rebelstar_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (_rebelstarLab == null) return;
+        var pt = e.GetPosition(RebelstarHost);
+        int col = (int)(pt.X / 16);
+        int row = (int)(pt.Y / 16);
+        if (col < 0 || col >= RebelstarMap.Columns || row < 0 || row >= RebelstarMap.Rows) return;
+
+        // Check if user clicked on a unit
+        var clickedUnit = _rebelstarLab.Map.Units.FirstOrDefault(u => u.X == col && u.Y == row);
+        if (clickedUnit != null)
+        {
+            _rebelstarSelectedUnit = clickedUnit;
+            if (RebelstarUnitList != null) RebelstarUnitList.SelectedItem = clickedUnit;
+            if (RebelstarUnitXBox != null) RebelstarUnitXBox.Text = clickedUnit.X.ToString();
+            if (RebelstarUnitYBox != null) RebelstarUnitYBox.Text = clickedUnit.Y.ToString();
+            DrawRebelstarOverlay();
+            Status($"Selected {clickedUnit.Name} at col {col}, row {row}");
+            return;
+        }
+
+        // Otherwise paint tile
+        byte old = _rebelstarLab.Map.GetTile(col, row);
+        if (old != _rebelstarBrush)
+        {
+            _rebelstarUndo.Push((col, row, old));
+            _rebelstarRedo.Clear();
+            _rebelstarLab.ApplyTileEdit(col, row, _rebelstarBrush);
+            _document?.MarkDirty();
+            if (SaveButton != null) SaveButton.IsEnabled = true;
+            if (SaveAsButton != null) SaveAsButton.IsEnabled = true;
+            _rebelstarPainting = true;
+            RefreshRebelstarStage();
+            UpdateUndoRedoState();
+        }
+    }
+
+    private void Rebelstar_RightDown(object sender, MouseButtonEventArgs e)
+    {
+        if (_rebelstarLab == null) return;
+        var pt = e.GetPosition(RebelstarHost);
+        int col = (int)(pt.X / 16);
+        int row = (int)(pt.Y / 16);
+        if (col < 0 || col >= RebelstarMap.Columns || row < 0 || row >= RebelstarMap.Rows) return;
+
+        byte sampled = _rebelstarLab.Map.GetTile(col, row);
+        SetRebelstarBrush(sampled);
+        Status($"Sampled tile ${sampled:X2} from battlefield into active brush");
+    }
+
+    private void Rebelstar_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (!_rebelstarPainting || _rebelstarLab == null || e.LeftButton != MouseButtonState.Pressed) return;
+        var pt = e.GetPosition(RebelstarHost);
+        int col = (int)(pt.X / 16);
+        int row = (int)(pt.Y / 16);
+        if (col < 0 || col >= RebelstarMap.Columns || row < 0 || row >= RebelstarMap.Rows) return;
+
+        byte old = _rebelstarLab.Map.GetTile(col, row);
+        if (old != _rebelstarBrush)
+        {
+            _rebelstarUndo.Push((col, row, old));
+            _rebelstarRedo.Clear();
+            _rebelstarLab.ApplyTileEdit(col, row, _rebelstarBrush);
+            _document?.MarkDirty();
+            RefreshRebelstarStage();
+            UpdateUndoRedoState();
+        }
+    }
+
+    private void Rebelstar_MouseUp(object sender, MouseButtonEventArgs e)
+    {
+        _rebelstarPainting = false;
+    }
+
+    private void RebelstarExportMap_Click(object sender, RoutedEventArgs e)
+    {
+        if (_rebelstarLab == null) return;
+        try
+        {
+            var sfd = new SaveFileDialog
+            {
+                Title = "Export Full Rebelstar II Panoramic Map (1280×800)",
+                Filter = "PNG Image (*.png)|*.png|All Files (*.*)|*.*",
+                FileName = $"Rebelstar2_Battlefield_1280x800.png"
+            };
+
+            if (sfd.ShowDialog(this) != true) return;
+
+            _rebelstarLab.ExportPanoramicMap(sfd.FileName);
+            var bmp = _rebelstarLab.Map.RenderFullMapBitmapSource(renderUnits: true, showGrid: false);
+            try { Clipboard.SetImage(bmp); } catch { }
+            System.Media.SystemSounds.Asterisk.Play();
+            Status($"🗺 Exported full 1280×800 Rebelstar II battlefield map to {Path.GetFileName(sfd.FileName)} and copied to clipboard!");
+        }
+        catch (Exception ex)
+        {
+            ShowError("Export Rebelstar Map", ex);
+        }
+    }
+
+    private void RebelstarToggleGrid_Click(object sender, RoutedEventArgs e)
+    {
+        _rebelstarShowGrid = RebelstarGridToggle?.IsChecked == true;
+        RefreshRebelstarStage();
+    }
+
+    private void RebelstarToggleUnits_Click(object sender, RoutedEventArgs e)
+    {
+        _rebelstarShowUnits = RebelstarUnitsToggle?.IsChecked == true;
+        RefreshRebelstarStage();
+    }
+
+    private void RebelstarFilter_Click(object sender, RoutedEventArgs e)
+    {
+        string filter = (sender as Button)?.Tag?.ToString() ?? "All";
+        BuildRebelstarPalette(filter);
+    }
+
+    private void RebelstarUnitList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (RebelstarUnitList?.SelectedItem is RebelstarUnit unit)
+        {
+            _rebelstarSelectedUnit = unit;
+            if (RebelstarUnitXBox != null) RebelstarUnitXBox.Text = unit.X.ToString();
+            if (RebelstarUnitYBox != null) RebelstarUnitYBox.Text = unit.Y.ToString();
+            DrawRebelstarOverlay();
+        }
+    }
+
+    private void RebelstarUnitField_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_rebelstarLab == null || _rebelstarSelectedUnit == null) return;
+        if (byte.TryParse(RebelstarUnitXBox?.Text, out byte x) && byte.TryParse(RebelstarUnitYBox?.Text, out byte y))
+        {
+            _rebelstarLab.ApplyUnitPosition(_rebelstarSelectedUnit.Index, x, y);
+            _document?.MarkDirty();
+            RefreshRebelstarStage();
+            Status($"Moved {_rebelstarSelectedUnit.Name} to [{x:00},{y:00}]");
+        }
+    }
+
+    private void RebelstarJumpToUnit_Click(object sender, RoutedEventArgs e)
+    {
+        if (_rebelstarSelectedUnit == null || RebelstarStageContainer == null) return;
+        double targetX = Math.Max(0, _rebelstarSelectedUnit.X * 16 - 200);
+        double targetY = Math.Max(0, _rebelstarSelectedUnit.Y * 16 - 150);
+        RebelstarStageContainer.ScrollToHorizontalOffset(targetX);
+        RebelstarStageContainer.ScrollToVerticalOffset(targetY);
+        DrawRebelstarOverlay();
+        Status($"Centered view on {_rebelstarSelectedUnit.Name} at [{_rebelstarSelectedUnit.X},{_rebelstarSelectedUnit.Y}]");
+    }
+
+    private void RebelstarSelectQueen_Click(object sender, RoutedEventArgs e)
+    {
+        if (_rebelstarLab == null) return;
+        var queen = _rebelstarLab.Map.Units.FirstOrDefault(u => u.TypeId == 0x3E || u.Name.Contains("Queen", StringComparison.OrdinalIgnoreCase));
+        if (queen != null)
+        {
+            _rebelstarSelectedUnit = queen;
+            if (RebelstarUnitList != null) RebelstarUnitList.SelectedItem = queen;
+            RebelstarJumpToUnit_Click(sender, e);
+        }
+    }
+
+    private void RebelstarAudio_Click(object sender, RoutedEventArgs e)
+    {
+        AudioStudio_Click(sender, e);
     }
 }
 
