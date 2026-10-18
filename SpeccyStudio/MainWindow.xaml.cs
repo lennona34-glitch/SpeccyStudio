@@ -26,9 +26,12 @@ public partial class MainWindow : Window
     private RexSpawn? _rexSelectedSpawn;
     private RexSpawn? _rexDraggedSpawn;
     private Point _rexDragOffset;
+    private (byte X, byte Row) _rexSpawnDragStartPos;
     private bool _rexPainting;
     private readonly Stack<(int Room, int Cell, byte Old)> _rexUndo = new();
     private readonly Stack<(int Room, int Cell, byte New)> _rexRedo = new();
+    private readonly Stack<RexSpawnUndoAction> _rexSpawnUndo = new();
+    private readonly Stack<RexSpawnUndoAction> _rexSpawnRedo = new();
     private readonly Dictionary<byte, Button> _rexPaletteButtons = new();
     private MythLevelLabProject? _mythLab;
     private MythLevel? _mythLevel;
@@ -303,6 +306,7 @@ public partial class MainWindow : Window
                     "Exolon" => "👾",
                     "Rex" => "🦏",
                     "Myth" => "⚔️",
+                    "Rebelstar" => "👽",
                     _ => "💾"
                 };
                 var item = new ComboBoxItem
@@ -316,7 +320,8 @@ public partial class MainWindow : Window
                 if (_document != null &&
                     (p.FilePath.Equals(_document.SourcePath, StringComparison.OrdinalIgnoreCase) ||
                      (p.GameType == "Rex" && _document.SourcePath.Contains("Rex", StringComparison.OrdinalIgnoreCase)) ||
-                     (p.GameType == "Myth" && _document.SourcePath.Contains("Myth", StringComparison.OrdinalIgnoreCase))))
+                     (p.GameType == "Myth" && _document.SourcePath.Contains("Myth", StringComparison.OrdinalIgnoreCase)) ||
+                     (p.GameType == "Rebelstar" && _document.SourcePath.Contains("Rebel", StringComparison.OrdinalIgnoreCase))))
                 {
                     selectIdx = StoredGamesBox.Items.Count - 1;
                 }
@@ -819,13 +824,16 @@ public partial class MainWindow : Window
                 }
             }
 
-            if (_rexLab != null)
+            if (_rexLab != null && _rexRoom != null)
             {
-                if ((e.Key == Key.Delete || e.Key == Key.Back) && Keyboard.Modifiers == ModifierKeys.None && RexToolSpawnsRadio?.IsChecked == true)
+                if ((e.Key == Key.Delete || e.Key == Key.Back) && Keyboard.Modifiers == ModifierKeys.None)
                 {
-                    RexSpawnDelete_Click(this, new RoutedEventArgs());
-                    e.Handled = true;
-                    return;
+                    if (_rexSelectedSpawn != null || RexSpawnList?.SelectedItem is RexSpawn || RexToolSpawnsRadio?.IsChecked == true)
+                    {
+                        RexSpawnDelete_Click(this, new RoutedEventArgs());
+                        e.Handled = true;
+                        return;
+                    }
                 }
             }
 
@@ -969,8 +977,8 @@ public partial class MainWindow : Window
         {
             if (_rexLab != null)
             {
-                UndoButton.IsEnabled = _rexUndo.Count > 0;
-                RedoButton.IsEnabled = _rexRedo.Count > 0;
+                UndoButton.IsEnabled = _rexUndo.Count > 0 || _rexSpawnUndo.Count > 0;
+                RedoButton.IsEnabled = _rexRedo.Count > 0 || _rexSpawnRedo.Count > 0;
             }
             else if (_mythLab != null)
             {
@@ -2209,6 +2217,21 @@ public partial class MainWindow : Window
     {
         if (_rexLab != null)
         {
+            if (_rexSpawnUndo.Count > 0)
+            {
+                var action = _rexSpawnUndo.Pop();
+                var curSpawns = _rexRoom?.Spawns.Select(s => s.Clone()).ToList() ?? new List<RexSpawn>();
+                var curParams = _rexRoom?.SpawnParams.ToArray() ?? new byte[3];
+                _rexSpawnRedo.Push(new RexSpawnUndoAction(action.RoomIndex, curSpawns, curParams, action.Description));
+
+                _rexLab.ApplySpawns(action.RoomIndex, action.SpawnParams, action.Spawns.Select(s => s.Clone()));
+                _rexSelectedSpawn = null;
+                RefreshRexSpawnPanel();
+                DrawRexOverlay();
+                UpdateUndoRedoState();
+                Status($"Undid: {action.Description}");
+                return;
+            }
             if (_rexUndo.Count == 0) return;
             var (roomIdx, cell, old) = _rexUndo.Pop();
             byte cur = _rexLab.Rooms[roomIdx].Tiles[cell];
@@ -2271,6 +2294,21 @@ public partial class MainWindow : Window
     {
         if (_rexLab != null)
         {
+            if (_rexSpawnRedo.Count > 0)
+            {
+                var action = _rexSpawnRedo.Pop();
+                var curSpawns = _rexRoom?.Spawns.Select(s => s.Clone()).ToList() ?? new List<RexSpawn>();
+                var curParams = _rexRoom?.SpawnParams.ToArray() ?? new byte[3];
+                _rexSpawnUndo.Push(new RexSpawnUndoAction(action.RoomIndex, curSpawns, curParams, action.Description));
+
+                _rexLab.ApplySpawns(action.RoomIndex, action.SpawnParams, action.Spawns.Select(s => s.Clone()));
+                _rexSelectedSpawn = null;
+                RefreshRexSpawnPanel();
+                DrawRexOverlay();
+                UpdateUndoRedoState();
+                Status($"Redid: {action.Description}");
+                return;
+            }
             if (_rexRedo.Count == 0) return;
             var (roomIdx, cell, next) = _rexRedo.Pop();
             byte cur = _rexLab.Rooms[roomIdx].Tiles[cell];
@@ -5300,17 +5338,27 @@ public partial class MainWindow : Window
             {
                 Width = rect.Width,
                 Height = rect.Height,
-                Stroke = selected ? Brushes.Yellow : new SolidColorBrush(Color.FromArgb(200, 255, 75, 75)),
+                Stroke = selected ? new SolidColorBrush(Color.FromRgb(255, 230, 0)) : new SolidColorBrush(Color.FromArgb(200, 255, 75, 75)),
                 StrokeThickness = selected ? 2 : 1,
-                StrokeDashArray = selected ? null : new DoubleCollection { 3, 2 }
+                StrokeDashArray = selected ? null : new DoubleCollection { 3, 2 },
+                Fill = selected ? new SolidColorBrush(Color.FromArgb(45, 255, 230, 0)) : null
             };
             Canvas.SetLeft(frame, rect.X);
             Canvas.SetTop(frame, rect.Y);
             RexOverlayCanvas.Children.Add(frame);
 
-            var label = new TextBlock { Text = $"{spawn.Type:X2}", Foreground = selected ? Brushes.Yellow : Brushes.White, FontSize = 10, FontFamily = new FontFamily("Cascadia Mono") };
+            var label = new TextBlock
+            {
+                Text = selected ? $"${spawn.Type:X2} {spawn.TypeName} ({spawn.X},{spawn.Row})" : $"{spawn.Type:X2}",
+                Foreground = selected ? new SolidColorBrush(Color.FromRgb(255, 240, 50)) : Brushes.White,
+                Background = selected ? new SolidColorBrush(Color.FromArgb(220, 15, 20, 30)) : null,
+                Padding = selected ? new Thickness(2, 0, 2, 0) : new Thickness(0),
+                FontSize = selected ? 10 : 9,
+                FontWeight = selected ? FontWeights.Bold : FontWeights.Normal,
+                FontFamily = new FontFamily("Cascadia Mono")
+            };
             Canvas.SetLeft(label, rect.X + 1);
-            Canvas.SetTop(label, rect.Y - 13);
+            Canvas.SetTop(label, rect.Y - (selected ? 16 : 13));
             RexOverlayCanvas.Children.Add(label);
         }
     }
@@ -5335,6 +5383,19 @@ public partial class MainWindow : Window
         return new Rect((spawn.X - 8) * RexScale, (spawn.Row * 8 - 24) * RexScale, w * RexScale, h * RexScale);
     }
 
+    private RexSpawn? HitTestRexSpawn(Point p, double padding = 6.0)
+    {
+        if (_rexRoom == null || _rexLab == null) return null;
+        for (int i = _rexRoom.Spawns.Count - 1; i >= 0; i--)
+        {
+            var s = _rexRoom.Spawns[i];
+            var r = RexSpawnRect(s);
+            r.Inflate(padding, padding);
+            if (r.Contains(p)) return s;
+        }
+        return null;
+    }
+
     private void RexView_Changed(object sender, RoutedEventArgs e)
     {
         if (!IsLoaded || _rexLab == null) return;
@@ -5344,8 +5405,12 @@ public partial class MainWindow : Window
     private void RexTool_Changed(object sender, RoutedEventArgs e)
     {
         if (!IsLoaded || _rexLab == null) return;
+        if (RexRoomHost != null)
+        {
+            RexRoomHost.Cursor = RexToolSpawnsRadio?.IsChecked == true ? Cursors.Arrow : Cursors.Cross;
+        }
         Status(RexToolSpawnsRadio?.IsChecked == true
-            ? "Rex Spawns mode · click an enemy spawn to select it, drag to move it"
+            ? "Rex Spawns mode · click any enemy spawn to select/drag, Delete to remove, right-click for options"
             : "Rex Metatile mode · left-click/drag paints 24×24 metatile, right-click picks metatile");
     }
 
@@ -5360,23 +5425,36 @@ public partial class MainWindow : Window
     private void RexRoom_MouseDown(object sender, MouseButtonEventArgs e)
     {
         if (_rexRoom == null || _rexLab == null) return;
-        if (RexToolSpawnsRadio?.IsChecked == true)
+        var p = e.GetPosition(RexRoomHost);
+
+        // 1. Direct click on an enemy spawn (works whether in Metatiles or Spawns tool mode!)
+        var hit = HitTestRexSpawn(p, padding: 6.0);
+        if (hit != null)
         {
-            var p = e.GetPosition(RexRoomHost);
-            var hit = _rexRoom.Spawns.LastOrDefault(s => RexSpawnRect(s).Contains(p));
             _rexSelectedSpawn = hit;
-            if (hit != null)
-            {
-                var r = RexSpawnRect(hit);
-                _rexDragOffset = new Point(p.X - r.X, p.Y - r.Y);
-                _rexDraggedSpawn = hit;
-                RexRoomHost.CaptureMouse();
-            }
+            if (RexToolSpawnsRadio != null) RexToolSpawnsRadio.IsChecked = true;
+            var r = RexSpawnRect(hit);
+            _rexDragOffset = new Point(p.X - r.X, p.Y - r.Y);
+            _rexDraggedSpawn = hit;
+            _rexSpawnDragStartPos = (hit.X, hit.Row);
+            RexRoomHost.CaptureMouse();
             SelectRexSpawnInList();
             DrawRexOverlay();
+            Status($"Selected spawn ${hit.Type:X2} ({hit.TypeName}) at X={hit.X}, Row={hit.Row} · Drag to move · Delete key to remove · Right-click for options");
             return;
         }
 
+        // 2. Clicked empty space in Spawns mode -> deselect
+        if (RexToolSpawnsRadio?.IsChecked == true)
+        {
+            _rexSelectedSpawn = null;
+            SelectRexSpawnInList();
+            DrawRexOverlay();
+            Status("Deselected spawn · Click any enemy spawn to select or drag it");
+            return;
+        }
+
+        // 3. Paint metatiles in Tiles mode
         _rexPainting = true;
         RexRoomHost.CaptureMouse();
         PaintRexAt(e);
@@ -5384,30 +5462,129 @@ public partial class MainWindow : Window
 
     private void RexRoom_RightDown(object sender, MouseButtonEventArgs e)
     {
-        if (_rexRoom == null || !TryRexCell(e, out int col, out int row)) return;
+        if (_rexRoom == null || _rexLab == null) return;
+        var p = e.GetPosition(RexRoomHost);
+
+        // Right-clicking a spawn or right-clicking anywhere in Spawns mode shows context menu
+        var hit = HitTestRexSpawn(p, padding: 6.0);
+        if (hit != null || RexToolSpawnsRadio?.IsChecked == true)
+        {
+            if (hit != null)
+            {
+                _rexSelectedSpawn = hit;
+                if (RexToolSpawnsRadio != null) RexToolSpawnsRadio.IsChecked = true;
+                SelectRexSpawnInList();
+                DrawRexOverlay();
+            }
+            ShowRexSpawnContextMenu(hit, p);
+            e.Handled = true;
+            return;
+        }
+
+        if (!TryRexCell(e, out int col, out int row)) return;
         SetRexBrush(_rexRoom.Tiles[row * RexLevelLabProject.RoomColumns + col]);
         if (RexToolTilesRadio != null) RexToolTilesRadio.IsChecked = true;
         Status($"Picked metatile ${_rexBrush:X2}");
     }
 
+    private void ShowRexSpawnContextMenu(RexSpawn? spawn, Point p)
+    {
+        if (_rexLab == null || _rexRoom == null) return;
+        var cm = new ContextMenu();
+        if (spawn != null)
+        {
+            var header = new MenuItem
+            {
+                Header = $"👾 ${spawn.Type:X2}  {spawn.TypeName}  (X={spawn.X}, Row={spawn.Row})",
+                IsEnabled = false,
+                FontWeight = FontWeights.Bold
+            };
+            cm.Items.Add(header);
+            cm.Items.Add(new Separator());
+
+            var delItem = new MenuItem { Header = "🗑 Delete Spawn (Delete)", FontWeight = FontWeights.SemiBold };
+            delItem.Click += (_, _) => RexSpawnDelete_Click(this, new RoutedEventArgs());
+            cm.Items.Add(delItem);
+
+            var flipItem = new MenuItem { Header = spawn.FacingLeft ? "➡️ Turn Right (Face East)" : "⬅️ Turn Left (Face West)" };
+            flipItem.Click += (_, _) =>
+            {
+                PushRexSpawnUndo("Turn spawn");
+                spawn.FacingLeft = !spawn.FacingLeft;
+                CommitRexSpawns($"Turned spawn ${spawn.Type:X2}");
+            };
+            cm.Items.Add(flipItem);
+
+            var dupItem = new MenuItem { Header = "📋 Duplicate Spawn" };
+            dupItem.Click += (_, _) =>
+            {
+                byte newX = (byte)Math.Clamp(spawn.X + 16, 8, 232);
+                AddRexSpawn(new RexSpawn(spawn.Type, spawn.FacingLeft, newX, spawn.Row, spawn.Part), $"Duplicate spawn ${spawn.Type:X2}");
+            };
+            cm.Items.Add(dupItem);
+            cm.Items.Add(new Separator());
+        }
+
+        int clickPx = (int)Math.Round(p.X / RexScale) + 8;
+        int clickRow = (int)Math.Round((p.Y / RexScale + 24) / 8.0);
+        byte spawnX = (byte)Math.Clamp(clickPx, 8, 232);
+        byte spawnRow = (byte)Math.Clamp(clickRow, 3, 23);
+
+        var addItem = new MenuItem { Header = $"➕ Add Spawn at (X={spawnX}, Row={spawnRow})" };
+        addItem.Click += (_, _) =>
+        {
+            byte type = (byte)(RexSpawnTypeCombo?.SelectedItem is RexTypeChoice c ? c.Type : _rexLab.SpriteTypes.First().TypeId);
+            AddRexSpawn(new RexSpawn(type, false, spawnX, spawnRow, _rexLab.Part), $"Add spawn ${type:X2}");
+        };
+        cm.Items.Add(addItem);
+
+        cm.IsOpen = true;
+    }
+
     private void RexRoom_MouseMove(object sender, MouseEventArgs e)
     {
         if (_rexRoom == null || _rexLab == null) return;
-        if (_rexPainting && e.LeftButton == MouseButtonState.Pressed) PaintRexAt(e);
+        var p = e.GetPosition(RexRoomHost);
 
+        // Active drag of enemy spawn
         if (_rexDraggedSpawn != null && e.LeftButton == MouseButtonState.Pressed)
         {
-            var p = e.GetPosition(RexRoomHost);
             int px = (int)Math.Round((p.X - _rexDragOffset.X) / RexScale) + 8;
             int row = (int)Math.Round(((p.Y - _rexDragOffset.Y) / RexScale + 24) / 8.0);
-            _rexDraggedSpawn.X = (byte)Math.Clamp(px, 8, 247);
-            _rexDraggedSpawn.Row = (byte)Math.Clamp(row, 3, 23);
-            LoadRexSpawnFields();
-            DrawRexOverlay();
+            byte newX = (byte)Math.Clamp(px, 8, 232);
+            byte newRow = (byte)Math.Clamp(row, 3, 23);
+            if (_rexDraggedSpawn.X != newX || _rexDraggedSpawn.Row != newRow)
+            {
+                _rexDraggedSpawn.X = newX;
+                _rexDraggedSpawn.Row = newRow;
+                LoadRexSpawnFields();
+                DrawRexOverlay();
+            }
+            Status($"Moving ${_rexDraggedSpawn.Type:X2} ({_rexDraggedSpawn.TypeName}) · X={_rexDraggedSpawn.X}, Row={_rexDraggedSpawn.Row}");
+            return;
         }
-        else if (TryRexCell(e, out int col, out int r))
+
+        // Active metatile painting
+        if (_rexPainting && e.LeftButton == MouseButtonState.Pressed)
         {
-            Status($"Room {_rexRoom.Index:00}  ·  cell ({col},{r})  ·  metatile ${_rexRoom.Tiles[r * RexLevelLabProject.RoomColumns + col]:X2}");
+            PaintRexAt(e);
+            return;
+        }
+
+        // Hover inspection
+        var hover = HitTestRexSpawn(p, padding: 4.0);
+        if (hover != null)
+        {
+            RexRoomHost.Cursor = Cursors.SizeAll;
+            Status($"👾 Spawn: ${hover.Type:X2} ({hover.TypeName}) at X={hover.X}, Row={hover.Row}{(hover.FacingLeft ? " ◄" : " ►")} · Click or drag to move · Delete to remove · Right-click for options");
+        }
+        else
+        {
+            RexRoomHost.Cursor = RexToolSpawnsRadio?.IsChecked == true ? Cursors.Arrow : Cursors.Cross;
+            if (TryRexCell(e, out int col, out int r))
+            {
+                Status($"Room {_rexRoom.Index:00} · cell ({col},{r}) · metatile ${_rexRoom.Tiles[r * RexLevelLabProject.RoomColumns + col]:X2}");
+            }
         }
     }
 
@@ -5415,7 +5592,22 @@ public partial class MainWindow : Window
     {
         if (_rexDraggedSpawn != null)
         {
-            CommitRexSpawns("Moved spawn");
+            var (oldX, oldRow) = _rexSpawnDragStartPos;
+            if (_rexDraggedSpawn.X != oldX || _rexDraggedSpawn.Row != oldRow)
+            {
+                var snapshot = _rexRoom?.Spawns.Select(s => s == _rexDraggedSpawn
+                    ? new RexSpawn(s.Type, s.FacingLeft, oldX, oldRow, s.Part)
+                    : s.Clone()).ToList() ?? new List<RexSpawn>();
+                _rexSpawnUndo.Push(new RexSpawnUndoAction(
+                    _rexRoom!.Index,
+                    snapshot,
+                    _rexRoom.SpawnParams.ToArray(),
+                    $"Move spawn ${_rexDraggedSpawn.Type:X2} to X={_rexDraggedSpawn.X}, Row={_rexDraggedSpawn.Row}"
+                ));
+                _rexSpawnRedo.Clear();
+                UpdateUndoRedoState();
+                CommitRexSpawns($"Moved spawn ${_rexDraggedSpawn.Type:X2} to X={_rexDraggedSpawn.X}, Row={_rexDraggedSpawn.Row}");
+            }
             _rexDraggedSpawn = null;
         }
         _rexPainting = false;
@@ -5576,11 +5768,30 @@ public partial class MainWindow : Window
         DrawRexOverlay();
     }
 
+    private void PushRexSpawnUndo(string desc)
+    {
+        if (_rexRoom == null) return;
+        _rexSpawnUndo.Push(new RexSpawnUndoAction(
+            _rexRoom.Index,
+            _rexRoom.Spawns.Select(s => s.Clone()).ToList(),
+            _rexRoom.SpawnParams.ToArray(),
+            desc
+        ));
+        _rexSpawnRedo.Clear();
+        UpdateUndoRedoState();
+    }
+
     private void RexSpawnAdd_Click(object sender, RoutedEventArgs e)
     {
         if (_rexRoom == null || _rexLab == null) return;
         byte type = (byte)(RexSpawnTypeCombo?.SelectedItem is RexTypeChoice c ? c.Type : _rexLab.SpriteTypes.First().TypeId);
-        var spawn = new RexSpawn(type, false, 120, 12);
+        AddRexSpawn(new RexSpawn(type, false, 120, 12, _rexLab.Part), $"Add spawn ${type:X2}");
+    }
+
+    private void AddRexSpawn(RexSpawn spawn, string description)
+    {
+        if (_rexRoom == null || _rexLab == null) return;
+        PushRexSpawnUndo(description);
         var list = _rexRoom.Spawns.ToList();
         list.Add(spawn);
         try
@@ -5592,6 +5803,8 @@ public partial class MainWindow : Window
         }
         catch (InvalidOperationException ex)
         {
+            if (_rexSpawnUndo.Count > 0) _rexSpawnUndo.Pop();
+            UpdateUndoRedoState();
             MessageBox.Show(this, ex.Message, "Spawn data is full", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
@@ -5599,13 +5812,22 @@ public partial class MainWindow : Window
         if (RexToolSpawnsRadio != null) RexToolSpawnsRadio.IsChecked = true;
         RefreshRexSpawnPanel();
         DrawRexOverlay();
-        Status($"Added spawn ${type:X2} to room {_rexRoom.Index:00}");
+        try { System.Media.SystemSounds.Asterisk.Play(); } catch { }
+        Status($"➕ Added spawn ${spawn.Type:X2} ({spawn.TypeName}) at X={spawn.X}, Row={spawn.Row} · room {_rexRoom.Index:00} now has {_rexRoom.Spawns.Count} spawns");
     }
 
     private void RexSpawnDelete_Click(object sender, RoutedEventArgs e)
     {
-        if (_rexRoom == null || _rexLab == null || _rexSelectedSpawn == null) return;
-        var list = _rexRoom.Spawns.Where(s => s != _rexSelectedSpawn).ToList();
+        if (_rexRoom == null || _rexLab == null) return;
+        var target = _rexSelectedSpawn ?? (RexSpawnList?.SelectedItem as RexSpawn) ?? _rexRoom.Spawns.LastOrDefault();
+        if (target == null)
+        {
+            Status("No enemy spawn to delete in this room.");
+            return;
+        }
+
+        PushRexSpawnUndo($"Delete spawn ${target.Type:X2}");
+        var list = _rexRoom.Spawns.Where(s => s != target).ToList();
         _rexLab.ApplySpawns(_rexRoom.Index, _rexRoom.SpawnParams.ToArray(), list);
         _document?.MarkDirty();
         if (SaveButton != null) SaveButton.IsEnabled = true;
@@ -5613,7 +5835,8 @@ public partial class MainWindow : Window
         _rexSelectedSpawn = null;
         RefreshRexSpawnPanel();
         DrawRexOverlay();
-        Status($"Deleted spawn · room {_rexRoom.Index:00} now {_rexRoom.Spawns.Count} spawns");
+        try { System.Media.SystemSounds.Asterisk.Play(); } catch { }
+        Status($"🗑 Deleted spawn ${target.Type:X2} ({target.TypeName}) · room {_rexRoom.Index:00} now has {_rexRoom.Spawns.Count} spawns ({_rexLab.SpawnBytesUsed}/{_rexLab.SpawnBudget} bytes)");
     }
 
     private void RefreshRexExits()

@@ -133,6 +133,19 @@ public sealed class ProjectVaultService
             {
                 CopyFirstFound([@"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[TAP]\Myth - History in the Making (1989)(System 3 Software).zip"], mythTapDest);
             }
+
+            // Preset 5: Rebelstar II (1988) - Tactical Battlefield & Sprite Workshop
+            string rebDest = Path.Combine(_projectsDir, "Rebel Star II (1988).z80");
+            string[] rebSources =
+            [
+                @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[Z80]\Rebel Star II - Alien Encounter - 1 Player (1988)(Silverbird Software).zip",
+                @"C:\Users\adria\Desktop\DEV FOLDER\_=[ 07_3MU_R37R0 ]=_\Sinclair ZX Spectrum [TOSEC]\Games\[TAP]\Rebel Star II - Alien Encounter - 1 Player (1988)(Silverbird Software).zip",
+                Path.Combine(AppContext.BaseDirectory, "Assets", "rebelstar2.scr")
+            ];
+            if (!File.Exists(rebDest))
+            {
+                CopyFirstFound(rebSources, rebDest);
+            }
         }
         catch (Exception ex)
         {
@@ -188,10 +201,12 @@ public sealed class ProjectVaultService
             {
                 try
                 {
-                    if (c.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) && destination.EndsWith(".tap", StringComparison.OrdinalIgnoreCase))
+                    if (c.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) &&
+                        (destination.EndsWith(".tap", StringComparison.OrdinalIgnoreCase) || destination.EndsWith(".z80", StringComparison.OrdinalIgnoreCase)))
                     {
+                        string ext = Path.GetExtension(destination);
                         using var archive = System.IO.Compression.ZipFile.OpenRead(c);
-                        var entry = archive.Entries.FirstOrDefault(e => e.Name.EndsWith(".tap", StringComparison.OrdinalIgnoreCase))
+                        var entry = archive.Entries.FirstOrDefault(e => e.Name.EndsWith(ext, StringComparison.OrdinalIgnoreCase))
                                    ?? archive.Entries.FirstOrDefault(e => !string.IsNullOrEmpty(e.Name));
                         if (entry != null)
                         {
@@ -247,11 +262,12 @@ public sealed class ProjectVaultService
     {
         var result = new List<StoredProjectItem>();
 
-        // Only the exact 4 modding game ROMs
+        // The 5 core modding games
         AddPresetIfExists(result, "Cybernoid II (1988)", Path.Combine(_projectsDir, "Cybernoid II (1988).tap"), "Cybernoid");
         AddPresetIfExists(result, "Exolon (1987)", Path.Combine(_projectsDir, "Exolon (1987) [128K].zip"), "Exolon");
         AddPresetIfExists(result, "Rex (1988)", Path.Combine(_projectsDir, "Rex (1988).tap"), "Rex");
         AddPresetIfExists(result, "Myth (1989)", Path.Combine(_projectsDir, "Myth (1989).tap"), "Myth");
+        AddPresetIfExists(result, "Rebelstar II (1988)", Path.Combine(_projectsDir, "Rebel Star II (1988).z80"), "Rebelstar");
 
         return result;
     }
@@ -271,6 +287,7 @@ public sealed class ProjectVaultService
         if (s.Contains("exolon")) return "Exolon";
         if (s.Contains("rex")) return "Rex";
         if (s.Contains("myth")) return "Myth";
+        if (s.Contains("rebelstar") || s.Contains("rebel star") || s.Contains("rebel")) return "Rebelstar";
         return "Custom";
     }
 

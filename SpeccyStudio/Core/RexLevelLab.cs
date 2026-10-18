@@ -17,27 +17,60 @@ namespace SpeccyStudio.Core;
 /// </summary>
 public sealed record RexSpriteTypeInfo(int Part, byte TypeId, string Name, int Width, int Height, int TableAddress, int BaseAddress, int AltAddress);
 
+public sealed record RexSpawnUndoAction(int RoomIndex, List<RexSpawn> Spawns, byte[] SpawnParams, string Description);
+
 public sealed class RexSpawn : INotifyPropertyChanged
 {
     private byte _type;
     private bool _facingLeft;
     private byte _x;
     private byte _row;
+    private int _part = 1;
 
-    public RexSpawn(byte type, bool facingLeft, byte x, byte row)
+    public RexSpawn(byte type, bool facingLeft, byte x, byte row, int part = 1)
     {
         _type = type;
         _facingLeft = facingLeft;
         _x = x;
         _row = row;
+        _part = part;
     }
 
-    public byte Type { get => _type; set { if (_type == value) return; _type = (byte)(value & 0x7F); Changed(nameof(Type)); Changed(nameof(DisplayText)); } }
-    public bool FacingLeft { get => _facingLeft; set { if (_facingLeft == value) return; _facingLeft = value; Changed(nameof(FacingLeft)); Changed(nameof(DisplayText)); } }
-    public byte X { get => _x; set { if (_x == value) return; _x = value; Changed(nameof(X)); Changed(nameof(DisplayText)); } }
-    public byte Row { get => _row; set { if (_row == value) return; _row = value; Changed(nameof(Row)); Changed(nameof(DisplayText)); } }
+    public int Part
+    {
+        get => _part;
+        set { if (_part == value) return; _part = value; Changed(nameof(Part)); Changed(nameof(TypeName)); Changed(nameof(DisplayText)); }
+    }
 
-    public string DisplayText => $"${Type:X2} x={X} row={Row}{(FacingLeft ? " ◄" : " ►")}";
+    public byte Type
+    {
+        get => _type;
+        set { if (_type == value) return; _type = (byte)(value & 0x7F); Changed(nameof(Type)); Changed(nameof(TypeName)); Changed(nameof(DisplayText)); }
+    }
+
+    public bool FacingLeft
+    {
+        get => _facingLeft;
+        set { if (_facingLeft == value) return; _facingLeft = value; Changed(nameof(FacingLeft)); Changed(nameof(DisplayText)); }
+    }
+
+    public byte X
+    {
+        get => _x;
+        set { if (_x == value) return; _x = value; Changed(nameof(X)); Changed(nameof(DisplayText)); }
+    }
+
+    public byte Row
+    {
+        get => _row;
+        set { if (_row == value) return; _row = value; Changed(nameof(Row)); Changed(nameof(DisplayText)); }
+    }
+
+    public string TypeName => RexSpriteCatalog.Find(_part, _type)?.Name ?? $"Type ${_type:X2}";
+
+    public string DisplayText => $"${Type:X2} {TypeName,-14}  X={X,3} Row={Row,2} {(FacingLeft ? "◄" : "►")}";
+
+    public RexSpawn Clone() => new RexSpawn(_type, _facingLeft, _x, _row, _part);
 
     public event PropertyChangedEventHandler? PropertyChanged;
     private void Changed(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
@@ -207,7 +240,7 @@ public sealed class RexLevelLabProject
             int q = p + 3;
             while (q + 2 < end && _memory[q] != 0xFF)
             {
-                spawns.Add(new RexSpawn((byte)(_memory[q] & 0x7F), (_memory[q] & 0x80) != 0, _memory[q + 1], _memory[q + 2]));
+                spawns.Add(new RexSpawn((byte)(_memory[q] & 0x7F), (_memory[q] & 0x80) != 0, _memory[q + 1], _memory[q + 2], Part));
                 q += 3;
             }
             if (q >= end || _memory[q] != 0xFF) return null;

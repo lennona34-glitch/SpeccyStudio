@@ -37,7 +37,7 @@
         <Viewbox Grid.Column="1" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="16,0,12,0">
           <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
             <Button Content="Open game…" Click="Open_Click" Style="{StaticResource PrimaryButton}" Padding="9,5"/>
-            <ComboBox x:Name="StoredGamesBox" Width="170" Margin="5,0,0,0" VerticalAlignment="Center" SelectionChanged="StoredGamesBox_SelectionChanged" ToolTip="Switch between the 4 core modding games"/>
+            <ComboBox x:Name="StoredGamesBox" Width="170" Margin="5,0,0,0" VerticalAlignment="Center" SelectionChanged="StoredGamesBox_SelectionChanged" ToolTip="Switch between the 5 core modding games"/>
             <Button x:Name="SaveButton" Content="Save" Click="Save_Click" IsEnabled="False" Padding="8,5"/>
             <Button x:Name="SaveAsButton" Content="Save as…" Click="SaveAs_Click" IsEnabled="False" Padding="8,5"/>
             <Button x:Name="UndoButton" Content="Undo" Click="Undo_Click" IsEnabled="False" Padding="8,5" ToolTip="Undo edit (Ctrl+Z)"/>
@@ -1139,10 +1139,18 @@
                 <GroupBox Header="ENEMY SPAWNS &amp; ROOM RULES">
                   <StackPanel>
                     <TextBlock x:Name="RexSpawnBudgetText" Foreground="#72BDE8" FontSize="10" TextWrapping="Wrap" Margin="0,0,0,6"/>
-                    <ListBox x:Name="RexSpawnList" Height="120" SelectionChanged="RexSpawnList_SelectionChanged" FontFamily="Cascadia Mono" FontSize="11"/>
+                    <ListBox x:Name="RexSpawnList" Height="130" SelectionChanged="RexSpawnList_SelectionChanged" FontFamily="Cascadia Mono" FontSize="11">
+                      <ListBox.ItemTemplate>
+                        <DataTemplate>
+                          <StackPanel Orientation="Horizontal" Margin="2,1">
+                            <TextBlock Text="{Binding DisplayText}"/>
+                          </StackPanel>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
                     <WrapPanel Margin="0,6,0,6">
-                      <Button Content="＋ Add Spawn" Click="RexSpawnAdd_Click" Padding="7,3" FontSize="10"/>
-                      <Button Content="🗑 Delete Spawn" Click="RexSpawnDelete_Click" Padding="7,3" FontSize="10" Margin="4,0,0,0"/>
+                      <Button Content="＋ Add Spawn" Click="RexSpawnAdd_Click" Padding="7,3" FontSize="10" ToolTip="Add a new enemy spawn to this room"/>
+                      <Button Content="🗑 Delete Spawn" Click="RexSpawnDelete_Click" Padding="7,3" FontSize="10" Margin="4,0,0,0" ToolTip="Delete the selected enemy spawn (Delete)"/>
                     </WrapPanel>
 
                     <Grid Margin="0,2,0,6">
